@@ -1,0 +1,34 @@
+# ==========================================
+# EPIC Payments - Root .gitignore
+# ==========================================
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+backend/.venv/
+backend/__pycache__/
+*.py[cod]
+*.pyo
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Logs
+*.log
