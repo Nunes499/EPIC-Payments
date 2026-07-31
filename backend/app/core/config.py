@@ -4,9 +4,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "EPIC Payments API"
     app_version: str = "0.1.0"
+
     database_url: str = (
         "postgresql+psycopg://epic_user:epic_password@db:5432/epic_payments"
     )
+
+    secret_key: str = "alterar-esta-chave-em-producao"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
