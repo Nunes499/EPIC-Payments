@@ -1,11 +1,8 @@
 from fastapi import FastAPI
 
 from app.core.config import settings
-from app.database.session import Base, engine
-from app.models import User
 
 # Cria todas as tabelas definidas nos modelos
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title=settings.app_name,
