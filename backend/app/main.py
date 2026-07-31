@@ -1,13 +1,32 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from app.api import auth_router
 from app.core.config import settings
+from app.database.session import SessionLocal
+from app.services import create_initial_admin
 
-# Cria todas as tabelas definidas nos modelos
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db = SessionLocal()
+
+    try:
+        create_initial_admin(db)
+    finally:
+        db.close()
+
+    yield
+
 
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    lifespan=lifespan,
 )
+
+app.include_router(auth_router)
 
 
 @app.get("/")
