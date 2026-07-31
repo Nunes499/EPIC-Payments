@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import auth_router
+from app.api import auth_router, calendar_router
 from app.core.config import settings
 from app.database.session import SessionLocal
 from app.services import create_initial_admin
@@ -26,7 +26,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Routers
 app.include_router(auth_router)
+app.include_router(calendar_router)
 
 
 @app.get("/")
