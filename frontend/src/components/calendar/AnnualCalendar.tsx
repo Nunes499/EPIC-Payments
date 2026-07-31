@@ -8,6 +8,13 @@ import {
 } from "lucide-react";
 
 import Button from "@/components/ui/Button";
+import {
+  deleteCalendarFile,
+  downloadCalendarFile,
+  listCalendarFiles,
+  uploadCalendarFile,
+  type ApiCalendarFile,
+} from "@/services/calendarFiles";
 
 import DayDrawer from "./DayDrawer";
 import MonthCard from "./MonthCard";
@@ -15,6 +22,7 @@ import UploadFileDialog from "./UploadFileDialog";
 
 import type {
   CalendarDayData,
+  CalendarFile,
   UploadFilePayload,
 } from "./calendar-types";
 
@@ -33,79 +41,51 @@ const monthNames = [
   "Dezembro",
 ];
 
-const initialDemoData: Record<string, CalendarDayData> = {
-  "2026-07-01": {
-    date: "2026-07-01",
-    pendingMembers: 18,
-    status: "pending",
-    files: [
-      {
-        id: 1,
-        name: "Retornos_01-07-2026.pdf",
-        type: "pdf",
-        size: "245 KB",
-      },
-      {
-        id: 2,
-        name: "Debitos_01-07-2026.xml",
-        type: "xml",
-        size: "82 KB",
-      },
-    ],
-  },
-  "2026-07-25": {
-    date: "2026-07-25",
-    pendingMembers: 0,
-    status: "processed",
-    files: [
-      {
-        id: 3,
-        name: "Retornos_25-07-2026.pdf",
-        type: "pdf",
-        size: "311 KB",
-      },
-      {
-        id: 4,
-        name: "Relatorio_25-07-2026.xlsx",
-        type: "report",
-        size: "48 KB",
-      },
-    ],
-  },
-  "2026-08-01": {
-    date: "2026-08-01",
-    pendingMembers: 9,
-    status: "uploaded",
-    files: [
-      {
-        id: 5,
-        name: "Banco_01-08-2026.xml",
-        type: "xml",
-        size: "64 KB",
-      },
-    ],
-  },
-};
-
 type AnnualCalendarProps = {
   initialYear?: number;
 };
+
+function formatFileSize(size: number | null): string | undefined {
+  if (!size) {
+    return undefined;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function mapApiFile(file: ApiCalendarFile): CalendarFile {
+  return {
+    id: file.id,
+    name: file.original_filename,
+    type: file.file_type,
+    size: formatFileSize(file.file_size),
+    mimeType: file.mime_type,
+    uploadedAt: file.uploaded_at,
+  };
+}
 
 export default function AnnualCalendar({
   initialYear = new Date().getFullYear(),
 }: AnnualCalendarProps) {
   const [year, setYear] = useState(initialYear);
-
   const [selectedDate, setSelectedDate] =
     useState<string | null>(null);
 
   const [daysData, setDaysData] =
-    useState<Record<string, CalendarDayData>>(
-      initialYear === 2026 ? initialDemoData : {},
-    );
+    useState<Record<string, CalendarDayData>>({});
 
   const [isUploadOpen, setIsUploadOpen] =
     useState(false);
+
+  const [isLoadingFiles, setIsLoadingFiles] =
+    useState(false);
+
+  const [drawerError, setDrawerError] =
+    useState<string | null>(null);
 
   const selectedDayData = selectedDate
     ? daysData[selectedDate]
@@ -119,8 +99,41 @@ export default function AnnualCalendar({
     );
   }, [daysData, year]);
 
+  async function loadFilesForDate(date: string) {
+    setIsLoadingFiles(true);
+    setDrawerError(null);
+
+    try {
+      const files = await listCalendarFiles(date);
+
+      setDaysData((current) => ({
+        ...current,
+        [date]: {
+          date,
+          files: files.map(mapApiFile),
+          pendingMembers: 0,
+          status: files.length ? "uploaded" : "empty",
+        },
+      }));
+    } catch (error) {
+      setDrawerError(
+        error instanceof Error
+          ? error.message
+          : "Erro ao carregar ficheiros.",
+      );
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  }
+
+  async function handleSelectDay(date: string) {
+    setSelectedDate(date);
+    await loadFilesForDate(date);
+  }
+
   function openCurrentDay() {
     const today = new Date();
+
     const date = [
       today.getFullYear(),
       String(today.getMonth() + 1).padStart(2, "0"),
@@ -128,46 +141,83 @@ export default function AnnualCalendar({
     ].join("-");
 
     setYear(today.getFullYear());
-    setSelectedDate(date);
+    void handleSelectDay(date);
   }
 
-  function handleUpload(payload: UploadFilePayload) {
-    const newFileId = Date.now();
+  async function handleUpload(payload: UploadFilePayload) {
+    try {
+      await uploadCalendarFile(
+        payload.date,
+        payload.file,
+      );
 
-    setDaysData((current) => {
-      const existing = current[payload.date];
-
-      const newFile = {
-        id: newFileId,
-        name: payload.file.name,
-        type: payload.type,
-        size: `${(payload.file.size / 1024).toFixed(1)} KB`,
-      };
-
-      return {
-        ...current,
-        [payload.date]: {
-          date: payload.date,
-          pendingMembers: existing?.pendingMembers ?? 0,
-          status: "uploaded",
-          files: [...(existing?.files ?? []), newFile],
-        },
-      };
-    });
-
-    setSelectedDate(payload.date);
+      await loadFilesForDate(payload.date);
+      setSelectedDate(payload.date);
+    } catch (error) {
+      setDrawerError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível enviar o ficheiro.",
+      );
+    }
   }
 
-  function openUploadForToday() {
-    const today = new Date();
+  async function handleDownload(file: CalendarFile) {
+    try {
+      await downloadCalendarFile({
+        id: file.id,
+        calendar_date: selectedDate ?? "",
+        original_filename: file.name,
+        stored_filename: "",
+        file_type: file.type,
+        mime_type: file.mimeType ?? null,
+        file_size: null,
+        file_path: "",
+        uploaded_at: file.uploadedAt ?? "",
+      });
+    } catch (error) {
+      setDrawerError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível descarregar o ficheiro.",
+      );
+    }
+  }
 
-    const date = [
-      year,
-      String(today.getMonth() + 1).padStart(2, "0"),
-      String(today.getDate()).padStart(2, "0"),
-    ].join("-");
+  async function handleDelete(file: CalendarFile) {
+    const confirmed = window.confirm(
+      `Pretende eliminar o ficheiro "${file.name}"?`,
+    );
 
-    setSelectedDate(date);
+    if (!confirmed || !selectedDate) {
+      return;
+    }
+
+    try {
+      await deleteCalendarFile(file.id);
+      await loadFilesForDate(selectedDate);
+    } catch (error) {
+      setDrawerError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível eliminar o ficheiro.",
+      );
+    }
+  }
+
+  function openUploadForSelectedDate() {
+    if (!selectedDate) {
+      const today = new Date();
+
+      const date = [
+        year,
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0"),
+      ].join("-");
+
+      setSelectedDate(date);
+    }
+
     setIsUploadOpen(true);
   }
 
@@ -211,7 +261,7 @@ export default function AnnualCalendar({
 
             <Button
               icon={<Plus size={18} />}
-              onClick={openUploadForToday}
+              onClick={openUploadForSelectedDate}
             >
               Novo ficheiro
             </Button>
@@ -226,7 +276,7 @@ export default function AnnualCalendar({
               month={monthIndex}
               monthName={monthName}
               daysData={dataForCurrentYear}
-              onSelectDay={setSelectedDate}
+              onSelectDay={handleSelectDay}
             />
           ))}
         </div>
@@ -236,16 +286,20 @@ export default function AnnualCalendar({
         isOpen={Boolean(selectedDate)}
         selectedDate={selectedDate}
         data={selectedDayData}
-        onClose={() => setSelectedDate(null)}
+        isLoading={isLoadingFiles}
+        error={drawerError}
+        onClose={() => {
+          setSelectedDate(null);
+          setDrawerError(null);
+        }}
         onAddFile={() => setIsUploadOpen(true)}
+        onDownload={handleDownload}
+        onDelete={handleDelete}
       />
 
       <UploadFileDialog
         isOpen={isUploadOpen}
-        selectedDate={
-          selectedDate ??
-          `${year}-01-01`
-        }
+        selectedDate={selectedDate ?? `${year}-01-01`}
         onClose={() => setIsUploadOpen(false)}
         onUpload={handleUpload}
       />

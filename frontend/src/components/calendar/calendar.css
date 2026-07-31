@@ -599,3 +599,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+.drawer-error-state {
+  display: flex;
+  min-height: 130px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid rgba(239, 42, 56, 0.35);
+  border-radius: 13px;
+  background: rgba(239, 42, 56, 0.06);
+  padding: 18px;
+  color: #a3111c;
+  text-align: center;
+}
+
+.drawer-error-state strong {
+  color: #a3111c;
+}
+
+.drawer-error-state span {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+

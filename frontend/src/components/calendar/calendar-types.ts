@@ -11,6 +11,8 @@ export type CalendarFile = {
   name: string;
   type: CalendarFileType;
   size?: string;
+  mimeType?: string | null;
+  uploadedAt?: string;
 };
 
 export type CalendarDayData = {

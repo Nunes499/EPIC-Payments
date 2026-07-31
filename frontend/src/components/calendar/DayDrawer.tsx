@@ -2,24 +2,28 @@
 
 import {
   Download,
-  Eye,
   FileSpreadsheet,
   FileText,
   Plus,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
 
 import Button from "@/components/ui/Button";
 
-import type { CalendarDayData } from "./calendar-types";
+import type { CalendarDayData, CalendarFile } from "./calendar-types";
 
 type DayDrawerProps = {
   isOpen: boolean;
   selectedDate: string | null;
   data?: CalendarDayData;
+  isLoading?: boolean;
+  error?: string | null;
   onClose: () => void;
   onAddFile: () => void;
+  onDownload: (file: CalendarFile) => void;
+  onDelete: (file: CalendarFile) => void;
 };
 
 const formatter = new Intl.DateTimeFormat("pt-PT", {
@@ -41,8 +45,12 @@ export default function DayDrawer({
   isOpen,
   selectedDate,
   data,
+  isLoading = false,
+  error = null,
   onClose,
   onAddFile,
+  onDownload,
+  onDelete,
 }: DayDrawerProps) {
   if (!isOpen || !selectedDate) {
     return null;
@@ -84,7 +92,20 @@ export default function DayDrawer({
             <span>{data?.files.length ?? 0}</span>
           </div>
 
-          {data?.files.length ? (
+          {isLoading ? (
+            <div className="drawer-empty-state">
+              <strong>A carregar ficheiros...</strong>
+            </div>
+          ) : null}
+
+          {!isLoading && error ? (
+            <div className="drawer-error-state">
+              <strong>Não foi possível carregar</strong>
+              <span>{error}</span>
+            </div>
+          ) : null}
+
+          {!isLoading && !error && data?.files.length ? (
             <div className="drawer-file-list">
               {data.files.map((file) => {
                 const Icon = getFileIcon(file.type);
@@ -111,25 +132,29 @@ export default function DayDrawer({
                     <div className="drawer-file-actions">
                       <button
                         type="button"
-                        title="Visualizar"
-                        aria-label={`Visualizar ${file.name}`}
+                        title="Download"
+                        aria-label={`Descarregar ${file.name}`}
+                        onClick={() => onDownload(file)}
                       >
-                        <Eye size={17} />
+                        <Download size={17} />
                       </button>
 
                       <button
                         type="button"
-                        title="Download"
-                        aria-label={`Descarregar ${file.name}`}
+                        title="Eliminar"
+                        aria-label={`Eliminar ${file.name}`}
+                        onClick={() => onDelete(file)}
                       >
-                        <Download size={17} />
+                        <Trash2 size={17} />
                       </button>
                     </div>
                   </article>
                 );
               })}
             </div>
-          ) : (
+          ) : null}
+
+          {!isLoading && !error && !data?.files.length ? (
             <div className="drawer-empty-state">
               <FileText size={27} />
               <strong>Sem ficheiros</strong>
@@ -137,7 +162,7 @@ export default function DayDrawer({
                 Ainda não existem ficheiros associados a este dia.
               </span>
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="drawer-section">
@@ -157,15 +182,9 @@ export default function DayDrawer({
             <span>
               <strong>Filtrar sócios</strong>
               <small>
-                Mostrar apenas sócios cuja mensalidade não foi paga.
+                Mostrar apenas os sócios cuja mensalidade não foi paga.
               </small>
             </span>
-
-            {data?.pendingMembers ? (
-              <span className="drawer-action-count">
-                {data.pendingMembers}
-              </span>
-            ) : null}
           </button>
         </div>
 
