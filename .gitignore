@@ -32,3 +32,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Ficheiros bancários carregados pela aplicação
+backend/storage/bank_files/
