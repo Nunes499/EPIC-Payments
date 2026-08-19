@@ -1,11 +1,6 @@
 /* =========================================================
    EPIC PAYMENTS
-   CALENDÁRIO / DRAWER / UPLOAD
-   ========================================================= */
-
-
-/* =========================================================
-   CALENDÁRIO ANUAL
+   CALENDÁRIO
    ========================================================= */
 
 .annual-calendar {
@@ -14,168 +9,304 @@
 
 .annual-calendar-header {
   display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 24px;
+
   margin-bottom: 24px;
 }
 
 .annual-calendar-header h2 {
   margin: 4px 0 6px;
+
   color: #111111;
+
   font-size: 30px;
   font-weight: 800;
+
   line-height: 1;
 }
 
 .annual-calendar-header p {
   margin: 0;
-  color: #6f6f6f;
-  font-size: 13px;
-}
 
-.section-label {
-  display: block;
-  margin-bottom: 6px;
-  color: #ef2733;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  color: var(--muted);
+
+  font-size: 13px;
 }
 
 .annual-calendar-actions {
   display: flex;
+
   align-items: center;
+
   gap: 8px;
+
   flex-wrap: wrap;
 }
 
 
 /* =========================================================
-   BOTÃO PRINCIPAL DO CALENDÁRIO
+   BOTÃO HOJE
+   É O SEGUNDO BOTÃO DA ÁREA DE AÇÕES
    ========================================================= */
 
-.annual-calendar-actions .ui-button-primary {
+.annual-calendar-actions
+> .ui-button:nth-child(2) {
+  min-width: 88px;
   min-height: 46px;
-  padding: 0 21px;
-  border-radius: 12px;
-  font-weight: 800;
+
+  border-color:
+    rgba(255, 32, 45, 0.65);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 32, 45, 0.22),
+      rgba(255, 32, 45, 0.08)
+    );
+
+  color: #111111;
+
+  font-size: 13px;
+  font-weight: 900;
+
   box-shadow:
-    0 10px 25px rgba(239, 39, 51, 0.24);
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease;
+    inset 3px 0 0
+    var(--primary),
+    0 7px 18px
+    rgba(255, 32, 45, 0.12);
 }
 
-.annual-calendar-actions .ui-button-primary:hover {
-  transform: translateY(-1px);
+.annual-calendar-actions
+> .ui-button:nth-child(2):hover {
+  border-color:
+    var(--primary);
+
+  background:
+    var(--primary);
+
+  color: #ffffff;
+
+  transform:
+    translateY(-1px);
+
   box-shadow:
-    0 14px 32px rgba(239, 39, 51, 0.34);
+    0 10px 25px
+    rgba(255, 32, 45, 0.28);
 }
 
 
 /* =========================================================
-   GRELHA DO ANO
+   BOTÃO ADICIONAR FICHEIROS
+   ========================================================= */
+
+.annual-calendar-actions
+.ui-button-primary {
+  min-height: 48px;
+
+  border-color: #111111;
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1b1b1b,
+      #070707
+    );
+
+  padding:
+    0 22px;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 850;
+
+  box-shadow:
+    inset 4px 0 0
+    var(--primary),
+    0 10px 25px
+    rgba(0, 0, 0, 0.17);
+}
+
+.annual-calendar-actions
+.ui-button-primary:hover {
+  border-color:
+    var(--primary);
+
+  background:
+    linear-gradient(
+      135deg,
+      #242424,
+      #090909
+    );
+
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    inset 4px 0 0
+    var(--primary),
+    0 14px 30px
+    rgba(0, 0, 0, 0.22);
+}
+
+
+/* =========================================================
+   GRELHA ANUAL
    ========================================================= */
 
 .annual-calendar-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
   gap: 16px;
 }
 
 
 /* =========================================================
-   CARTÃO DE CADA MÊS
+   MÊS
    ========================================================= */
 
 .month-card {
   overflow: hidden;
-  border: 1px solid #dedede;
+
+  border:
+    1px solid
+    #dedede;
+
   border-radius: 15px;
-  background: #ffffff;
+
+  background:
+    #ffffff;
+
   box-shadow:
-    0 5px 18px rgba(0, 0, 0, 0.035);
+    0 5px 18px
+    rgba(0, 0, 0, 0.035);
 }
 
 .month-card-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   gap: 12px;
-  padding: 14px 15px 10px;
+
+  padding:
+    14px 15px 10px;
 }
 
 .month-card-header h3 {
   margin: 0;
+
   color: #111111;
+
   font-size: 14px;
   font-weight: 800;
 }
 
 .month-card-header span {
   color: #777777;
+
   font-size: 9px;
 }
 
 
 /* =========================================================
    DIAS DA SEMANA
-   IMPORTANTE: NOMES IGUAIS AO MonthCard.tsx
    ========================================================= */
 
 .month-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(
+      7,
+      minmax(0, 1fr)
+    );
+
   gap: 3px;
-  padding: 4px 12px 5px;
+
+  padding:
+    4px 12px 5px;
 }
 
 .month-weekdays span {
   color: #777777;
+
   font-size: 8px;
   font-weight: 700;
+
   text-align: center;
+
   text-transform: uppercase;
 }
 
 
 /* =========================================================
-   GRELHA DOS DIAS
+   DIAS
    ========================================================= */
 
 .month-days-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(
+      7,
+      minmax(0, 1fr)
+    );
+
   gap: 3px;
-  padding: 0 12px 14px;
+
+  padding:
+    0 12px 14px;
 }
 
 .calendar-day-empty {
   min-height: 52px;
 }
 
-
-/* =========================================================
-   CÉLULA DO DIA
-   ========================================================= */
-
 .calendar-day {
   position: relative;
+
   display: flex;
+
   min-width: 0;
   min-height: 52px;
+
   flex-direction: column;
+
   align-items: flex-start;
+
   gap: 3px;
+
   overflow: hidden;
-  border: 1px solid transparent;
+
+  border:
+    1px solid
+    transparent;
+
   border-radius: 8px;
-  background: #f7f7f7;
+
+  background:
+    #f7f7f7;
+
   padding: 5px;
+
   color: #111111;
+
   cursor: pointer;
+
   transition:
     border-color 150ms ease,
     background 150ms ease,
@@ -184,76 +315,129 @@
 }
 
 .calendar-day:hover {
-  border-color: #d2d2d2;
-  background: #ffffff;
-  transform: translateY(-1px);
+  border-color:
+    #d2d2d2;
+
+  background:
+    #ffffff;
+
+  transform:
+    translateY(-1px);
+
   box-shadow:
-    0 4px 10px rgba(0, 0, 0, 0.04);
+    0 4px 10px
+    rgba(0, 0, 0, 0.04);
 }
 
 .calendar-day-number {
   display: flex;
+
   width: 21px;
   height: 21px;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 50%;
+
   font-size: 10px;
   font-weight: 800;
 }
 
+
+/* HOJE NO CALENDÁRIO */
+
 .calendar-day-today {
-  border-color: #ef2733;
-  background: #fff8f8;
+  border:
+    2px solid
+    var(--primary);
+
+  background:
+    rgba(255, 32, 45, 0.08);
+
+  box-shadow:
+    0 5px 14px
+    rgba(255, 32, 45, 0.12);
 }
 
-.calendar-day-today .calendar-day-number {
-  background: #ef2733;
+.calendar-day-today
+.calendar-day-number {
+  background:
+    var(--primary);
+
   color: #ffffff;
+
+  box-shadow:
+    0 3px 8px
+    rgba(255, 32, 45, 0.3);
 }
+
+
+/* COM CONTEÚDO */
 
 .calendar-day-has-content {
-  border-color: rgba(239, 39, 51, 0.25);
-  background: #fffafa;
+  border-color:
+    rgba(255, 32, 45, 0.26);
+
+  background:
+    #fffafa;
 }
 
 .calendar-day-uploaded {
-  border-left: 2px solid #ef2733;
+  border-left:
+    3px solid
+    var(--primary);
 }
 
 .calendar-day-pending {
-  border-left: 2px solid #d49c12;
+  border-left:
+    3px solid
+    #d49c12;
 }
 
 .calendar-day-processed {
-  border-left: 2px solid #2b8f51;
+  border-left:
+    3px solid
+    #2b8f51;
 }
 
 
 /* =========================================================
-   BADGES DOS DIAS
+   BADGES
    ========================================================= */
 
 .calendar-day-badges {
   display: flex;
+
   width: 100%;
   min-width: 0;
+
   flex-direction: column;
+
   gap: 2px;
 }
 
 .day-badge {
   display: flex;
+
   width: 100%;
   min-width: 0;
+
   align-items: center;
+
   gap: 3px;
+
   overflow: hidden;
+
   border-radius: 4px;
+
   padding: 2px 4px;
+
   font-size: 7px;
   font-weight: 800;
+
   line-height: 1.1;
+
   white-space: nowrap;
 }
 
@@ -262,133 +446,215 @@
 }
 
 .day-badge-pdf {
-  background: #ffecee;
-  color: #c71925;
+  background:
+    #ffecee;
+
+  color:
+    #c71925;
 }
 
 .day-badge-xml {
-  background: #edf4ff;
-  color: #245b9b;
+  background:
+    #edf4ff;
+
+  color:
+    #245b9b;
 }
 
 .day-badge-report {
-  background: #edf8f1;
-  color: #247344;
+  background:
+    #edf8f1;
+
+  color:
+    #247344;
 }
 
 .day-badge-members {
-  background: #f3efff;
-  color: #6045a0;
+  background:
+    #f3efff;
+
+  color:
+    #6045a0;
 }
 
 .day-processed-icon {
   display: flex;
+
   align-items: center;
-  color: #24834b;
+
+  color:
+    #24834b;
 }
 
 
 /* =========================================================
-   FUNDO DO DRAWER
+   DRAWER
    ========================================================= */
 
 .drawer-backdrop {
   position: fixed;
+
   z-index: 80;
+
   inset: 0;
+
   border: 0;
-  background: rgba(0, 0, 0, 0.25);
+
+  background:
+    rgba(0, 0, 0, 0.25);
 }
-
-
-/* =========================================================
-   DRAWER LATERAL
-   ========================================================= */
 
 .day-drawer {
   position: fixed;
+
   z-index: 90;
+
   top: 0;
   right: 0;
+
   display: flex;
-  width: min(440px, 92vw);
+
+  width:
+    min(
+      440px,
+      92vw
+    );
+
   height: 100vh;
+
   flex-direction: column;
+
   overflow: hidden;
-  border-left: 1px solid #dfdfdf;
-  background: #ffffff;
+
+  border-left:
+    1px solid
+    #dfdfdf;
+
+  background:
+    #ffffff;
+
   box-shadow:
-    -18px 0 45px rgba(0, 0, 0, 0.14);
+    -18px 0 45px
+    rgba(0, 0, 0, 0.14);
 }
 
 .day-drawer-header {
   display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 18px;
-  padding: 23px 24px;
-  border-bottom: 1px solid #eeeeee;
+
+  padding:
+    23px 24px;
+
+  border-bottom:
+    1px solid
+    #eeeeee;
 }
 
 .day-drawer-header h2 {
-  margin: 3px 0 0;
+  margin:
+    3px 0 0;
+
   color: #111111;
+
   font-size: 20px;
   font-weight: 800;
+
   line-height: 1.25;
+
   text-transform: capitalize;
 }
 
 .icon-button {
   display: inline-flex;
+
   width: 38px;
   height: 38px;
+
   flex: 0 0 auto;
+
   align-items: center;
   justify-content: center;
-  border: 1px solid #dedede;
+
+  border:
+    1px solid
+    #dedede;
+
   border-radius: 10px;
-  background: #ffffff;
-  color: #555555;
+
+  background:
+    #ffffff;
+
+  color:
+    #555555;
+
   cursor: pointer;
 }
 
 .icon-button:hover {
-  border-color: #bbbbbb;
-  background: #f5f5f5;
-  color: #111111;
+  border-color:
+    #bbbbbb;
+
+  background:
+    #111111;
+
+  color:
+    #ffffff;
 }
 
 .drawer-section {
-  padding: 20px 24px;
-  border-bottom: 1px solid #eeeeee;
+  padding:
+    20px 24px;
+
+  border-bottom:
+    1px solid
+    #eeeeee;
 }
 
 .drawer-section-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   gap: 10px;
+
   margin-bottom: 12px;
 }
 
 .drawer-section-header h3 {
   margin: 0;
+
   color: #111111;
+
   font-size: 13px;
   font-weight: 800;
 }
 
-.drawer-section-header > span {
+.drawer-section-header
+> span {
   display: flex;
+
   min-width: 24px;
   height: 24px;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 13px;
-  background: #efefef;
-  color: #444444;
-  padding: 0 7px;
+
+  background:
+    #efefef;
+
+  padding:
+    0 7px;
+
+  color:
+    #444444;
+
   font-size: 10px;
   font-weight: 800;
 }
@@ -400,93 +666,146 @@
 
 .drawer-file-list {
   display: flex;
+
   max-height: 330px;
+
   flex-direction: column;
+
   gap: 8px;
+
   overflow-y: auto;
+
   padding-right: 2px;
 }
 
 .drawer-file-card {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
+
   gap: 10px;
-  border: 1px solid #e5e5e5;
+
+  border:
+    1px solid
+    #e5e5e5;
+
   border-radius: 11px;
-  background: #ffffff;
+
+  background:
+    #ffffff;
+
   padding: 10px;
 }
 
 .drawer-file-card:hover {
-  border-color: #cccccc;
+  border-color:
+    #cccccc;
 }
 
 .drawer-file-main {
   display: flex;
+
   min-width: 0;
+
   flex: 1;
+
   align-items: center;
+
   gap: 10px;
 }
 
-.drawer-file-main > div {
+.drawer-file-main
+> div {
   min-width: 0;
 }
 
 .drawer-file-icon {
   display: flex;
+
   width: 38px;
   height: 38px;
+
   flex: 0 0 auto;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 9px;
-  background: #fff0f1;
-  color: #d41f2b;
+
+  background:
+    #fff0f1;
+
+  color:
+    var(--primary-hover);
 }
 
 .drawer-file-main strong {
   display: block;
+
   overflow: hidden;
-  color: #222222;
+
+  color:
+    #222222;
+
   font-size: 11px;
   font-weight: 750;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
 }
 
 .drawer-file-main small {
   display: block;
+
   margin-top: 3px;
-  color: #888888;
+
+  color:
+    #888888;
+
   font-size: 9px;
 }
 
 
 /* =========================================================
-   AÇÕES DOS FICHEIROS
    PREVIEW / DOWNLOAD / DELETE
    ========================================================= */
 
 .drawer-file-actions {
   display: flex;
+
   flex: 0 0 auto;
+
   align-items: center;
+
   gap: 5px;
 }
 
-.drawer-file-actions button {
+.drawer-file-actions
+button {
   display: inline-flex;
+
   width: 35px;
   height: 35px;
+
   align-items: center;
   justify-content: center;
-  border: 1px solid #dddddd;
+
+  border:
+    1px solid
+    #dddddd;
+
   border-radius: 8px;
-  background: #ffffff;
-  color: #555555;
+
+  background:
+    #ffffff;
+
+  color:
+    #555555;
+
   cursor: pointer;
+
   transition:
     transform 150ms ease,
     background 150ms ease,
@@ -494,323 +813,591 @@
     color 150ms ease;
 }
 
-.drawer-file-actions button:hover {
-  transform: translateY(-1px);
+.drawer-file-actions
+button:hover {
+  transform:
+    translateY(-1px);
 }
 
 .file-action-preview:hover {
-  border-color: #111111 !important;
-  background: #111111 !important;
-  color: #ffffff !important;
+  border-color:
+    #111111 !important;
+
+  background:
+    #111111 !important;
+
+  color:
+    #ffffff !important;
 }
 
 .file-action-download:hover {
-  border-color: #ef2733 !important;
-  background: #ef2733 !important;
-  color: #ffffff !important;
+  border-color:
+    var(--primary) !important;
+
+  background:
+    var(--primary) !important;
+
+  color:
+    #ffffff !important;
 }
 
 .file-action-delete:hover {
-  border-color: #b31520 !important;
-  background: #b31520 !important;
-  color: #ffffff !important;
+  border-color:
+    #b31520 !important;
+
+  background:
+    #b31520 !important;
+
+  color:
+    #ffffff !important;
 }
 
 
 /* =========================================================
-   ESTADOS VAZIOS E ERROS
+   ESTADOS
    ========================================================= */
 
 .drawer-empty-state,
 .drawer-error-state {
   display: flex;
+
   min-height: 120px;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
+
   gap: 6px;
-  border: 1px dashed #dddddd;
+
+  border:
+    1px dashed
+    #dddddd;
+
   border-radius: 11px;
-  background: #fafafa;
+
+  background:
+    #fafafa;
+
   padding: 20px;
+
   text-align: center;
 }
 
 .drawer-empty-state svg {
-  color: #aaaaaa;
+  color:
+    #aaaaaa;
 }
 
 .drawer-empty-state strong,
 .drawer-error-state strong {
-  color: #333333;
+  color:
+    #333333;
+
   font-size: 12px;
 }
 
 .drawer-empty-state span,
 .drawer-error-state span {
   max-width: 280px;
-  color: #888888;
+
+  color:
+    #888888;
+
   font-size: 10px;
+
   line-height: 1.5;
 }
 
 .drawer-error-state {
-  border-color: #efc4c7;
-  background: #fff7f7;
+  border-color:
+    #efc4c7;
+
+  background:
+    #fff7f7;
 }
 
 .drawer-error-state strong {
-  color: #c8202b;
+  color:
+    #c8202b;
 }
 
 
 /* =========================================================
    FILTRAR SÓCIOS
+   AGORA COM ESTILO DA SIDEBAR
    ========================================================= */
 
 .drawer-action-card {
   display: flex;
+
   width: 100%;
+
   align-items: center;
+
   gap: 12px;
-  border: 1px solid #e4e4e4;
-  border-radius: 11px;
-  background: #ffffff;
-  padding: 12px;
+
+  border:
+    1px solid
+    rgba(255, 32, 45, 0.45);
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #171717,
+      #090909
+    );
+
+  padding: 14px;
+
+  color:
+    #ffffff;
+
   text-align: left;
+
   cursor: pointer;
+
+  box-shadow:
+    inset 4px 0 0
+    var(--primary),
+    0 8px 20px
+    rgba(0, 0, 0, 0.12);
+
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .drawer-action-card:not(:disabled):hover {
-  border-color: #cfcfcf;
-  background: #fafafa;
+  border-color:
+    var(--primary);
+
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    inset 4px 0 0
+    var(--primary),
+    0 12px 26px
+    rgba(0, 0, 0, 0.18);
 }
 
 .drawer-action-card:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  cursor:
+    not-allowed;
+
+  opacity: 0.45;
 }
 
 .drawer-action-icon {
   display: flex;
-  width: 39px;
-  height: 39px;
+
+  width: 42px;
+  height: 42px;
+
   flex: 0 0 auto;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 9px;
-  background: #f0f0f0;
-  color: #444444;
+
+  background:
+    rgba(255, 32, 45, 0.15);
+
+  color:
+    var(--primary);
 }
 
-.drawer-action-card > span:nth-child(2) {
+.drawer-action-card
+> span:nth-child(2) {
   min-width: 0;
+
   flex: 1;
 }
 
 .drawer-action-card strong {
   display: block;
-  color: #222222;
-  font-size: 11px;
+
+  color:
+    #ffffff;
+
+  font-size: 12px;
   font-weight: 800;
 }
 
 .drawer-action-card small {
   display: block;
-  margin-top: 3px;
-  color: #888888;
+
+  margin-top: 4px;
+
+  color:
+    #bcbcbc;
+
   font-size: 9px;
+
   line-height: 1.4;
 }
 
 .drawer-action-count {
   display: flex;
-  min-width: 27px;
-  height: 27px;
+
+  min-width: 28px;
+  height: 28px;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 14px;
-  background: #ef2733;
-  color: #ffffff;
-  padding: 0 7px;
+
+  background:
+    var(--primary);
+
+  padding:
+    0 7px;
+
+  color:
+    #ffffff;
+
   font-size: 10px;
   font-weight: 800;
 }
 
 
 /* =========================================================
-   BOTÃO ADICIONAR FICHEIROS DO DRAWER
+   ADICIONAR FICHEIROS NO DRAWER
    ========================================================= */
 
 .day-drawer-footer {
   margin-top: auto;
-  padding: 18px 24px 22px;
-  border-top: 1px solid #eeeeee;
-  background: #ffffff;
+
+  padding:
+    18px 24px 22px;
+
+  border-top:
+    1px solid
+    #eeeeee;
+
+  background:
+    #ffffff;
 }
 
-.day-drawer-footer .ui-button {
+.day-drawer-footer
+.ui-button {
   width: 100%;
-  min-height: 52px;
+
+  min-height: 54px;
+
   justify-content: center;
+
+  border-color:
+    #111111;
+
   border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #1b1b1b,
+      #080808
+    );
+
+  color:
+    #ffffff;
+
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
+
   box-shadow:
-    0 10px 26px rgba(239, 39, 51, 0.28);
+    inset 4px 0 0
+    var(--primary),
+    0 10px 25px
+    rgba(0, 0, 0, 0.16);
 }
 
-.day-drawer-footer .ui-button:hover {
-  transform: translateY(-1px);
+.day-drawer-footer
+.ui-button:hover {
+  border-color:
+    var(--primary);
+
+  transform:
+    translateY(-1px);
+
   box-shadow:
-    0 14px 32px rgba(239, 39, 51, 0.36);
+    inset 4px 0 0
+    var(--primary),
+    0 14px 30px
+    rgba(0, 0, 0, 0.22);
 }
 
 
 /* =========================================================
-   MODAL DE UPLOAD
+   UPLOAD
    ========================================================= */
 
 .dialog-backdrop {
   position: fixed;
+
   z-index: 120;
+
   inset: 0;
+
   display: flex;
+
   align-items: center;
   justify-content: center;
+
   overflow-y: auto;
-  background: rgba(0, 0, 0, 0.42);
+
+  background:
+    rgba(0, 0, 0, 0.42);
+
   padding: 24px;
 }
 
 .upload-dialog {
-  width: min(600px, 100%);
-  max-height: calc(100vh - 48px);
+  width:
+    min(
+      600px,
+      100%
+    );
+
+  max-height:
+    calc(
+      100vh - 48px
+    );
+
   overflow-y: auto;
-  border: 1px solid #dfdfdf;
+
+  border:
+    1px solid
+    #dfdfdf;
+
   border-radius: 17px;
-  background: #ffffff;
+
+  background:
+    #ffffff;
+
   box-shadow:
-    0 25px 70px rgba(0, 0, 0, 0.22);
+    0 25px 70px
+    rgba(0, 0, 0, 0.22);
 }
 
 .dialog-header {
   display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
+
   gap: 20px;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid #eeeeee;
+
+  padding:
+    22px 24px 18px;
+
+  border-bottom:
+    1px solid
+    #eeeeee;
 }
 
 .dialog-header h2 {
-  margin: 2px 0 4px;
-  color: #111111;
+  margin:
+    2px 0 4px;
+
+  color:
+    #111111;
+
   font-size: 20px;
   font-weight: 800;
 }
 
 .dialog-header p {
   margin: 0;
-  color: #888888;
+
+  color:
+    #888888;
+
   font-size: 11px;
 }
 
 
 /* =========================================================
-   TIPOS DE FICHEIRO
+   TIPOS
    ========================================================= */
 
 .file-type-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  grid-template-columns:
+    repeat(
+      3,
+      minmax(0, 1fr)
+    );
+
   gap: 8px;
-  padding: 20px 20px 12px;
+
+  padding:
+    20px 20px 12px;
 }
 
 .file-type-option {
   display: flex;
+
   min-width: 0;
+
   align-items: center;
+
   gap: 9px;
-  border: 1px solid #dedede;
+
+  border:
+    1px solid
+    #dedede;
+
   border-radius: 11px;
-  background: #ffffff;
+
+  background:
+    #ffffff;
+
   padding: 11px;
+
   text-align: left;
+
   cursor: pointer;
 }
 
 .file-type-option:hover {
-  border-color: #bbbbbb;
-  background: #fafafa;
+  border-color:
+    #111111;
+
+  background:
+    #f7f7f7;
 }
 
 .file-type-option-active {
-  border-color: #ef2733;
-  background: #fff7f7;
+  border-color:
+    var(--primary);
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.15),
+      rgba(255, 32, 45, 0.05)
+    );
+
+  box-shadow:
+    inset 3px 0 0
+    var(--primary);
 }
 
 .file-type-icon {
   display: flex;
+
   width: 36px;
   height: 36px;
+
   flex: 0 0 auto;
+
   align-items: center;
   justify-content: center;
+
   border-radius: 8px;
-  background: #f2f2f2;
-  color: #444444;
+
+  background:
+    #f2f2f2;
+
+  color:
+    #444444;
 }
 
-.file-type-option-active .file-type-icon {
-  background: #ef2733;
-  color: #ffffff;
+.file-type-option-active
+.file-type-icon {
+  background:
+    var(--primary);
+
+  color:
+    #ffffff;
 }
 
-.file-type-option > span:last-child {
+.file-type-option
+> span:last-child {
   min-width: 0;
 }
 
 .file-type-option strong {
   display: block;
-  color: #222222;
+
+  color:
+    #222222;
+
   font-size: 10px;
   font-weight: 800;
 }
 
 .file-type-option small {
   display: block;
+
   margin-top: 2px;
-  color: #888888;
+
+  color:
+    #888888;
+
   font-size: 8px;
+
   line-height: 1.3;
 }
 
 
 /* =========================================================
-   ÁREA PARA SELECIONAR FICHEIROS
+   ESCOLHER FICHEIROS
+   MAIS CHAMATIVO
    ========================================================= */
 
 .file-drop-area {
   display: flex;
-  width: calc(100% - 40px);
-  min-height: 170px;
+
+  width:
+    calc(
+      100% - 40px
+    );
+
+  min-height: 175px;
+
   flex-direction: column;
+
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  margin: 5px 20px 16px;
-  border: 2px dashed rgba(239, 39, 51, 0.55);
+
+  gap: 8px;
+
+  margin:
+    5px 20px 16px;
+
+  border:
+    2px dashed
+    var(--primary);
+
   border-radius: 13px;
+
   background:
     linear-gradient(
       135deg,
-      rgba(239, 39, 51, 0.08),
-      #ffffff
+      #181818,
+      #080808
     );
-  color: #555555;
+
+  color:
+    #ffffff;
+
   cursor: pointer;
+
+  box-shadow:
+    inset 4px 0 0
+    var(--primary),
+    0 10px 25px
+    rgba(0, 0, 0, 0.13);
+
   transition:
     transform 150ms ease,
     border-color 150ms ease,
@@ -819,138 +1406,196 @@
 }
 
 .file-drop-area:hover {
-  border-color: #ef2733;
+  border-color:
+    #ff4c56;
+
   background:
     linear-gradient(
       135deg,
-      rgba(239, 39, 51, 0.13),
-      #ffffff
+      #232323,
+      #0c0c0c
     );
-  transform: translateY(-1px);
+
+  transform:
+    translateY(-1px);
+
   box-shadow:
-    0 8px 22px rgba(239, 39, 51, 0.09);
+    inset 4px 0 0
+    var(--primary),
+    0 14px 30px
+    rgba(0, 0, 0, 0.19);
 }
 
-.file-drop-area > svg {
-  width: 34px;
-  height: 34px;
-  color: #ef2733;
+.file-drop-area
+> svg {
+  width: 36px;
+  height: 36px;
+
+  color:
+    var(--primary);
 }
 
 .file-drop-area strong {
-  color: #222222;
-  font-size: 14px;
-  font-weight: 800;
+  color:
+    #ffffff;
+
+  font-size: 15px;
+  font-weight: 850;
 }
 
 .file-drop-area span {
-  color: #777777;
+  color:
+    #bdbdbd;
+
   font-size: 10px;
 }
 
 
 /* =========================================================
-   LISTA DE FICHEIROS SELECIONADOS
+   LISTA SELECIONADA
    ========================================================= */
 
 .selected-files-list {
   display: flex;
+
   max-height: 180px;
+
   flex-direction: column;
+
   gap: 6px;
+
   overflow-y: auto;
-  margin: 0 20px 16px;
+
+  margin:
+    0 20px 16px;
+
   padding-right: 2px;
 }
 
 .selected-file-row {
   display: flex;
+
   align-items: center;
+
   gap: 9px;
-  border: 1px solid #e3e3e3;
+
+  border:
+    1px solid
+    #e3e3e3;
+
   border-radius: 9px;
-  background: #ffffff;
-  padding: 9px 11px;
+
+  background:
+    #ffffff;
+
+  padding:
+    9px 11px;
 }
 
 .selected-file-row svg {
   flex: 0 0 auto;
-  color: #ef2733;
+
+  color:
+    var(--primary);
 }
 
 .selected-file-name {
   min-width: 0;
+
   flex: 1;
+
   overflow: hidden;
-  color: #222222;
+
+  color:
+    #222222;
+
   font-size: 10px;
   font-weight: 700;
+
   text-overflow: ellipsis;
+
   white-space: nowrap;
 }
 
 .selected-file-size {
   flex: 0 0 auto;
-  color: #888888;
+
+  color:
+    #888888;
+
   font-size: 9px;
 }
 
 
 /* =========================================================
-   BOTÕES DO MODAL
+   AÇÕES MODAL
    ========================================================= */
 
 .dialog-actions {
   display: flex;
+
   align-items: center;
   justify-content: flex-end;
+
   gap: 9px;
-  padding: 16px 20px 20px;
-  border-top: 1px solid #eeeeee;
+
+  padding:
+    16px 20px 20px;
+
+  border-top:
+    1px solid
+    #eeeeee;
 }
 
-.dialog-actions .ui-button {
-  min-height: 44px;
+.dialog-actions
+.ui-button {
+  min-height: 46px;
+
   border-radius: 10px;
+
   font-weight: 800;
 }
 
-.dialog-actions .ui-button-primary {
-  min-height: 48px;
+.dialog-actions
+.ui-button-primary {
+  min-height: 50px;
+
+  border-color:
+    #111111;
+
+  background:
+    linear-gradient(
+      135deg,
+      #191919,
+      #070707
+    );
+
   padding-right: 24px;
   padding-left: 24px;
+
+  color:
+    #ffffff;
+
   box-shadow:
-    0 10px 25px rgba(239, 39, 51, 0.28);
+    inset 4px 0 0
+    var(--primary),
+    0 10px 25px
+    rgba(0, 0, 0, 0.17);
 }
 
-.dialog-actions .ui-button-primary:hover {
-  transform: translateY(-1px);
+.dialog-actions
+.ui-button-primary:hover {
+  border-color:
+    var(--primary);
+
+  transform:
+    translateY(-1px);
+
   box-shadow:
-    0 14px 30px rgba(239, 39, 51, 0.36);
-}
-
-
-/* =========================================================
-   SCROLLBARS
-   ========================================================= */
-
-.drawer-file-list::-webkit-scrollbar,
-.selected-files-list::-webkit-scrollbar,
-.upload-dialog::-webkit-scrollbar {
-  width: 6px;
-}
-
-.drawer-file-list::-webkit-scrollbar-thumb,
-.selected-files-list::-webkit-scrollbar-thumb,
-.upload-dialog::-webkit-scrollbar-thumb {
-  border-radius: 10px;
-  background: #cccccc;
-}
-
-.drawer-file-list::-webkit-scrollbar-track,
-.selected-files-list::-webkit-scrollbar-track,
-.upload-dialog::-webkit-scrollbar-track {
-  background: transparent;
+    inset 4px 0 0
+    var(--primary),
+    0 14px 30px
+    rgba(0, 0, 0, 0.22);
 }
 
 
@@ -960,7 +1605,11 @@
 
 @media (max-width: 1200px) {
   .annual-calendar-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
   }
 }
 
@@ -974,11 +1623,13 @@
   }
 
   .annual-calendar-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 
   .file-type-options {
-    grid-template-columns: 1fr;
+    grid-template-columns:
+      1fr;
   }
 }
 
@@ -995,13 +1646,18 @@
   }
 
   .drawer-file-card {
-    align-items: flex-start;
-    flex-direction: column;
+    align-items:
+      flex-start;
+
+    flex-direction:
+      column;
   }
 
   .drawer-file-actions {
     width: 100%;
-    justify-content: flex-end;
+
+    justify-content:
+      flex-end;
   }
 
   .dialog-backdrop {
@@ -1009,7 +1665,10 @@
   }
 
   .upload-dialog {
-    max-height: calc(100vh - 20px);
+    max-height:
+      calc(
+        100vh - 20px
+      );
   }
 
   .file-type-options {
@@ -1018,7 +1677,11 @@
   }
 
   .file-drop-area {
-    width: calc(100% - 28px);
+    width:
+      calc(
+        100% - 28px
+      );
+
     margin-right: 14px;
     margin-left: 14px;
   }
@@ -1033,3 +1696,179 @@
     padding-left: 14px;
   }
 }
+
+/* =========================================================
+   EPIC PAYMENTS - DESTAQUES LEVES
+   Substitui os fundos negros por estilo inspirado
+   no item ativo da barra lateral.
+   ========================================================= */
+
+/* Adicionar ficheiros - topo */
+.annual-calendar-actions .ui-button-primary {
+  border: 1px solid rgba(255, 32, 45, 0.55);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.14),
+    rgba(255, 32, 45, 0.04)
+  );
+  color: #171717;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 7px 18px rgba(255, 32, 45, 0.10);
+}
+
+.annual-calendar-actions .ui-button-primary:hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.23),
+    rgba(255, 32, 45, 0.08)
+  );
+  color: #111111;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 24px rgba(255, 32, 45, 0.16);
+}
+
+/* Hoje - mantém destaque, mas mais limpo */
+.annual-calendar-actions > .ui-button:nth-child(2) {
+  border: 1px solid rgba(255, 32, 45, 0.70);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--primary-hover);
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 6px 16px rgba(255, 32, 45, 0.10);
+}
+
+.annual-calendar-actions > .ui-button:nth-child(2):hover {
+  background: rgba(255, 32, 45, 0.11);
+  color: #111111;
+}
+
+/* Filtrar sócios */
+.drawer-action-card {
+  border: 1px solid rgba(255, 32, 45, 0.48);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.13),
+    rgba(255, 32, 45, 0.035)
+  );
+  color: #171717;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 6px 18px rgba(255, 32, 45, 0.08);
+}
+
+.drawer-action-card:not(:disabled):hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.20),
+    rgba(255, 32, 45, 0.07)
+  );
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 9px 22px rgba(255, 32, 45, 0.13);
+}
+
+.drawer-action-card strong {
+  color: #171717;
+}
+
+.drawer-action-card small {
+  color: #707070;
+}
+
+.drawer-action-icon {
+  background: rgba(255, 32, 45, 0.11);
+  color: var(--primary);
+}
+
+/* Adicionar ficheiros - rodapé do drawer */
+.day-drawer-footer .ui-button {
+  border: 1px solid rgba(255, 32, 45, 0.50);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.13),
+    rgba(255, 32, 45, 0.035)
+  );
+  color: #171717;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 7px 18px rgba(255, 32, 45, 0.09);
+}
+
+.day-drawer-footer .ui-button:hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.21),
+    rgba(255, 32, 45, 0.07)
+  );
+  color: #111111;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 24px rgba(255, 32, 45, 0.14);
+}
+
+/* Área selecionar ficheiros */
+.file-drop-area {
+  border: 2px dashed rgba(255, 32, 45, 0.70);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 32, 45, 0.08),
+    rgba(255, 255, 255, 0.98)
+  );
+  color: #171717;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 7px 20px rgba(255, 32, 45, 0.07);
+}
+
+.file-drop-area:hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 32, 45, 0.14),
+    #ffffff
+  );
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 25px rgba(255, 32, 45, 0.12);
+}
+
+.file-drop-area strong {
+  color: #171717;
+}
+
+.file-drop-area span {
+  color: #6f6f6f;
+}
+
+/* Escolher/Adicionar ficheiros - botão principal do modal */
+.dialog-actions .ui-button-primary {
+  border: 1px solid rgba(255, 32, 45, 0.55);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.14),
+    rgba(255, 32, 45, 0.04)
+  );
+  color: #171717;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 7px 18px rgba(255, 32, 45, 0.10);
+}
+
+.dialog-actions .ui-button-primary:hover {
+  border-color: var(--primary);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 32, 45, 0.22),
+    rgba(255, 32, 45, 0.07)
+  );
+  color: #111111;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 24px rgba(255, 32, 45, 0.15);
+}
+
