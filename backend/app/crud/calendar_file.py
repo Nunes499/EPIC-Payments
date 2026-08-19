@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session
 
 from app.models.calendar_file import CalendarFile
@@ -80,6 +80,58 @@ def get_files_by_year(
     )
 
     return list(db.scalars(statement).all())
+
+
+def get_year_summary(
+    db: Session,
+    year: int,
+) -> list[dict]:
+    statement = (
+        select(
+            CalendarFile.calendar_date,
+            func.count(CalendarFile.id).label("total_files"),
+            func.sum(
+                case(
+                    (CalendarFile.file_type == "pdf", 1),
+                    else_=0,
+                )
+            ).label("pdf_count"),
+            func.sum(
+                case(
+                    (CalendarFile.file_type == "xml", 1),
+                    else_=0,
+                )
+            ).label("xml_count"),
+            func.sum(
+                case(
+                    (CalendarFile.file_type == "report", 1),
+                    else_=0,
+                )
+            ).label("report_count"),
+        )
+        .where(
+            func.extract(
+                "year",
+                CalendarFile.calendar_date,
+            )
+            == year
+        )
+        .group_by(CalendarFile.calendar_date)
+        .order_by(CalendarFile.calendar_date.asc())
+    )
+
+    rows = db.execute(statement).all()
+
+    return [
+        {
+            "calendar_date": row.calendar_date,
+            "total_files": int(row.total_files or 0),
+            "pdf_count": int(row.pdf_count or 0),
+            "xml_count": int(row.xml_count or 0),
+            "report_count": int(row.report_count or 0),
+        }
+        for row in rows
+    ]
 
 
 def count_files_by_date(

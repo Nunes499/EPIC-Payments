@@ -15,9 +15,13 @@ from sqlalchemy.orm import Session
 from app.crud.calendar_file import (
     get_calendar_file_by_id,
     get_files_by_date,
+    get_year_summary,
 )
 from app.database.session import get_db
-from app.schemas.calendar_file import CalendarFileRead
+from app.schemas.calendar_file import (
+    CalendarDaySummary,
+    CalendarFileRead,
+)
 from app.services.calendar_service import (
     get_existing_calendar_file_path,
     remove_calendar_file,
@@ -62,6 +66,20 @@ def list_calendar_files(
     return get_files_by_date(
         db,
         calendar_date,
+    )
+
+
+@router.get(
+    "/year/{year}",
+    response_model=list[CalendarDaySummary],
+)
+def list_year_summary(
+    year: int,
+    db: Session = Depends(get_db),
+):
+    return get_year_summary(
+        db,
+        year,
     )
 
 

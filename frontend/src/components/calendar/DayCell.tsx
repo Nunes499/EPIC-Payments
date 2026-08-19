@@ -24,16 +24,12 @@ export default function DayCell({
   data,
   onClick,
 }: DayCellProps) {
-  const pdfCount =
-    data?.files.filter((file) => file.type === "pdf").length ?? 0;
-
-  const xmlCount =
-    data?.files.filter((file) => file.type === "xml").length ?? 0;
-
-  const reportCount =
-    data?.files.filter((file) => file.type === "report").length ?? 0;
+  const pdfCount = data?.pdfCount ?? 0;
+  const xmlCount = data?.xmlCount ?? 0;
+  const reportCount = data?.reportCount ?? 0;
 
   const hasContent =
+    (data?.totalFiles ?? 0) > 0 ||
     pdfCount > 0 ||
     xmlCount > 0 ||
     reportCount > 0 ||
@@ -53,7 +49,9 @@ export default function DayCell({
       onClick={() => onClick(date)}
       aria-label={`Abrir dia ${date}`}
     >
-      <span className="calendar-day-number">{dayNumber}</span>
+      <span className="calendar-day-number">
+        {dayNumber}
+      </span>
 
       <div className="calendar-day-badges">
         {pdfCount > 0 ? (
@@ -73,7 +71,7 @@ export default function DayCell({
         {reportCount > 0 ? (
           <span className="day-badge day-badge-report">
             <FileSpreadsheet size={11} />
-            REL
+            REL {reportCount}
           </span>
         ) : null}
 
@@ -85,7 +83,10 @@ export default function DayCell({
         ) : null}
 
         {data?.status === "processed" ? (
-          <span className="day-processed-icon" title="Processado">
+          <span
+            className="day-processed-icon"
+            title="Processado"
+          >
             <CheckCircle2 size={14} />
           </span>
         ) : null}

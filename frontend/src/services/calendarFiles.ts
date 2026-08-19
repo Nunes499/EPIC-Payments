@@ -10,6 +10,14 @@ export type ApiCalendarFile = {
   uploaded_at: string;
 };
 
+export type ApiCalendarDaySummary = {
+  calendar_date: string;
+  total_files: number;
+  pdf_count: number;
+  xml_count: number;
+  report_count: number;
+};
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -32,6 +40,24 @@ export async function listCalendarFiles(
 ): Promise<ApiCalendarFile[]> {
   const response = await fetch(
     `${API_URL}/files/calendar/${calendarDate}`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  return response.json();
+}
+
+export async function listYearSummary(
+  year: number,
+): Promise<ApiCalendarDaySummary[]> {
+  const response = await fetch(
+    `${API_URL}/files/year/${year}`,
     {
       method: "GET",
       cache: "no-store",

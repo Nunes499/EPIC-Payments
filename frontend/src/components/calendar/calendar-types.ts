@@ -17,8 +17,16 @@ export type CalendarFile = {
 
 export type CalendarDayData = {
   date: string;
+
   files: CalendarFile[];
+
+  totalFiles: number;
+  pdfCount: number;
+  xmlCount: number;
+  reportCount: number;
+
   pendingMembers: number;
+
   status: DayStatus;
 };
 
