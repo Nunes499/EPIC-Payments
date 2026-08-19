@@ -21,7 +21,10 @@ export type ApiCalendarDaySummary = {
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-async function parseError(response: Response): Promise<string> {
+
+async function parseError(
+  response: Response,
+): Promise<string> {
   try {
     const data = await response.json();
 
@@ -35,6 +38,7 @@ async function parseError(response: Response): Promise<string> {
   }
 }
 
+
 export async function listCalendarFiles(
   calendarDate: string,
 ): Promise<ApiCalendarFile[]> {
@@ -47,11 +51,14 @@ export async function listCalendarFiles(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
 }
+
 
 export async function listYearSummary(
   year: number,
@@ -65,11 +72,14 @@ export async function listYearSummary(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
 }
+
 
 export async function uploadCalendarFile(
   calendarDate: string,
@@ -77,7 +87,10 @@ export async function uploadCalendarFile(
 ): Promise<ApiCalendarFile> {
   const formData = new FormData();
 
-  formData.append("upload", file);
+  formData.append(
+    "upload",
+    file,
+  );
 
   const response = await fetch(
     `${API_URL}/files/calendar/${calendarDate}`,
@@ -88,11 +101,14 @@ export async function uploadCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
 }
+
 
 export async function deleteCalendarFile(
   fileId: number,
@@ -105,31 +121,96 @@ export async function deleteCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 }
+
 
 export async function downloadCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
   const response = await fetch(
     `${API_URL}/files/${file.id}/download`,
+    {
+      method: "GET",
+    },
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
+
+  const objectUrl =
+    URL.createObjectURL(blob);
+
+  const anchor =
+    document.createElement("a");
 
   anchor.href = objectUrl;
-  anchor.download = file.original_filename;
+  anchor.download =
+    file.original_filename;
 
-  document.body.appendChild(anchor);
+  document.body.appendChild(
+    anchor,
+  );
+
   anchor.click();
   anchor.remove();
 
-  URL.revokeObjectURL(objectUrl);
+  URL.revokeObjectURL(
+    objectUrl,
+  );
+}
+
+
+export async function previewCalendarFile(
+  file: ApiCalendarFile,
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/files/${file.id}/download`,
+    {
+      method: "GET",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await parseError(response),
+    );
+  }
+
+  const blob =
+    await response.blob();
+
+  const objectUrl =
+    URL.createObjectURL(blob);
+
+  const previewWindow =
+    window.open(
+      objectUrl,
+      "_blank",
+      "noopener,noreferrer",
+    );
+
+  if (!previewWindow) {
+    URL.revokeObjectURL(
+      objectUrl,
+    );
+
+    throw new Error(
+      "O navegador bloqueou a janela de pré-visualização.",
+    );
+  }
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(
+      objectUrl,
+    );
+  }, 60_000);
 }

@@ -33,5 +33,5 @@ export type CalendarDayData = {
 export type UploadFilePayload = {
   date: string;
   type: CalendarFileType;
-  file: File;
+  files: File[];
 };

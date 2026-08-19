@@ -32,21 +32,21 @@ const fileTypes: {
   {
     type: "pdf",
     label: "PDF do banco",
-    description: "Documento bancário em formato PDF.",
+    description: "Documentos bancários em formato PDF.",
     accept: ".pdf,application/pdf",
     icon: FileText,
   },
   {
     type: "xml",
     label: "XML do banco",
-    description: "Ficheiro bancário em formato XML.",
+    description: "Ficheiros bancários em formato XML.",
     accept: ".xml,text/xml,application/xml",
     icon: FileText,
   },
   {
     type: "report",
     label: "Relatório Excel",
-    description: "Relatório em formato Excel.",
+    description: "Relatórios em formato Excel.",
     accept:
       ".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     icon: FileSpreadsheet,
@@ -64,12 +64,12 @@ export default function UploadFileDialog({
   const [selectedType, setSelectedType] =
     useState<CalendarFileType>("pdf");
 
-  const [selectedFile, setSelectedFile] =
-    useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] =
+    useState<File[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
-      setSelectedFile(null);
+      setSelectedFiles([]);
       setSelectedType("pdf");
     }
   }, [isOpen]);
@@ -83,7 +83,7 @@ export default function UploadFileDialog({
   );
 
   function handleSubmit() {
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       inputRef.current?.click();
       return;
     }
@@ -91,27 +91,46 @@ export default function UploadFileDialog({
     onUpload({
       date: selectedDate,
       type: selectedType,
-      file: selectedFile,
+      files: selectedFiles,
     });
 
     onClose();
   }
 
+  function handleFilesChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(
+      event.target.files ?? [],
+    );
+
+    setSelectedFiles(files);
+  }
+
   return (
-    <div className="dialog-backdrop" onMouseDown={onClose}>
+    <div
+      className="dialog-backdrop"
+      onMouseDown={onClose}
+    >
       <div
         className="upload-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="upload-dialog-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
       >
         <div className="dialog-header">
           <div>
-            <span className="section-label">Novo ficheiro</span>
+            <span className="section-label">
+              Novos ficheiros
+            </span>
+
             <h2 id="upload-dialog-title">
-              Adicionar ficheiro
+              Adicionar ficheiros
             </h2>
+
             <p>{selectedDate}</p>
           </div>
 
@@ -143,7 +162,11 @@ export default function UploadFileDialog({
                   .join(" ")}
                 onClick={() => {
                   setSelectedType(item.type);
-                  setSelectedFile(null);
+                  setSelectedFiles([]);
+
+                  if (inputRef.current) {
+                    inputRef.current.value = "";
+                  }
                 }}
               >
                 <span className="file-type-icon">
@@ -152,7 +175,10 @@ export default function UploadFileDialog({
 
                 <span>
                   <strong>{item.label}</strong>
-                  <small>{item.description}</small>
+
+                  <small>
+                    {item.description}
+                  </small>
                 </span>
               </button>
             );
@@ -163,39 +189,73 @@ export default function UploadFileDialog({
           ref={inputRef}
           type="file"
           hidden
+          multiple
           accept={currentType?.accept}
-          onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
-            setSelectedFile(file);
-          }}
+          onChange={handleFilesChange}
         />
 
         <button
           type="button"
           className="file-drop-area"
-          onClick={() => inputRef.current?.click()}
+          onClick={() =>
+            inputRef.current?.click()
+          }
         >
           <Upload size={25} />
 
-          {selectedFile ? (
+          {selectedFiles.length > 0 ? (
             <>
-              <strong>{selectedFile.name}</strong>
+              <strong>
+                {selectedFiles.length === 1
+                  ? "1 ficheiro selecionado"
+                  : `${selectedFiles.length} ficheiros selecionados`}
+              </strong>
+
               <span>
-                {(selectedFile.size / 1024).toFixed(1)} KB
+                Clique para alterar a seleção
               </span>
             </>
           ) : (
             <>
-              <strong>Selecionar ficheiro</strong>
+              <strong>
+                Selecionar ficheiros
+              </strong>
+
               <span>
-                Clique para escolher um ficheiro do computador
+                Pode selecionar vários ficheiros de uma só vez
               </span>
             </>
           )}
         </button>
 
+        {selectedFiles.length > 0 ? (
+          <div className="selected-files-list">
+            {selectedFiles.map(
+              (file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="selected-file-row"
+                >
+                  <FileText size={16} />
+
+                  <span className="selected-file-name">
+                    {file.name}
+                  </span>
+
+                  <span className="selected-file-size">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+              ),
+            )}
+          </div>
+        ) : null}
+
         <div className="dialog-actions">
-          <Button variant="secondary" onClick={onClose}>
+          <Button
+            variant="secondary"
+            onClick={onClose}
+          >
             Cancelar
           </Button>
 
@@ -203,9 +263,15 @@ export default function UploadFileDialog({
             icon={<Upload size={17} />}
             onClick={handleSubmit}
           >
-            {selectedFile
-              ? "Adicionar ficheiro"
-              : "Escolher ficheiro"}
+            {selectedFiles.length > 0
+              ? `Adicionar ${
+                  selectedFiles.length
+                } ${
+                  selectedFiles.length === 1
+                    ? "ficheiro"
+                    : "ficheiros"
+                }`
+              : "Escolher ficheiros"}
           </Button>
         </div>
       </div>
