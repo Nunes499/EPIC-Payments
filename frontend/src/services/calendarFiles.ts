@@ -144,7 +144,8 @@ export async function downloadCalendarFile(
     );
   }
 
-  const blob = await response.blob();
+  const blob =
+    await response.blob();
 
   const objectUrl =
     URL.createObjectURL(blob);
@@ -153,6 +154,7 @@ export async function downloadCalendarFile(
     document.createElement("a");
 
   anchor.href = objectUrl;
+
   anchor.download =
     file.original_filename;
 
@@ -161,6 +163,7 @@ export async function downloadCalendarFile(
   );
 
   anchor.click();
+
   anchor.remove();
 
   URL.revokeObjectURL(
@@ -172,45 +175,123 @@ export async function downloadCalendarFile(
 export async function previewCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
-  const response = await fetch(
-    `${API_URL}/files/${file.id}/download`,
-    {
-      method: "GET",
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
-  }
-
-  const blob =
-    await response.blob();
-
-  const objectUrl =
-    URL.createObjectURL(blob);
-
+  /*
+   * A janela é aberta IMEDIATAMENTE durante
+   * o clique do utilizador.
+   *
+   * Isto impede o browser de considerar
+   * a pré-visualização como popup bloqueado.
+   */
   const previewWindow =
     window.open(
-      objectUrl,
+      "",
       "_blank",
-      "noopener,noreferrer",
     );
 
   if (!previewWindow) {
-    URL.revokeObjectURL(
-      objectUrl,
-    );
-
     throw new Error(
       "O navegador bloqueou a janela de pré-visualização.",
     );
   }
 
-  window.setTimeout(() => {
-    URL.revokeObjectURL(
-      objectUrl,
+  previewWindow.opener = null;
+
+  /*
+   * Mostra uma mensagem enquanto o ficheiro
+   * está a ser carregado.
+   */
+  previewWindow.document.write(`
+    <!doctype html>
+    <html lang="pt">
+      <head>
+        <meta charset="utf-8" />
+        <title>A carregar ficheiro...</title>
+        <style>
+          body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #111111;
+          }
+
+          .loading {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .brand {
+            color: #ef2733;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+          }
+
+          .message {
+            font-size: 16px;
+            font-weight: 700;
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="loading">
+          <div class="brand">
+            EPIC PAYMENTS
+          </div>
+
+          <div class="message">
+            A carregar pré-visualização...
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  previewWindow.document.close();
+
+  try {
+    const response = await fetch(
+      `${API_URL}/files/${file.id}/download`,
+      {
+        method: "GET",
+      },
     );
-  }, 60_000);
+
+    if (!response.ok) {
+      throw new Error(
+        await parseError(response),
+      );
+    }
+
+    const blob =
+      await response.blob();
+
+    const objectUrl =
+      URL.createObjectURL(blob);
+
+    /*
+     * Depois do ficheiro estar pronto,
+     * enviamos a janela já aberta para o Blob.
+     */
+    previewWindow.location.href =
+      objectUrl;
+
+    /*
+     * Dá tempo suficiente ao separador
+     * para carregar o PDF/XML.
+     */
+    window.setTimeout(() => {
+      URL.revokeObjectURL(
+        objectUrl,
+      );
+    }, 5 * 60 * 1000);
+  } catch (error) {
+    previewWindow.close();
+
+    throw error;
+  }
 }

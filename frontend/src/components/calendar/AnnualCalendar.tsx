@@ -92,54 +92,83 @@ function countFileTypes(
     totalFiles: files.length,
 
     pdfCount: files.filter(
-      (file) => file.file_type === "pdf",
+      (file) =>
+        file.file_type === "pdf",
     ).length,
 
     xmlCount: files.filter(
-      (file) => file.file_type === "xml",
+      (file) =>
+        file.file_type === "xml",
     ).length,
 
     reportCount: files.filter(
-      (file) => file.file_type === "report",
+      (file) =>
+        file.file_type === "report",
     ).length,
   };
 }
 
 
 export default function AnnualCalendar({
-  initialYear = new Date().getFullYear(),
+  initialYear =
+    new Date().getFullYear(),
 }: AnnualCalendarProps) {
   const [year, setYear] =
     useState(initialYear);
 
-  const [selectedDate, setSelectedDate] =
-    useState<string | null>(null);
+  const [
+    selectedDate,
+    setSelectedDate,
+  ] = useState<string | null>(
+    null,
+  );
 
-  const [daysData, setDaysData] =
-    useState<Record<string, CalendarDayData>>({});
+  const [
+    daysData,
+    setDaysData,
+  ] = useState<
+    Record<
+      string,
+      CalendarDayData
+    >
+  >({});
 
-  const [isUploadOpen, setIsUploadOpen] =
-    useState(false);
+  const [
+    isUploadOpen,
+    setIsUploadOpen,
+  ] = useState(false);
 
-  const [isLoadingFiles, setIsLoadingFiles] =
-    useState(false);
+  const [
+    isLoadingFiles,
+    setIsLoadingFiles,
+  ] = useState(false);
 
-  const [drawerError, setDrawerError] =
-    useState<string | null>(null);
+  const [
+    drawerError,
+    setDrawerError,
+  ] = useState<string | null>(
+    null,
+  );
 
 
-  const selectedDayData = selectedDate
-    ? daysData[selectedDate]
-    : undefined;
+  const selectedDayData =
+    selectedDate
+      ? daysData[selectedDate]
+      : undefined;
 
 
-  const dataForCurrentYear = useMemo(() => {
-    return Object.fromEntries(
-      Object.entries(daysData).filter(([date]) =>
-        date.startsWith(`${year}-`),
-      ),
-    );
-  }, [daysData, year]);
+  const dataForCurrentYear =
+    useMemo(() => {
+      return Object.fromEntries(
+        Object.entries(
+          daysData,
+        ).filter(([date]) =>
+          date.startsWith(
+            `${year}-`,
+          ),
+        ),
+      );
+    }, [daysData, year]);
 
 
   async function loadYearData(
@@ -147,60 +176,95 @@ export default function AnnualCalendar({
   ) {
     try {
       const summary =
-        await listYearSummary(targetYear);
-
-      setDaysData((current) => {
-        const updated = { ...current };
-
-        const summaryDates = new Set(
-          summary.map(
-            (item) => item.calendar_date,
-          ),
+        await listYearSummary(
+          targetYear,
         );
 
-        for (const date of Object.keys(updated)) {
-          if (
-            date.startsWith(`${targetYear}-`) &&
-            !summaryDates.has(date)
-          ) {
-            delete updated[date];
-          }
-        }
-
-        for (const item of summary) {
-          const existing =
-            current[item.calendar_date];
-
-          updated[item.calendar_date] = {
-            date: item.calendar_date,
-
-            files:
-              existing?.files ?? [],
-
-            totalFiles:
-              item.total_files,
-
-            pdfCount:
-              item.pdf_count,
-
-            xmlCount:
-              item.xml_count,
-
-            reportCount:
-              item.report_count,
-
-            pendingMembers:
-              existing?.pendingMembers ?? 0,
-
-            status:
-              item.total_files > 0
-                ? "uploaded"
-                : "empty",
+      setDaysData(
+        (current) => {
+          const updated = {
+            ...current,
           };
-        }
 
-        return updated;
-      });
+          const summaryDates =
+            new Set(
+              summary.map(
+                (item) =>
+                  item.calendar_date,
+              ),
+            );
+
+          for (
+            const date
+            of Object.keys(
+              updated,
+            )
+          ) {
+            if (
+              date.startsWith(
+                `${targetYear}-`,
+              ) &&
+              !summaryDates.has(
+                date,
+              )
+            ) {
+              delete updated[
+                date
+              ];
+            }
+          }
+
+          for (
+            const item
+            of summary
+          ) {
+            const existing =
+              current[
+                item.calendar_date
+              ];
+
+            updated[
+              item.calendar_date
+            ] = {
+              date:
+                item.calendar_date,
+
+              /*
+               * Preserva os ficheiros
+               * já carregados no drawer.
+               */
+              files:
+                existing?.files ??
+                [],
+
+              totalFiles:
+                item.total_files,
+
+              pdfCount:
+                item.pdf_count,
+
+              xmlCount:
+                item.xml_count,
+
+              reportCount:
+                item.report_count,
+
+              pendingMembers:
+                existing
+                  ?.pendingMembers ??
+                0,
+
+              status:
+                item.total_files >
+                0
+                  ? "uploaded"
+                  : "empty",
+            };
+          }
+
+          return updated;
+        },
+      );
     } catch (error) {
       console.error(
         "Erro ao carregar resumo anual:",
@@ -211,7 +275,9 @@ export default function AnnualCalendar({
 
 
   useEffect(() => {
-    void loadYearData(year);
+    void loadYearData(
+      year,
+    );
   }, [year]);
 
 
@@ -219,45 +285,61 @@ export default function AnnualCalendar({
     date: string,
   ) {
     setIsLoadingFiles(true);
+
+    /*
+     * O erro do drawer é reservado
+     * apenas para falhas ao carregar
+     * a lista real dos ficheiros.
+     */
     setDrawerError(null);
 
     try {
       const files =
-        await listCalendarFiles(date);
+        await listCalendarFiles(
+          date,
+        );
 
       const counts =
-        countFileTypes(files);
+        countFileTypes(
+          files,
+        );
 
-      setDaysData((current) => ({
-        ...current,
+      setDaysData(
+        (current) => ({
+          ...current,
 
-        [date]: {
-          date,
+          [date]: {
+            date,
 
-          files:
-            files.map(mapApiFile),
+            files:
+              files.map(
+                mapApiFile,
+              ),
 
-          totalFiles:
-            counts.totalFiles,
+            totalFiles:
+              counts.totalFiles,
 
-          pdfCount:
-            counts.pdfCount,
+            pdfCount:
+              counts.pdfCount,
 
-          xmlCount:
-            counts.xmlCount,
+            xmlCount:
+              counts.xmlCount,
 
-          reportCount:
-            counts.reportCount,
+            reportCount:
+              counts.reportCount,
 
-          pendingMembers:
-            current[date]?.pendingMembers ?? 0,
+            pendingMembers:
+              current[date]
+                ?.pendingMembers ??
+              0,
 
-          status:
-            files.length > 0
-              ? "uploaded"
-              : "empty",
-        },
-      }));
+            status:
+              files.length > 0
+                ? "uploaded"
+                : "empty",
+          },
+        }),
+      );
     } catch (error) {
       setDrawerError(
         error instanceof Error
@@ -265,7 +347,9 @@ export default function AnnualCalendar({
           : "Erro ao carregar ficheiros.",
       );
     } finally {
-      setIsLoadingFiles(false);
+      setIsLoadingFiles(
+        false,
+      );
     }
   }
 
@@ -273,30 +357,45 @@ export default function AnnualCalendar({
   async function handleSelectDay(
     date: string,
   ) {
-    setSelectedDate(date);
+    setSelectedDate(
+      date,
+    );
 
-    await loadFilesForDate(date);
+    await loadFilesForDate(
+      date,
+    );
   }
 
 
   function openCurrentDay() {
-    const today = new Date();
+    const today =
+      new Date();
 
     const date = [
       today.getFullYear(),
+
       String(
         today.getMonth() + 1,
-      ).padStart(2, "0"),
+      ).padStart(
+        2,
+        "0",
+      ),
+
       String(
         today.getDate(),
-      ).padStart(2, "0"),
+      ).padStart(
+        2,
+        "0",
+      ),
     ].join("-");
 
     setYear(
       today.getFullYear(),
     );
 
-    void handleSelectDay(date);
+    void handleSelectDay(
+      date,
+    );
   }
 
 
@@ -304,22 +403,40 @@ export default function AnnualCalendar({
     payload: UploadFilePayload,
   ) {
     try {
-      for (const file of payload.files) {
+      /*
+       * Envia todos os ficheiros
+       * selecionados para o mesmo dia.
+       */
+      for (
+        const file
+        of payload.files
+      ) {
         await uploadCalendarFile(
           payload.date,
           file,
         );
       }
 
+      /*
+       * Atualiza imediatamente
+       * a lista lateral.
+       */
       await loadFilesForDate(
         payload.date,
       );
 
       const uploadYear =
         Number(
-          payload.date.slice(0, 4),
+          payload.date.slice(
+            0,
+            4,
+          ),
         );
 
+      /*
+       * Atualiza também os
+       * contadores do calendário.
+       */
       await loadYearData(
         uploadYear,
       );
@@ -341,35 +458,55 @@ export default function AnnualCalendar({
     file: CalendarFile,
   ) {
     try {
-      await previewCalendarFile({
-        id: file.id,
+      await previewCalendarFile(
+        {
+          id: file.id,
 
-        calendar_date:
-          selectedDate ?? "",
+          calendar_date:
+            selectedDate ??
+            "",
 
-        original_filename:
-          file.name,
+          original_filename:
+            file.name,
 
-        stored_filename: "",
+          stored_filename:
+            "",
 
-        file_type:
-          file.type,
+          file_type:
+            file.type,
 
-        mime_type:
-          file.mimeType ?? null,
+          mime_type:
+            file.mimeType ??
+            null,
 
-        file_size: null,
+          file_size:
+            null,
 
-        file_path: "",
+          file_path:
+            "",
 
-        uploaded_at:
-          file.uploadedAt ?? "",
-      });
+          uploaded_at:
+            file.uploadedAt ??
+            "",
+        },
+      );
     } catch (error) {
-      setDrawerError(
+      /*
+       * MUITO IMPORTANTE:
+       *
+       * Não usamos drawerError aqui.
+       *
+       * Assim, se a pré-visualização
+       * falhar, os ficheiros continuam
+       * visíveis no drawer.
+       */
+      const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível pré-visualizar o ficheiro.",
+          : "Não foi possível pré-visualizar o ficheiro.";
+
+      window.alert(
+        message,
       );
     }
   }
@@ -379,35 +516,51 @@ export default function AnnualCalendar({
     file: CalendarFile,
   ) {
     try {
-      await downloadCalendarFile({
-        id: file.id,
+      await downloadCalendarFile(
+        {
+          id: file.id,
 
-        calendar_date:
-          selectedDate ?? "",
+          calendar_date:
+            selectedDate ??
+            "",
 
-        original_filename:
-          file.name,
+          original_filename:
+            file.name,
 
-        stored_filename: "",
+          stored_filename:
+            "",
 
-        file_type:
-          file.type,
+          file_type:
+            file.type,
 
-        mime_type:
-          file.mimeType ?? null,
+          mime_type:
+            file.mimeType ??
+            null,
 
-        file_size: null,
+          file_size:
+            null,
 
-        file_path: "",
+          file_path:
+            "",
 
-        uploaded_at:
-          file.uploadedAt ?? "",
-      });
+          uploaded_at:
+            file.uploadedAt ??
+            "",
+        },
+      );
     } catch (error) {
-      setDrawerError(
+      /*
+       * Também não escondemos
+       * os ficheiros se apenas
+       * o download falhar.
+       */
+      const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível descarregar o ficheiro.",
+          : "Não foi possível descarregar o ficheiro.";
+
+      window.alert(
+        message,
       );
     }
   }
@@ -433,6 +586,10 @@ export default function AnnualCalendar({
         file.id,
       );
 
+      /*
+       * Primeiro voltamos a carregar
+       * os ficheiros restantes.
+       */
       await loadFilesForDate(
         selectedDate,
       );
@@ -445,14 +602,22 @@ export default function AnnualCalendar({
           ),
         );
 
+      /*
+       * Depois atualizamos
+       * os contadores anuais,
+       * preservando a lista lateral.
+       */
       await loadYearData(
         selectedYear,
       );
     } catch (error) {
-      setDrawerError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível eliminar o ficheiro.",
+          : "Não foi possível eliminar o ficheiro.";
+
+      window.alert(
+        message,
       );
     }
   }
@@ -465,18 +630,31 @@ export default function AnnualCalendar({
 
       const date = [
         year,
+
         String(
-          today.getMonth() + 1,
-        ).padStart(2, "0"),
+          today.getMonth() +
+            1,
+        ).padStart(
+          2,
+          "0",
+        ),
+
         String(
           today.getDate(),
-        ).padStart(2, "0"),
+        ).padStart(
+          2,
+          "0",
+        ),
       ].join("-");
 
-      setSelectedDate(date);
+      setSelectedDate(
+        date,
+      );
     }
 
-    setIsUploadOpen(true);
+    setIsUploadOpen(
+      true,
+    );
   }
 
 
@@ -489,7 +667,9 @@ export default function AnnualCalendar({
               Calendário bancário
             </span>
 
-            <h2>{year}</h2>
+            <h2>
+              {year}
+            </h2>
 
             <p>
               Selecione um dia para consultar ou adicionar ficheiros.
@@ -501,8 +681,11 @@ export default function AnnualCalendar({
               variant="secondary"
               onClick={() =>
                 setYear(
-                  (current) =>
-                    current - 1,
+                  (
+                    current,
+                  ) =>
+                    current -
+                    1,
                 )
               }
               aria-label="Ano anterior"
@@ -525,8 +708,11 @@ export default function AnnualCalendar({
               variant="secondary"
               onClick={() =>
                 setYear(
-                  (current) =>
-                    current + 1,
+                  (
+                    current,
+                  ) =>
+                    current +
+                    1,
                 )
               }
               aria-label="Ano seguinte"
@@ -538,7 +724,9 @@ export default function AnnualCalendar({
 
             <Button
               icon={
-                <Plus size={18} />
+                <Plus
+                  size={18}
+                />
               }
               onClick={
                 openUploadForSelectedDate
@@ -557,9 +745,15 @@ export default function AnnualCalendar({
             ) => (
               <MonthCard
                 key={`${year}-${monthIndex}`}
-                year={year}
-                month={monthIndex}
-                monthName={monthName}
+                year={
+                  year
+                }
+                month={
+                  monthIndex
+                }
+                monthName={
+                  monthName
+                }
                 daysData={
                   dataForCurrentYear
                 }
@@ -591,11 +785,18 @@ export default function AnnualCalendar({
           drawerError
         }
         onClose={() => {
-          setSelectedDate(null);
-          setDrawerError(null);
+          setSelectedDate(
+            null,
+          );
+
+          setDrawerError(
+            null,
+          );
         }}
         onAddFile={() =>
-          setIsUploadOpen(true)
+          setIsUploadOpen(
+            true,
+          )
         }
         onPreview={
           handlePreview
@@ -617,7 +818,9 @@ export default function AnnualCalendar({
           `${year}-01-01`
         }
         onClose={() =>
-          setIsUploadOpen(false)
+          setIsUploadOpen(
+            false,
+          )
         }
         onUpload={
           handleUpload
