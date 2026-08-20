@@ -3,11 +3,23 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  CheckCircle2,
   FileSpreadsheet,
   FileText,
   Filter,
   Layers3,
+  Loader2,
 } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  processCalendarFile,
+  type ApiBankFileProcessing,
+} from "@/services/calendarFiles";
 
 import type {
   CalendarFile,
@@ -16,12 +28,17 @@ import type {
 
 import "./processing.css";
 
-
 type ProcessingWorkspaceProps = {
   selection: ProcessingSelection | null;
   onClose: () => void;
 };
 
+type ProcessingFileState = {
+  file: CalendarFile;
+  loading: boolean;
+  error: string | null;
+  data: ApiBankFileProcessing | null;
+};
 
 function getFileIcon(
   file: CalendarFile,
@@ -33,11 +50,164 @@ function getFileIcon(
   return FileText;
 }
 
+function formatCurrency(
+  value: string | number,
+): string {
+  const numericValue =
+    typeof value === "number"
+      ? value
+      : Number(value);
+
+  if (Number.isNaN(numericValue)) {
+    return "—";
+  }
+
+  return new Intl.NumberFormat(
+    "pt-PT",
+    {
+      style: "currency",
+      currency: "EUR",
+    },
+  ).format(numericValue);
+}
+
+function formatDate(
+  value: string | null,
+): string {
+  if (!value) {
+    return "—";
+  }
+
+  const parts =
+    value.split("-");
+
+  if (parts.length !== 3) {
+    return value;
+  }
+
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
 
 export default function ProcessingWorkspace({
   selection,
   onClose,
 }: ProcessingWorkspaceProps) {
+  const [
+    fileStates,
+    setFileStates,
+  ] = useState<ProcessingFileState[]>(
+    [],
+  );
+
+  useEffect(() => {
+    if (!selection) {
+      setFileStates([]);
+      return;
+    }
+
+    const initialStates =
+      selection.files.map(
+        (file) => ({
+          file,
+          loading:
+            file.type === "xml",
+          error: null,
+          data: null,
+        }),
+      );
+
+    setFileStates(
+      initialStates,
+    );
+
+    let cancelled = false;
+
+    async function loadFiles() {
+      const results =
+        await Promise.all(
+          selection!.files.map(
+            async (file) => {
+              if (
+                file.type !== "xml"
+              ) {
+                return {
+                  file,
+                  loading: false,
+                  error:
+                    "A leitura de PDF será ligada numa etapa seguinte.",
+                  data: null,
+                } satisfies ProcessingFileState;
+              }
+
+              try {
+                const data =
+                  await processCalendarFile(
+                    file.id,
+                  );
+
+                return {
+                  file,
+                  loading: false,
+                  error: null,
+                  data,
+                } satisfies ProcessingFileState;
+              } catch (error) {
+                return {
+                  file,
+                  loading: false,
+                  error:
+                    error instanceof Error
+                      ? error.message
+                      : "Não foi possível processar o ficheiro.",
+                  data: null,
+                } satisfies ProcessingFileState;
+              }
+            },
+          ),
+        );
+
+      if (!cancelled) {
+        setFileStates(
+          results,
+        );
+      }
+    }
+
+    void loadFiles();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selection]);
+
+  const totals =
+    useMemo(() => {
+      let movements = 0;
+      let amount = 0;
+
+      for (
+        const item
+        of fileStates
+      ) {
+        if (!item.data) {
+          continue;
+        }
+
+        movements +=
+          item.data.parsed_transactions;
+
+        amount +=
+          Number(
+            item.data.parsed_total_amount,
+          );
+      }
+
+      return {
+        movements,
+        amount,
+      };
+    }, [fileStates]);
+
   if (!selection) {
     return null;
   }
@@ -53,6 +223,9 @@ export default function ProcessingWorkspace({
       (file) =>
         file.type === "xml",
     ).length;
+
+  const hasLoadedMovements =
+    totals.movements > 0;
 
   return (
     <div className="processing-workspace">
@@ -77,7 +250,9 @@ export default function ProcessingWorkspace({
             </h1>
 
             <p>
-              {selection.date}
+              {formatDate(
+                selection.date,
+              )}
             </p>
           </div>
         </div>
@@ -125,17 +300,21 @@ export default function ProcessingWorkspace({
             </strong>
           </article>
 
-          <article className="processing-summary-card processing-summary-card-muted">
+          <article className="processing-summary-card">
             <span>
               Movimentos
             </span>
 
             <strong>
-              —
+              {totals.movements}
             </strong>
 
             <small>
-              Disponível após leitura
+              {totals.movements > 0
+                ? formatCurrency(
+                    totals.amount,
+                  )
+                : "A aguardar leitura"}
             </small>
           </article>
         </section>
@@ -147,20 +326,24 @@ export default function ProcessingWorkspace({
             </span>
 
             <h2>
-              Todos os movimentos serão apresentados por ficheiro
+              Todos os movimentos apresentados por ficheiro
             </h2>
 
             <p>
-              Nesta primeira versão estamos a preparar a interface.
-              No próximo passo ligaremos a leitura real do XML e PDF.
+              Nesta fase são apresentados todos os movimentos do XML,
+              incluindo pagamentos aceites e rejeitados.
             </p>
           </div>
 
           <button
             type="button"
             className="processing-filter-button"
-            disabled
-            title="Disponível depois de carregar os movimentos"
+            disabled={!hasLoadedMovements}
+            title={
+              hasLoadedMovements
+                ? "Filtragem será implementada na próxima etapa"
+                : "Disponível depois de carregar os movimentos"
+            }
           >
             <Filter size={17} />
             Filtrar sócios
@@ -168,14 +351,19 @@ export default function ProcessingWorkspace({
         </section>
 
         <div className="processing-file-groups">
-          {selection.files.map(
-            (file, index) => {
+          {fileStates.map(
+            (
+              state,
+              index,
+            ) => {
               const Icon =
-                getFileIcon(file);
+                getFileIcon(
+                  state.file,
+                );
 
               return (
                 <section
-                  key={file.id}
+                  key={state.file.id}
                   className="processing-file-group"
                 >
                   <header className="processing-file-group-header">
@@ -195,68 +383,180 @@ export default function ProcessingWorkspace({
 
                       <div>
                         <h3>
-                          {file.name}
+                          {state.file.name}
                         </h3>
 
                         <p>
-                          {file.type.toUpperCase()}
-                          {file.size
-                            ? ` · ${file.size}`
+                          {state.file.type.toUpperCase()}
+
+                          {state.file.size
+                            ? ` · ${state.file.size}`
+                            : ""}
+
+                          {state.data
+                            ? ` · ${state.data.parsed_transactions} movimentos · ${formatCurrency(
+                                state.data.parsed_total_amount,
+                              )}`
                             : ""}
                         </p>
                       </div>
                     </div>
 
-                    <span className="processing-file-state">
-                      A aguardar leitura
-                    </span>
+                    {state.loading ? (
+                      <span className="processing-file-state processing-file-state-loading">
+                        <Loader2
+                          size={13}
+                          className="processing-spinner"
+                        />
+                        A ler ficheiro
+                      </span>
+                    ) : null}
+
+                    {!state.loading &&
+                    state.data ? (
+                      <span className="processing-file-state processing-file-state-success">
+                        <CheckCircle2 size={13} />
+                        Leitura concluída
+                      </span>
+                    ) : null}
+
+                    {!state.loading &&
+                    state.error ? (
+                      <span className="processing-file-state processing-file-state-warning">
+                        <AlertTriangle size={13} />
+                        Leitura indisponível
+                      </span>
+                    ) : null}
                   </header>
 
                   <div className="processing-table-shell">
                     <div className="processing-table-head">
-                      <span>
-                        Nº Sócio
-                      </span>
-
-                      <span>
-                        Nome
-                      </span>
-
-                      <span>
-                        Valor
-                      </span>
-
-                      <span>
-                        Motivo
-                      </span>
-
-                      <span>
-                        Telemóvel
-                      </span>
-
-                      <span>
-                        Email
-                      </span>
-
-                      <span>
-                        Nascimento
-                      </span>
+                      <span>Nº Sócio</span>
+                      <span>Nome</span>
+                      <span>Valor</span>
+                      <span>Motivo</span>
+                      <span>Telemóvel</span>
+                      <span>Email</span>
+                      <span>Nascimento</span>
                     </div>
 
-                    <div className="processing-empty-table">
-                      <AlertTriangle
-                        size={23}
-                      />
+                    {state.loading ? (
+                      <div className="processing-empty-table">
+                        <Loader2
+                          size={26}
+                          className="processing-spinner"
+                        />
 
-                      <strong>
-                        Leitura ainda não ligada
-                      </strong>
+                        <strong>
+                          A ler movimentos bancários...
+                        </strong>
 
-                      <span>
-                        No próximo passo vamos extrair os movimentos deste ficheiro
-                        e apresentar aqui todos os sócios, incluindo os pagamentos aceites.
-                      </span>
-                    </div>
+                        <span>
+                          O EPIC Payments está a analisar o ficheiro XML.
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {!state.loading &&
+                    state.error ? (
+                      <div className="processing-empty-table">
+                        <AlertTriangle
+                          size={23}
+                        />
+
+                        <strong>
+                          {state.file.type === "pdf"
+                            ? "Leitura PDF ainda não ligada"
+                            : "Não foi possível ler o ficheiro"}
+                        </strong>
+
+                        <span>
+                          {state.error}
+                        </span>
+                      </div>
+                    ) : null}
+
+                    {!state.loading &&
+                    state.data ? (
+                      <div className="processing-table-body">
+                        {state.data.movements.map(
+                          (movement) => {
+                            const accepted =
+                              movement.reason_code ===
+                              "0000";
+
+                            const normalized =
+                              movement.original_member_reference !==
+                              movement.member_number;
+
+                            return (
+                              <div
+                                key={`${state.file.id}-${movement.sequence}`}
+                                className={[
+                                  "processing-table-row",
+                                  accepted
+                                    ? "processing-table-row-accepted"
+                                    : "processing-table-row-rejected",
+                                ].join(" ")}
+                              >
+                                <div className="processing-member-cell">
+                                  <strong>
+                                    {movement.member_number ||
+                                      "—"}
+                                  </strong>
+
+                                  {normalized ? (
+                                    <small>
+                                      Banco:{" "}
+                                      {
+                                        movement.original_member_reference
+                                      }
+                                    </small>
+                                  ) : null}
+                                </div>
+
+                                <div>
+                                  {movement.name ||
+                                    "—"}
+                                </div>
+
+                                <div className="processing-amount-cell">
+                                  {formatCurrency(
+                                    movement.amount,
+                                  )}
+                                </div>
+
+                                <div>
+                                  <span
+                                    className={[
+                                      "processing-reason-badge",
+                                      accepted
+                                        ? "processing-reason-badge-accepted"
+                                        : "processing-reason-badge-rejected",
+                                    ].join(" ")}
+                                  >
+                                    {movement.reason_code ||
+                                      "—"}
+                                  </span>
+                                </div>
+
+                                <div className="processing-empty-value">
+                                  —
+                                </div>
+
+                                <div className="processing-empty-value">
+                                  —
+                                </div>
+
+                                <div className="processing-empty-value">
+                                  —
+                                </div>
+                              </div>
+                            );
+                          },
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </section>
               );

@@ -18,9 +18,32 @@ export type ApiCalendarDaySummary = {
   report_count: number;
 };
 
+export type ApiBankMovement = {
+  sequence: number;
+  original_member_reference: string;
+  member_number: string;
+  name: string;
+  amount: string;
+  reason_code: string;
+  collection_date: string | null;
+  bank_reference: string | null;
+};
+
+export type ApiBankFileProcessing = {
+  file_id: number;
+  filename: string;
+  file_type: string;
+  message_id: string | null;
+  original_message_id: string | null;
+  declared_transactions: number | null;
+  declared_total_amount: string | null;
+  parsed_transactions: number;
+  parsed_total_amount: string;
+  movements: ApiBankMovement[];
+};
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
 
 async function parseError(
   response: Response,
@@ -38,7 +61,6 @@ async function parseError(
   }
 }
 
-
 export async function listCalendarFiles(
   calendarDate: string,
 ): Promise<ApiCalendarFile[]> {
@@ -51,14 +73,11 @@ export async function listCalendarFiles(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
+    throw new Error(await parseError(response));
   }
 
   return response.json();
 }
-
 
 export async function listYearSummary(
   year: number,
@@ -72,14 +91,11 @@ export async function listYearSummary(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
+    throw new Error(await parseError(response));
   }
 
   return response.json();
 }
-
 
 export async function uploadCalendarFile(
   calendarDate: string,
@@ -87,10 +103,7 @@ export async function uploadCalendarFile(
 ): Promise<ApiCalendarFile> {
   const formData = new FormData();
 
-  formData.append(
-    "upload",
-    file,
-  );
+  formData.append("upload", file);
 
   const response = await fetch(
     `${API_URL}/files/calendar/${calendarDate}`,
@@ -101,14 +114,11 @@ export async function uploadCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
+    throw new Error(await parseError(response));
   }
 
   return response.json();
 }
-
 
 export async function deleteCalendarFile(
   fileId: number,
@@ -121,12 +131,27 @@ export async function deleteCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
+    throw new Error(await parseError(response));
   }
 }
 
+export async function processCalendarFile(
+  fileId: number,
+): Promise<ApiBankFileProcessing> {
+  const response = await fetch(
+    `${API_URL}/files/${fileId}/process`,
+    {
+      method: "GET",
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  return response.json();
+}
 
 export async function downloadCalendarFile(
   file: ApiCalendarFile,
@@ -139,49 +164,26 @@ export async function downloadCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(
-      await parseError(response),
-    );
+    throw new Error(await parseError(response));
   }
 
-  const blob =
-    await response.blob();
-
-  const objectUrl =
-    URL.createObjectURL(blob);
-
-  const anchor =
-    document.createElement("a");
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
 
   anchor.href = objectUrl;
+  anchor.download = file.original_filename;
 
-  anchor.download =
-    file.original_filename;
-
-  document.body.appendChild(
-    anchor,
-  );
-
+  document.body.appendChild(anchor);
   anchor.click();
-
   anchor.remove();
 
-  URL.revokeObjectURL(
-    objectUrl,
-  );
+  URL.revokeObjectURL(objectUrl);
 }
-
 
 export async function previewCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
-  /*
-   * A janela é aberta IMEDIATAMENTE durante
-   * o clique do utilizador.
-   *
-   * Isto impede o browser de considerar
-   * a pré-visualização como popup bloqueado.
-   */
   const previewWindow =
     window.open(
       "",
@@ -196,10 +198,6 @@ export async function previewCalendarFile(
 
   previewWindow.opener = null;
 
-  /*
-   * Mostra uma mensagem enquanto o ficheiro
-   * está a ser carregado.
-   */
   previewWindow.document.write(`
     <!doctype html>
     <html lang="pt">
@@ -262,32 +260,16 @@ export async function previewCalendarFile(
     );
 
     if (!response.ok) {
-      throw new Error(
-        await parseError(response),
-      );
+      throw new Error(await parseError(response));
     }
 
-    const blob =
-      await response.blob();
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
 
-    const objectUrl =
-      URL.createObjectURL(blob);
+    previewWindow.location.href = objectUrl;
 
-    /*
-     * Depois do ficheiro estar pronto,
-     * enviamos a janela já aberta para o Blob.
-     */
-    previewWindow.location.href =
-      objectUrl;
-
-    /*
-     * Dá tempo suficiente ao separador
-     * para carregar o PDF/XML.
-     */
     window.setTimeout(() => {
-      URL.revokeObjectURL(
-        objectUrl,
-      );
+      URL.revokeObjectURL(objectUrl);
     }, 5 * 60 * 1000);
   } catch (error) {
     previewWindow.close();
