@@ -1,4 +1,7 @@
-export type CalendarFileType = "pdf" | "xml" | "report";
+export type CalendarFileType =
+  | "pdf"
+  | "xml"
+  | "report";
 
 export type DayStatus =
   | "empty"
@@ -17,7 +20,6 @@ export type CalendarFile = {
 
 export type CalendarDayData = {
   date: string;
-
   files: CalendarFile[];
 
   totalFiles: number;
@@ -26,7 +28,6 @@ export type CalendarDayData = {
   reportCount: number;
 
   pendingMembers: number;
-
   status: DayStatus;
 };
 
@@ -34,4 +35,9 @@ export type UploadFilePayload = {
   date: string;
   type: CalendarFileType;
   files: File[];
+};
+
+export type ProcessingSelection = {
+  date: string;
+  files: CalendarFile[];
 };

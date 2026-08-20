@@ -1,5 +1,8 @@
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
+import re
+import xml.etree.ElementTree as ET
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
@@ -84,7 +87,9 @@ async def save_calendar_file(
             detail="O ficheiro não tem um nome válido.",
         )
 
-    file_type = get_file_type(upload.filename)
+    file_type = get_file_type(
+        upload.filename,
+    )
 
     contents = await upload.read()
 
@@ -105,21 +110,29 @@ async def save_calendar_file(
         file_type=file_type,
     )
 
-    extension = Path(upload.filename).suffix.lower()
+    extension = Path(
+        upload.filename,
+    ).suffix.lower()
 
-    stored_filename = f"{uuid4().hex}{extension}"
+    stored_filename = (
+        f"{uuid4().hex}{extension}"
+    )
 
     absolute_file_path = (
         destination_directory
         / stored_filename
     )
 
-    relative_file_path = absolute_file_path.relative_to(
-        STORAGE_ROOT.parent
+    relative_file_path = (
+        absolute_file_path.relative_to(
+            STORAGE_ROOT.parent,
+        )
     )
 
     try:
-        absolute_file_path.write_bytes(contents)
+        absolute_file_path.write_bytes(
+            contents,
+        )
 
         calendar_file = create_calendar_file(
             db,
@@ -148,10 +161,15 @@ async def save_calendar_file(
 def resolve_calendar_file_path(
     calendar_file: CalendarFile,
 ) -> Path:
-    file_path = Path(calendar_file.file_path)
+    file_path = Path(
+        calendar_file.file_path,
+    )
 
     if not file_path.is_absolute():
-        file_path = Path.cwd() / file_path
+        file_path = (
+            Path.cwd()
+            / file_path
+        )
 
     return file_path.resolve()
 
@@ -159,12 +177,20 @@ def resolve_calendar_file_path(
 def get_existing_calendar_file_path(
     calendar_file: CalendarFile,
 ) -> Path:
-    file_path = resolve_calendar_file_path(calendar_file)
+    file_path = resolve_calendar_file_path(
+        calendar_file,
+    )
 
-    if not file_path.exists() or not file_path.is_file():
+    if (
+        not file_path.exists()
+        or not file_path.is_file()
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="O ficheiro físico não foi encontrado no servidor.",
+            detail=(
+                "O ficheiro físico não foi "
+                "encontrado no servidor."
+            ),
         )
 
     return file_path
@@ -186,14 +212,19 @@ def remove_calendar_file(
             detail="Ficheiro não encontrado.",
         )
 
-    file_path = resolve_calendar_file_path(calendar_file)
+    file_path = resolve_calendar_file_path(
+        calendar_file,
+    )
 
     delete_calendar_file(
         db,
         calendar_file,
     )
 
-    if file_path.exists() and file_path.is_file():
+    if (
+        file_path.exists()
+        and file_path.is_file()
+    ):
         file_path.unlink()
 
     remove_empty_parent_directories(
@@ -209,11 +240,17 @@ def remove_empty_parent_directories(
     start_directory: Path,
     stop_directory: Path,
 ) -> None:
-    current_directory = start_directory.resolve()
-    resolved_stop_directory = stop_directory.resolve()
+    current_directory = (
+        start_directory.resolve()
+    )
+
+    resolved_stop_directory = (
+        stop_directory.resolve()
+    )
 
     while (
-        current_directory != resolved_stop_directory
+        current_directory
+        != resolved_stop_directory
         and resolved_stop_directory
         in current_directory.parents
     ):
@@ -222,4 +259,391 @@ def remove_empty_parent_directories(
         except OSError:
             break
 
-        current_directory = current_directory.parent
+        current_directory = (
+            current_directory.parent
+        )
+
+
+# =========================================================
+# PROCESSAMENTO XML BANCÁRIO
+# =========================================================
+
+
+def normalize_member_reference(
+    reference: str,
+) -> str:
+    """
+    Preserva a referência original do banco,
+    mas cria uma versão candidata ao nº de sócio.
+
+    Exemplos:
+        200520 -> 200520
+        A200520 -> 200520
+        B669 -> 669
+        C1000233 -> 1000233
+
+    A validação definitiva contra a CEDIS
+    será feita numa etapa posterior.
+    """
+
+    cleaned = (
+        reference
+        .strip()
+        .replace(" ", "")
+    )
+
+    if cleaned.isdigit():
+        return cleaned
+
+    match = re.fullmatch(
+        r"[A-Za-z]+(\d+)",
+        cleaned,
+    )
+
+    if match:
+        return match.group(1)
+
+    return cleaned
+
+
+def parse_decimal(
+    value: str | None,
+) -> Decimal:
+    if not value:
+        return Decimal("0")
+
+    try:
+        return Decimal(
+            value.strip(),
+        )
+    except InvalidOperation:
+        return Decimal("0")
+
+
+def parse_optional_date(
+    value: str | None,
+) -> date | None:
+    if not value:
+        return None
+
+    try:
+        return date.fromisoformat(
+            value.strip(),
+        )
+    except ValueError:
+        return None
+
+
+def process_xml_calendar_file(
+    db: Session,
+    *,
+    file_id: int,
+) -> dict:
+    calendar_file = get_calendar_file_by_id(
+        db,
+        file_id,
+    )
+
+    if calendar_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ficheiro não encontrado.",
+        )
+
+    if calendar_file.file_type != "xml":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Nesta fase apenas ficheiros XML "
+                "podem ser processados."
+            ),
+        )
+
+    file_path = get_existing_calendar_file_path(
+        calendar_file,
+    )
+
+    try:
+        tree = ET.parse(
+            file_path,
+        )
+    except ET.ParseError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O ficheiro XML não é válido "
+                "ou está corrompido."
+            ),
+        ) from exc
+
+    root = tree.getroot()
+
+    namespace_uri = ""
+
+    if root.tag.startswith("{"):
+        namespace_uri = (
+            root.tag[1:]
+            .split("}", 1)[0]
+        )
+
+    def tag(name: str) -> str:
+        if namespace_uri:
+            return (
+                f"{{{namespace_uri}}}{name}"
+            )
+
+        return name
+
+    def find_text(
+        element: ET.Element,
+        path: list[str],
+    ) -> str | None:
+        current = element
+
+        for item in path:
+            found = current.find(
+                tag(item),
+            )
+
+            if found is None:
+                return None
+
+            current = found
+
+        if current.text is None:
+            return None
+
+        return current.text.strip()
+
+    customer_report = root.find(
+        tag("CstmrPmtStsRpt"),
+    )
+
+    if customer_report is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O XML não contém um relatório "
+                "bancário reconhecido."
+            ),
+        )
+
+    message_id = find_text(
+        customer_report,
+        [
+            "GrpHdr",
+            "MsgId",
+        ],
+    )
+
+    original_group = (
+        customer_report.find(
+            tag("OrgnlGrpInfAndSts"),
+        )
+    )
+
+    original_message_id = None
+    declared_transactions = None
+    declared_total_amount = None
+
+    if original_group is not None:
+        original_message_id = (
+            find_text(
+                original_group,
+                ["OrgnlMsgId"],
+            )
+        )
+
+        declared_transactions_text = (
+            find_text(
+                original_group,
+                ["OrgnlNbOfTxs"],
+            )
+        )
+
+        if declared_transactions_text:
+            try:
+                declared_transactions = int(
+                    declared_transactions_text,
+                )
+            except ValueError:
+                declared_transactions = None
+
+        declared_total_amount = (
+            parse_decimal(
+                find_text(
+                    original_group,
+                    ["OrgnlCtrlSum"],
+                ),
+            )
+        )
+
+    movements: list[dict] = []
+
+    payment_groups = (
+        customer_report.findall(
+            tag("OrgnlPmtInfAndSts"),
+        )
+    )
+
+    sequence = 0
+
+    for payment_group in payment_groups:
+        transactions = (
+            payment_group.findall(
+                tag("TxInfAndSts"),
+            )
+        )
+
+        for transaction in transactions:
+            sequence += 1
+
+            reason_code = (
+                find_text(
+                    transaction,
+                    [
+                        "StsRsnInf",
+                        "Rsn",
+                        "Cd",
+                    ],
+                )
+                or find_text(
+                    transaction,
+                    [
+                        "StsRsnInf",
+                        "Rsn",
+                        "Prtry",
+                    ],
+                )
+                or ""
+            )
+
+            bank_reference = find_text(
+                transaction,
+                ["AcctSvcrRef"],
+            )
+
+            original_tx_ref = (
+                transaction.find(
+                    tag("OrgnlTxRef"),
+                )
+            )
+
+            if original_tx_ref is None:
+                continue
+
+            amount = parse_decimal(
+                find_text(
+                    original_tx_ref,
+                    [
+                        "Amt",
+                        "InstdAmt",
+                    ],
+                ),
+            )
+
+            collection_date = (
+                parse_optional_date(
+                    find_text(
+                        original_tx_ref,
+                        ["ReqdColltnDt"],
+                    ),
+                )
+            )
+
+            original_member_reference = (
+                find_text(
+                    original_tx_ref,
+                    [
+                        "MndtRltdInf",
+                        "MndtId",
+                    ],
+                )
+                or ""
+            )
+
+            member_number = (
+                normalize_member_reference(
+                    original_member_reference,
+                )
+            )
+
+            name = (
+                find_text(
+                    original_tx_ref,
+                    [
+                        "Dbtr",
+                        "Pty",
+                        "Nm",
+                    ],
+                )
+                or ""
+            )
+
+            movements.append(
+                {
+                    "sequence":
+                        sequence,
+
+                    "original_member_reference":
+                        original_member_reference,
+
+                    "member_number":
+                        member_number,
+
+                    "name":
+                        name,
+
+                    "amount":
+                        amount,
+
+                    "reason_code":
+                        reason_code,
+
+                    "collection_date":
+                        collection_date,
+
+                    "bank_reference":
+                        bank_reference,
+                }
+            )
+
+    parsed_total_amount = sum(
+        (
+            movement["amount"]
+            for movement in movements
+        ),
+        Decimal("0"),
+    )
+
+    return {
+        "file_id":
+            calendar_file.id,
+
+        "filename":
+            calendar_file.original_filename,
+
+        "file_type":
+            calendar_file.file_type,
+
+        "message_id":
+            message_id,
+
+        "original_message_id":
+            original_message_id,
+
+        "declared_transactions":
+            declared_transactions,
+
+        "declared_total_amount":
+            declared_total_amount,
+
+        "parsed_transactions":
+            len(movements),
+
+        "parsed_total_amount":
+            parsed_total_amount,
+
+        "movements":
+            movements,
+    }

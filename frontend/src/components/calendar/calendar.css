@@ -1872,3 +1872,202 @@ button:hover {
     0 10px 24px rgba(255, 32, 45, 0.15);
 }
 
+/* =========================================================
+   SELEÇÃO DE FICHEIROS PARA PROCESSAMENTO
+   ========================================================= */
+
+.drawer-selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 32, 45, 0.18);
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.07),
+      rgba(255, 255, 255, 0.96)
+    );
+  padding: 9px 10px;
+}
+
+.drawer-selection-toolbar > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #5f5f5f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.drawer-selection-toolbar > div:first-child strong {
+  display: inline-flex;
+  min-width: 23px;
+  height: 23px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.drawer-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.drawer-selection-actions button {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 32, 45, 0.42);
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.11),
+      rgba(255, 32, 45, 0.035)
+    );
+  padding: 6px 10px;
+  color: #222222;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow:
+    inset 3px 0 0 var(--primary);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.drawer-selection-actions button:hover {
+  border-color: var(--primary);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.19),
+      rgba(255, 32, 45, 0.07)
+    );
+  color: #111111;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 6px 14px rgba(255, 32, 45, 0.10);
+}
+
+
+/* =========================================================
+   RESUMO DO PROCESSAMENTO
+   ========================================================= */
+
+.processing-selection-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+  border: 1px solid #e7e7e7;
+  border-radius: 10px;
+  background: #fafafa;
+  padding: 9px 11px;
+}
+
+.processing-selection-summary span {
+  color: #666666;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.processing-selection-summary strong {
+  display: inline-flex;
+  min-width: 29px;
+  height: 29px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      135deg,
+      var(--primary),
+      var(--primary-hover)
+    );
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow:
+    0 5px 12px rgba(255, 32, 45, 0.18);
+}
+
+
+/* =========================================================
+   FICHEIRO SELECIONADO
+   ========================================================= */
+
+.drawer-file-card-selected {
+  border-color: rgba(255, 32, 45, 0.45);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.055),
+      #ffffff
+    );
+  box-shadow:
+    inset 3px 0 0 var(--primary);
+}
+
+.drawer-file-checkbox {
+  display: flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.drawer-file-checkbox input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.drawer-file-checkbox-placeholder {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+}
+
+.processing-selection-help {
+  margin: 9px 0 0;
+  color: #888888;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+@media (max-width: 600px) {
+  .drawer-selection-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .drawer-selection-actions {
+    width: 100%;
+  }
+
+  .drawer-selection-actions button {
+    width: 100%;
+  }
+}
+

@@ -27,10 +27,12 @@ import {
 import DayDrawer from "./DayDrawer";
 import MonthCard from "./MonthCard";
 import UploadFileDialog from "./UploadFileDialog";
+import ProcessingWorkspace from "./ProcessingWorkspace";
 
 import type {
   CalendarDayData,
   CalendarFile,
+  ProcessingSelection,
   UploadFilePayload,
 } from "./calendar-types";
 
@@ -150,6 +152,24 @@ export default function AnnualCalendar({
     null,
   );
 
+  /*
+   * IDs dos PDF/XML selecionados no drawer.
+   *
+   * A seleção pertence sempre ao dia
+   * atualmente aberto.
+   */
+  const [
+    selectedFileIds,
+    setSelectedFileIds,
+  ] = useState<number[]>([]);
+
+  const [
+    processingSelection,
+    setProcessingSelection,
+  ] = useState<ProcessingSelection | null>(
+    null,
+  );
+
 
   const selectedDayData =
     selectedDate
@@ -230,8 +250,8 @@ export default function AnnualCalendar({
                 item.calendar_date,
 
               /*
-               * Preserva os ficheiros
-               * já carregados no drawer.
+               * Preserva a lista real de ficheiros
+               * quando o drawer já a carregou.
                */
               files:
                 existing?.files ??
@@ -285,12 +305,6 @@ export default function AnnualCalendar({
     date: string,
   ) {
     setIsLoadingFiles(true);
-
-    /*
-     * O erro do drawer é reservado
-     * apenas para falhas ao carregar
-     * a lista real dos ficheiros.
-     */
     setDrawerError(null);
 
     try {
@@ -304,6 +318,11 @@ export default function AnnualCalendar({
           files,
         );
 
+      const mappedFiles =
+        files.map(
+          mapApiFile,
+        );
+
       setDaysData(
         (current) => ({
           ...current,
@@ -312,9 +331,7 @@ export default function AnnualCalendar({
             date,
 
             files:
-              files.map(
-                mapApiFile,
-              ),
+              mappedFiles,
 
             totalFiles:
               counts.totalFiles,
@@ -340,6 +357,37 @@ export default function AnnualCalendar({
           },
         }),
       );
+
+      /*
+       * Se a lista for atualizada após eliminar
+       * um ficheiro, remove da seleção IDs que
+       * já deixaram de existir.
+       */
+      const validProcessableIds =
+        new Set(
+          mappedFiles
+            .filter(
+              (file) =>
+                file.type ===
+                  "pdf" ||
+                file.type ===
+                  "xml",
+            )
+            .map(
+              (file) =>
+                file.id,
+            ),
+        );
+
+      setSelectedFileIds(
+        (current) =>
+          current.filter(
+            (fileId) =>
+              validProcessableIds.has(
+                fileId,
+              ),
+          ),
+      );
     } catch (error) {
       setDrawerError(
         error instanceof Error
@@ -357,6 +405,14 @@ export default function AnnualCalendar({
   async function handleSelectDay(
     date: string,
   ) {
+    /*
+     * Ao mudar de dia, começamos uma
+     * nova seleção de processamento.
+     */
+    setSelectedFileIds(
+      [],
+    );
+
     setSelectedDate(
       date,
     );
@@ -403,10 +459,6 @@ export default function AnnualCalendar({
     payload: UploadFilePayload,
   ) {
     try {
-      /*
-       * Envia todos os ficheiros
-       * selecionados para o mesmo dia.
-       */
       for (
         const file
         of payload.files
@@ -419,7 +471,7 @@ export default function AnnualCalendar({
 
       /*
        * Atualiza imediatamente
-       * a lista lateral.
+       * o drawer.
        */
       await loadFilesForDate(
         payload.date,
@@ -434,8 +486,8 @@ export default function AnnualCalendar({
         );
 
       /*
-       * Atualiza também os
-       * contadores do calendário.
+       * Atualiza os badges
+       * PDF/XML/REL do calendário.
        */
       await loadYearData(
         uploadYear,
@@ -492,13 +544,11 @@ export default function AnnualCalendar({
       );
     } catch (error) {
       /*
-       * MUITO IMPORTANTE:
+       * Não usamos drawerError para
+       * erros isolados de preview.
        *
-       * Não usamos drawerError aqui.
-       *
-       * Assim, se a pré-visualização
-       * falhar, os ficheiros continuam
-       * visíveis no drawer.
+       * Desta forma a lista de ficheiros
+       * permanece visível.
        */
       const message =
         error instanceof Error
@@ -549,11 +599,6 @@ export default function AnnualCalendar({
         },
       );
     } catch (error) {
-      /*
-       * Também não escondemos
-       * os ficheiros se apenas
-       * o download falhar.
-       */
       const message =
         error instanceof Error
           ? error.message
@@ -587,8 +632,21 @@ export default function AnnualCalendar({
       );
 
       /*
-       * Primeiro voltamos a carregar
-       * os ficheiros restantes.
+       * Remove imediatamente o ficheiro
+       * eliminado da seleção.
+       */
+      setSelectedFileIds(
+        (current) =>
+          current.filter(
+            (fileId) =>
+              fileId !==
+              file.id,
+          ),
+      );
+
+      /*
+       * Recarrega a lista real
+       * dos ficheiros restantes.
        */
       await loadFilesForDate(
         selectedDate,
@@ -603,9 +661,7 @@ export default function AnnualCalendar({
         );
 
       /*
-       * Depois atualizamos
-       * os contadores anuais,
-       * preservando a lista lateral.
+       * Atualiza também o resumo anual.
        */
       await loadYearData(
         selectedYear,
@@ -628,6 +684,13 @@ export default function AnnualCalendar({
       const today =
         new Date();
 
+      /*
+       * Se estamos a visualizar o ano atual,
+       * usa o dia/mês de hoje.
+       *
+       * Se estamos noutro ano, mantém esse
+       * ano e usa o mesmo dia/mês.
+       */
       const date = [
         year,
 
@@ -647,6 +710,10 @@ export default function AnnualCalendar({
         ),
       ].join("-");
 
+      setSelectedFileIds(
+        [],
+      );
+
       setSelectedDate(
         date,
       );
@@ -654,6 +721,148 @@ export default function AnnualCalendar({
 
     setIsUploadOpen(
       true,
+    );
+  }
+
+
+  function handleToggleFile(
+    fileId: number,
+  ) {
+    const file =
+      selectedDayData
+        ?.files.find(
+          (item) =>
+            item.id ===
+            fileId,
+        );
+
+    /*
+     * Segurança adicional:
+     * relatórios nunca entram
+     * no processamento bancário.
+     */
+    if (
+      !file ||
+      (
+        file.type !== "pdf" &&
+        file.type !== "xml"
+      )
+    ) {
+      return;
+    }
+
+    setSelectedFileIds(
+      (current) => {
+        if (
+          current.includes(
+            fileId,
+          )
+        ) {
+          return current.filter(
+            (id) =>
+              id !== fileId,
+          );
+        }
+
+        return [
+          ...current,
+          fileId,
+        ];
+      },
+    );
+  }
+
+
+  function handleSelectAllFiles() {
+    const ids =
+      selectedDayData
+        ?.files
+        .filter(
+          (file) =>
+            file.type ===
+              "pdf" ||
+            file.type ===
+              "xml",
+        )
+        .map(
+          (file) =>
+            file.id,
+        ) ??
+      [];
+
+    setSelectedFileIds(
+      ids,
+    );
+  }
+
+
+  function handleClearSelection() {
+    setSelectedFileIds(
+      [],
+    );
+  }
+
+
+  function handleOpenProcessing() {
+    if (
+      !selectedDate ||
+      !selectedDayData
+    ) {
+      return;
+    }
+
+    const selectedFiles =
+      selectedDayData.files.filter(
+        (file) =>
+          selectedFileIds.includes(
+            file.id,
+          ) &&
+          (
+            file.type ===
+              "pdf" ||
+            file.type ===
+              "xml"
+          ),
+      );
+
+    if (
+      selectedFiles.length ===
+      0
+    ) {
+      window.alert(
+        "Selecione pelo menos um ficheiro PDF ou XML.",
+      );
+
+      return;
+    }
+
+    setProcessingSelection({
+      date:
+        selectedDate,
+      files:
+        selectedFiles,
+    });
+  }
+
+
+  function handleCloseProcessing() {
+    setProcessingSelection(
+      null,
+    );
+  }
+
+
+  function handleCloseDrawer() {
+    setSelectedDate(
+      null,
+    );
+
+    setSelectedFileIds(
+      [],
+    );
+
+    setDrawerError(
+      null,
     );
   }
 
@@ -784,19 +993,28 @@ export default function AnnualCalendar({
         error={
           drawerError
         }
-        onClose={() => {
-          setSelectedDate(
-            null,
-          );
-
-          setDrawerError(
-            null,
-          );
-        }}
+        selectedFileIds={
+          selectedFileIds
+        }
+        onClose={
+          handleCloseDrawer
+        }
         onAddFile={() =>
           setIsUploadOpen(
             true,
           )
+        }
+        onToggleFile={
+          handleToggleFile
+        }
+        onSelectAllFiles={
+          handleSelectAllFiles
+        }
+        onClearSelection={
+          handleClearSelection
+        }
+        onOpenProcessing={
+          handleOpenProcessing
         }
         onPreview={
           handlePreview
@@ -806,6 +1024,15 @@ export default function AnnualCalendar({
         }
         onDelete={
           handleDelete
+        }
+      />
+
+      <ProcessingWorkspace
+        selection={
+          processingSelection
+        }
+        onClose={
+          handleCloseProcessing
         }
       />
 

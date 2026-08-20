@@ -19,11 +19,13 @@ from app.crud.calendar_file import (
 )
 from app.database.session import get_db
 from app.schemas.calendar_file import (
+    BankFileProcessingRead,
     CalendarDaySummary,
     CalendarFileRead,
 )
 from app.services.calendar_service import (
     get_existing_calendar_file_path,
+    process_xml_calendar_file,
     remove_calendar_file,
     save_calendar_file,
 )
@@ -84,6 +86,20 @@ def list_year_summary(
 
 
 @router.get(
+    "/{file_id}/process",
+    response_model=BankFileProcessingRead,
+)
+def process_calendar_file(
+    file_id: int,
+    db: Session = Depends(get_db),
+):
+    return process_xml_calendar_file(
+        db,
+        file_id=file_id,
+    )
+
+
+@router.get(
     "/{file_id}/download",
     response_class=FileResponse,
 )
@@ -109,8 +125,10 @@ def download_calendar_file(
     return FileResponse(
         path=file_path,
         filename=calendar_file.original_filename,
-        media_type=calendar_file.mime_type
-        or "application/octet-stream",
+        media_type=(
+            calendar_file.mime_type
+            or "application/octet-stream"
+        ),
     )
 
 
