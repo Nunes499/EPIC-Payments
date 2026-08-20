@@ -3,7 +3,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth_router, calendar_router, files_router
+from app.api import (
+    auth_router,
+    calendar_router,
+    cedis_router,
+    files_router,
+)
 from app.core.config import settings
 from app.database.session import SessionLocal
 from app.services import create_initial_admin
@@ -38,9 +43,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(auth_router)
 app.include_router(calendar_router)
 app.include_router(files_router)
+app.include_router(cedis_router)
 
 
 @app.get("/")

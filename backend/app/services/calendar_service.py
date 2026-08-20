@@ -13,7 +13,13 @@ from app.crud.calendar_file import (
     delete_calendar_file,
     get_calendar_file_by_id,
 )
+from app.crud.cedis_file import get_active_cedis_file
 from app.models.calendar_file import CalendarFile
+from app.services.cedis_service import (
+    clean_cell_value,
+    clean_integer_value,
+    load_cedis_dataframe,
+)
 
 
 ALLOWED_EXTENSIONS = {
@@ -334,6 +340,112 @@ def parse_optional_date(
         return None
 
 
+def build_active_cedis_lookup(
+    db: Session,
+) -> tuple[
+    dict[str, dict],
+    int | None,
+    str | None,
+]:
+    """
+    Carrega a Base CEDIS ativa e cria um índice
+    por Nº Cartão / Nº Sócio.
+
+    O cruzamento é feito pelo número de sócio normalizado.
+    Exemplos:
+        A200520 -> 200520
+        B669 -> 669
+        210445 -> 210445
+    """
+
+    active_cedis_file = get_active_cedis_file(
+        db,
+    )
+
+    if active_cedis_file is None:
+        return (
+            {},
+            None,
+            None,
+        )
+
+    dataframe = load_cedis_dataframe(
+        active_cedis_file,
+    )
+
+    lookup: dict[str, dict] = {}
+
+    for _, row in dataframe.iterrows():
+        raw_member_number = clean_cell_value(
+            row.get("Nº Cartão"),
+        )
+
+        if not raw_member_number:
+            continue
+
+        member_number = normalize_member_reference(
+            raw_member_number,
+        )
+
+        if not member_number:
+            continue
+
+        # Se existirem números repetidos na exportação,
+        # preservamos a primeira ocorrência.
+        if member_number in lookup:
+            continue
+
+        age = clean_integer_value(
+            row.get("Idade (Anos)"),
+        )
+
+        birth_year = clean_integer_value(
+            row.get("Ano de Nascimento"),
+        )
+
+        lookup[member_number] = {
+            "member_number":
+                member_number,
+
+            "name":
+                clean_cell_value(
+                    row.get("Nome"),
+                ),
+
+            "phone":
+                clean_cell_value(
+                    row.get(
+                        "NºTelefone/Telemóvel",
+                    ),
+                ),
+
+            "email":
+                clean_cell_value(
+                    row.get(
+                        "Endereço de e-mail",
+                    ),
+                ),
+
+            "birth_year":
+                birth_year,
+
+            "age":
+                age,
+
+            "is_minor":
+                (
+                    age is not None
+                    and age < 18
+                ),
+        }
+
+    return (
+        lookup,
+        active_cedis_file.id,
+        active_cedis_file.original_filename,
+    )
+
+
 def process_xml_calendar_file(
     db: Session,
     *,
@@ -478,6 +590,14 @@ def process_xml_calendar_file(
             )
         )
 
+    (
+        cedis_lookup,
+        cedis_file_id,
+        cedis_filename,
+    ) = build_active_cedis_lookup(
+        db,
+    )
+
     movements: list[dict] = []
 
     payment_groups = (
@@ -580,6 +700,52 @@ def process_xml_calendar_file(
                 or ""
             )
 
+            cedis_member = cedis_lookup.get(
+                member_number,
+            )
+
+            cedis_match = (
+                cedis_member is not None
+            )
+
+            cedis_name = (
+                cedis_member.get("name")
+                if cedis_member
+                else None
+            )
+
+            phone = (
+                cedis_member.get("phone")
+                if cedis_member
+                else None
+            )
+
+            email = (
+                cedis_member.get("email")
+                if cedis_member
+                else None
+            )
+
+            birth_year = (
+                cedis_member.get("birth_year")
+                if cedis_member
+                else None
+            )
+
+            age = (
+                cedis_member.get("age")
+                if cedis_member
+                else None
+            )
+
+            is_minor = (
+                bool(
+                    cedis_member.get("is_minor")
+                )
+                if cedis_member
+                else False
+            )
+
             movements.append(
                 {
                     "sequence":
@@ -591,8 +757,31 @@ def process_xml_calendar_file(
                     "member_number":
                         member_number,
 
+                    # Mantemos o nome do XML como principal.
+                    # Se estiver vazio, usamos o nome da CEDIS.
                     "name":
-                        name,
+                        name or cedis_name or "",
+
+                    "cedis_name":
+                        cedis_name,
+
+                    "phone":
+                        phone,
+
+                    "email":
+                        email,
+
+                    "birth_year":
+                        birth_year,
+
+                    "age":
+                        age,
+
+                    "is_minor":
+                        is_minor,
+
+                    "cedis_match":
+                        cedis_match,
 
                     "amount":
                         amount,
@@ -616,6 +805,23 @@ def process_xml_calendar_file(
         Decimal("0"),
     )
 
+    cedis_matches = sum(
+        1
+        for movement in movements
+        if movement["cedis_match"]
+    )
+
+    cedis_unmatched = (
+        len(movements)
+        - cedis_matches
+    )
+
+    minor_members = sum(
+        1
+        for movement in movements
+        if movement["is_minor"]
+    )
+
     return {
         "file_id":
             calendar_file.id,
@@ -625,6 +831,21 @@ def process_xml_calendar_file(
 
         "file_type":
             calendar_file.file_type,
+
+        "cedis_file_id":
+            cedis_file_id,
+
+        "cedis_filename":
+            cedis_filename,
+
+        "cedis_matches":
+            cedis_matches,
+
+        "cedis_unmatched":
+            cedis_unmatched,
+
+        "minor_members":
+            minor_members,
 
         "message_id":
             message_id,

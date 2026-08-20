@@ -35,3 +35,9 @@ Thumbs.db
 
 # Ficheiros bancários carregados pela aplicação
 backend/storage/bank_files/
+
+# Base CEDIS - contém dados de sócios
+RadGridExport.xls
+
+# Bases CEDIS armazenadas pelo servidor
+backend/storage/cedis/

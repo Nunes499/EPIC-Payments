@@ -41,6 +41,17 @@ class BankMovementRead(BaseModel):
 
     name: str
 
+    # Dados encontrados na Base CEDIS ativa.
+    cedis_name: str | None = None
+    phone: str | None = None
+    email: str | None = None
+
+    birth_year: int | None = None
+    age: int | None = None
+
+    is_minor: bool = False
+    cedis_match: bool = False
+
     amount: Decimal
     reason_code: str
 
@@ -53,6 +64,15 @@ class BankFileProcessingRead(BaseModel):
     file_id: int
     filename: str
     file_type: str
+
+    # Base CEDIS utilizada neste processamento.
+    # Se não existir uma base ativa, ficam a None.
+    cedis_file_id: int | None = None
+    cedis_filename: str | None = None
+
+    cedis_matches: int = 0
+    cedis_unmatched: int = 0
+    minor_members: int = 0
 
     message_id: str | None = None
     original_message_id: str | None = None

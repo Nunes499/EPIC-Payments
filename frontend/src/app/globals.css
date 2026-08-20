@@ -1293,3 +1293,681 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   DEFINIÇÕES - BASE DE DADOS CEDIS
+   ========================================================= */
+
+.cedis-settings {
+  margin-top: 28px;
+}
+
+.cedis-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.cedis-settings-header h2 {
+  margin: 6px 0 7px;
+  font-size: 24px;
+  color: #111111;
+}
+
+.cedis-settings-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cedis-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 32, 45, 0.32);
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.08),
+      rgba(255, 255, 255, 0.95)
+    );
+  padding: 9px 13px;
+  color: #202020;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    inset 3px 0 0 var(--primary);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.cedis-refresh-button:hover {
+  border-color: var(--primary);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.15),
+      rgba(255, 255, 255, 1)
+    );
+  transform: translateY(-1px);
+}
+
+.cedis-error {
+  margin-bottom: 16px;
+  border: 1px solid rgba(255, 32, 45, 0.32);
+  border-radius: 12px;
+  background: rgba(255, 32, 45, 0.08);
+  padding: 12px 14px;
+  color: #b1121d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cedis-loading-card,
+.cedis-empty-card,
+.cedis-active-card,
+.cedis-history-section {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: var(--shadow-medium);
+  backdrop-filter: blur(12px);
+}
+
+.cedis-loading-card {
+  padding: 22px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.cedis-active-card {
+  padding: 22px;
+}
+
+.cedis-active-main {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.cedis-file-icon {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.cedis-active-main > div {
+  min-width: 0;
+}
+
+.cedis-active-title-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  flex-wrap: wrap;
+}
+
+.cedis-active-title-row h3 {
+  margin: 0;
+  color: #111111;
+  font-size: 20px;
+}
+
+.cedis-active-main p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cedis-active-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid rgba(34, 139, 74, 0.25);
+  border-radius: 999px;
+  background: rgba(34, 139, 74, 0.08);
+  padding: 5px 10px;
+  color: #247548;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cedis-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.cedis-info-grid > div {
+  border: 1px solid #e7e7e7;
+  border-radius: 12px;
+  background: #fafafa;
+  padding: 13px 14px;
+}
+
+.cedis-info-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: #888888;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cedis-info-grid strong {
+  color: #111111;
+  font-size: 13px;
+}
+
+.cedis-status-active {
+  color: #247548 !important;
+}
+
+.cedis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cedis-actions button,
+.cedis-primary-action {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #cfcfcf;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 9px 14px;
+  color: #1d1d1d;
+  font-size: 12px;
+  font-weight: 800;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.cedis-actions button:hover,
+.cedis-primary-action:hover {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.cedis-actions .cedis-primary-action,
+.cedis-primary-action {
+  border-color: rgba(255, 32, 45, 0.55);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.12),
+      rgba(255, 255, 255, 1)
+    );
+  box-shadow:
+    inset 3px 0 0 var(--primary);
+}
+
+.cedis-actions .cedis-primary-action:hover,
+.cedis-primary-action:hover {
+  border-color: var(--primary);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.22),
+      rgba(255, 255, 255, 1)
+    );
+  color: #111111;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 7px 16px rgba(255, 32, 45, 0.12);
+}
+
+.cedis-empty-card {
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 28px;
+  text-align: center;
+}
+
+.cedis-empty-card svg {
+  margin-bottom: 12px;
+  color: var(--primary);
+}
+
+.cedis-empty-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.cedis-empty-card p {
+  margin: 8px 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cedis-history-section {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.cedis-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #eeeeee;
+  padding: 16px 18px;
+}
+
+.cedis-history-header > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cedis-history-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.cedis-history-header > span {
+  display: inline-flex;
+  min-width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cedis-history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.cedis-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #eeeeee;
+  padding: 14px 18px;
+}
+
+.cedis-history-row:last-child {
+  border-bottom: 0;
+}
+
+.cedis-history-row > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cedis-history-row strong {
+  overflow: hidden;
+  color: #111111;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cedis-history-row span {
+  color: #8a8a8a;
+  font-size: 10px;
+}
+
+.cedis-history-meta {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.cedis-history-active {
+  border: 1px solid rgba(34, 139, 74, 0.22);
+  border-radius: 999px;
+  background: rgba(34, 139, 74, 0.08);
+  padding: 5px 8px;
+  color: #247548 !important;
+  font-weight: 800;
+}
+
+.cedis-history-empty {
+  padding: 18px;
+  color: #888888;
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   MODAL DE VISUALIZAÇÃO DA BASE CEDIS
+   ========================================================= */
+
+.cedis-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.58);
+  padding: 24px;
+}
+
+.cedis-preview-modal {
+  display: flex;
+  width: min(1500px, 96vw);
+  max-height: 90vh;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.24);
+}
+
+.cedis-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #e9e9e9;
+  padding: 18px 20px;
+}
+
+.cedis-preview-header h2 {
+  margin: 5px 0 3px;
+  font-size: 20px;
+}
+
+.cedis-preview-header p {
+  margin: 0;
+  color: #777777;
+  font-size: 11px;
+}
+
+.cedis-preview-header button {
+  min-height: 38px;
+  border: 1px solid #cfcfcf;
+  border-radius: 9px;
+  background: #ffffff;
+  padding: 8px 12px;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cedis-preview-header button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.cedis-preview-table-wrapper {
+  overflow: auto;
+}
+
+.cedis-preview-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: collapse;
+}
+
+.cedis-preview-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid #dfdfdf;
+  background: #f8f8f8;
+  padding: 11px 12px;
+  color: #666666;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.cedis-preview-table td {
+  border-bottom: 1px solid #eeeeee;
+  padding: 10px 12px;
+  color: #222222;
+  font-size: 10px;
+}
+
+.cedis-preview-table tbody tr:hover {
+  background: #fafafa;
+}
+
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media (max-width: 950px) {
+  .cedis-settings-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cedis-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .cedis-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cedis-history-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cedis-history-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .cedis-preview-backdrop {
+    padding: 10px;
+  }
+}
+
+/* =========================================================
+   EPIC PAYMENTS — CONTROLOS DO CALENDÁRIO
+   Mesmo estilo visual da barra lateral
+   ========================================================= */
+
+.annual-calendar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Setas anterior / seguinte */
+.annual-calendar-actions .ui-button-secondary {
+  position: relative;
+  min-width: 46px;
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #0d0d0d 68%,
+      #1b1112 100%
+    );
+  padding: 10px 13px;
+  color: #ffffff;
+  box-shadow:
+    0 7px 18px rgba(0, 0, 0, 0.13),
+    inset -2px 0 8px rgba(255, 32, 45, 0.05);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.annual-calendar-actions .ui-button-secondary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 32, 45, 0.72);
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #101010 62%,
+      #341417 100%
+    );
+  color: #ffffff;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.16),
+    0 0 18px rgba(255, 32, 45, 0.08);
+}
+
+.annual-calendar-actions .ui-button-secondary svg {
+  color: #ffffff;
+}
+
+/* Botão Hoje */
+.annual-calendar-actions .calendar-today-button {
+  min-width: 86px;
+  min-height: 46px;
+  border: 1px solid rgba(255, 32, 45, 0.72);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #101010 62%,
+      #3a1518 100%
+    );
+  padding: 10px 18px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 7px 18px rgba(255, 32, 45, 0.10);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.annual-calendar-actions .calendar-today-button:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #111111 56%,
+      #4a171b 100%
+    );
+  color: #ffffff;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 9px 22px rgba(255, 32, 45, 0.15);
+}
+
+/* Botão Adicionar ficheiros */
+.annual-calendar-actions .ui-button-primary {
+  position: relative;
+  min-height: 46px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 32, 45, 0.72);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #101010 64%,
+      #3a1518 100%
+    );
+  padding: 10px 20px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 7px 18px rgba(255, 32, 45, 0.10);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.annual-calendar-actions .ui-button-primary:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+  background:
+    linear-gradient(
+      90deg,
+      #080808 0%,
+      #111111 56%,
+      #4a171b 100%
+    );
+  color: #ffffff;
+  box-shadow:
+    inset 3px 0 0 var(--primary),
+    0 9px 22px rgba(255, 32, 45, 0.15);
+}
+
+.annual-calendar-actions .ui-button-primary svg {
+  color: #ffffff;
+}
+
+.annual-calendar-actions .ui-button-secondary:active,
+.annual-calendar-actions .calendar-today-button:active,
+.annual-calendar-actions .ui-button-primary:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 900px) {
+  .annual-calendar-actions {
+    flex-wrap: wrap;
+  }
+
+  .annual-calendar-actions .calendar-today-button {
+    min-width: 78px;
+  }
+}

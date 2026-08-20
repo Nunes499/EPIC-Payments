@@ -1,82 +1,123 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import {
   CalendarDays,
-  FileStack,
-  House,
+  ReceiptText,
   Settings,
   Users,
-  BarChart3,
 } from "lucide-react";
+
+import styles from "./Sidebar.module.css";
+
 
 const menuItems = [
   {
-    label: "Início",
-    icon: House,
-    active: false,
-  },
-  {
     label: "Calendário",
     icon: CalendarDays,
-    active: true,
+    href: "/",
   },
   {
-    label: "Processamentos",
-    icon: FileStack,
-    active: false,
-  },
-  {
-    label: "Relatórios",
-    icon: BarChart3,
-    active: false,
+    label: "Criar Referência",
+    icon: ReceiptText,
+    href: "#",
   },
   {
     label: "Utilizadores",
     icon: Users,
-    active: false,
+    href: "#",
   },
   {
     label: "Definições",
     icon: Settings,
-    active: false,
+    href: "/settings",
   },
 ];
 
+
 export default function Sidebar() {
+  const pathname =
+    usePathname();
+
   return (
-    <aside className="sidebar">
-      <div className="sidebar-logo">
+    <aside className={styles.sidebar}>
+      <div className={styles.logoArea}>
         <Image
           src="/branding/logo-epic-payments-white.png"
           alt="EPIC Payments"
-          width={190}
-          height={110}
+          width={220}
+          height={120}
           priority
-          className="sidebar-logo-image"
+          className={styles.logo}
         />
       </div>
 
-      <nav className="sidebar-nav" aria-label="Menu principal">
+      <nav
+        className={styles.navigation}
+        aria-label="Menu principal"
+      >
         {menuItems.map((item) => {
-          const Icon = item.icon;
+          const Icon =
+            item.icon;
+
+          const active =
+            item.label === "Calendário"
+              ? pathname === "/"
+              : pathname === item.href &&
+                item.href !== "#";
 
           return (
-            <button
+            <Link
               key={item.label}
-              type="button"
-              className={`sidebar-link ${item.active ? "active" : ""}`}
+              href={item.href}
+              className={`${styles.menuCard} ${
+                active
+                  ? styles.active
+                  : ""
+              }`}
             >
-              <Icon size={19} strokeWidth={2} />
-              <span>{item.label}</span>
-            </button>
+              <span className={styles.mainIcon}>
+                <Icon
+                  size={39}
+                  strokeWidth={1.8}
+                />
+              </span>
+
+              <span className={styles.menuLabel}>
+                {item.label}
+              </span>
+
+              <span
+                className={styles.ghostIcon}
+                aria-hidden="true"
+              >
+                <Icon
+                  size={76}
+                  strokeWidth={1.35}
+                />
+              </span>
+            </Link>
           );
         })}
       </nav>
 
-      <div className="sidebar-footer">
-        <span className="sidebar-footer-label">Sistema interno</span>
-        <strong>EPIC Fitness</strong>
+      <div className={styles.footer}>
+        <div className={styles.footerAvatar}>
+          N
+        </div>
+
+        <div className={styles.footerText}>
+          <span>
+            SISTEMA INTERNO
+          </span>
+
+          <strong>
+            EPIC Fitness
+          </strong>
+        </div>
       </div>
     </aside>
   );

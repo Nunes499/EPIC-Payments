@@ -1,0 +1,531 @@
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+
+  display: flex;
+  width: 285px;
+  min-height: 100vh;
+  flex-direction: column;
+
+  padding: 18px 16px 20px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #050505 0%,
+      #080808 86%,
+      #121212 97%,
+      #181818 100%
+    );
+
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+
+  color: #ffffff;
+
+  box-shadow:
+    14px 0 32px rgba(0, 0, 0, 0.18);
+}
+
+
+/* =========================================================
+   LOGÓTIPO
+   ========================================================= */
+
+.logoArea {
+  display: flex;
+  min-height: 118px;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 20px;
+
+  padding: 5px 10px 12px;
+}
+
+.logo {
+  width: 100%;
+  max-width: 215px;
+  height: auto;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(
+      0 0 9px rgba(255, 32, 45, 0.16)
+    );
+}
+
+
+/* =========================================================
+   NAVEGAÇÃO
+   ========================================================= */
+
+.navigation {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  gap: 10px;
+
+  /*
+   * Dá mais espaço entre os cartões
+   * e as laterais da sidebar.
+   */
+  padding: 0 7px;
+}
+
+
+/* =========================================================
+   CARTÕES DO MENU
+   ========================================================= */
+
+.menuCard {
+  position: relative;
+
+  display: flex;
+  width: 100%;
+  min-height: 76px;
+
+  align-items: center;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+
+  /*
+   * Preto dominante.
+   * O cinza aparece apenas ligeiramente
+   * no lado direito.
+   */
+  background:
+    radial-gradient(
+      circle at 100% 50%,
+      rgba(255, 32, 45, 0.13) 0%,
+      rgba(255, 32, 45, 0.045) 27%,
+      rgba(255, 32, 45, 0.01) 46%,
+      rgba(255, 32, 45, 0) 67%
+    ),
+    linear-gradient(
+      90deg,
+      #060606 0%,
+      #080808 72%,
+      #101010 92%,
+      #151515 100%
+    );
+
+  padding: 12px 16px;
+
+  color: #ffffff;
+
+  text-decoration: none;
+
+  box-shadow:
+    0 7px 18px rgba(0, 0, 0, 0.14);
+
+  transition:
+    transform 170ms ease,
+    border-color 170ms ease,
+    background 170ms ease,
+    box-shadow 170ms ease;
+}
+
+
+/* =========================================================
+   BRILHO VERMELHO LATERAL
+   ========================================================= */
+
+.menuCard::after {
+  content: "";
+
+  position: absolute;
+
+  top: 12%;
+  right: 0;
+
+  width: 3px;
+  height: 76%;
+
+  border-radius: 8px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 32, 45, 0),
+      rgba(255, 32, 45, 0.48),
+      rgba(255, 32, 45, 0)
+    );
+
+  opacity: 0.32;
+
+  box-shadow:
+    -4px 0 12px rgba(255, 32, 45, 0.15);
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.menuCard:hover {
+  transform: translateX(2px);
+
+  border-color:
+    rgba(255, 32, 45, 0.45);
+
+  background:
+    radial-gradient(
+      circle at 100% 50%,
+      rgba(255, 32, 45, 0.25) 0%,
+      rgba(255, 32, 45, 0.09) 28%,
+      rgba(255, 32, 45, 0.018) 48%,
+      rgba(255, 32, 45, 0) 68%
+    ),
+    linear-gradient(
+      90deg,
+      #060606 0%,
+      #090909 70%,
+      #151515 100%
+    );
+
+  box-shadow:
+    6px 0 18px rgba(255, 32, 45, 0.09),
+    0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+
+/* =========================================================
+   OPÇÃO ATIVA
+   ========================================================= */
+
+.active {
+  border-color:
+    rgba(255, 32, 45, 0.88);
+
+  background:
+    radial-gradient(
+      circle at 100% 50%,
+      rgba(255, 32, 45, 0.46) 0%,
+      rgba(255, 32, 45, 0.18) 27%,
+      rgba(255, 32, 45, 0.04) 49%,
+      rgba(255, 32, 45, 0) 69%
+    ),
+    linear-gradient(
+      90deg,
+      #070707 0%,
+      #090909 66%,
+      #171112 100%
+    );
+
+  box-shadow:
+    7px 0 22px rgba(255, 32, 45, 0.16),
+    inset -1px 0 8px rgba(255, 32, 45, 0.07);
+}
+
+.active::after {
+  width: 4px;
+
+  opacity: 0.95;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 32, 45, 0.08),
+      #ff202d,
+      rgba(255, 32, 45, 0.08)
+    );
+
+  box-shadow:
+    -5px 0 16px rgba(255, 32, 45, 0.38);
+}
+
+
+/* =========================================================
+   ÍCONE PRINCIPAL
+   ========================================================= */
+
+.mainIcon {
+  position: relative;
+  z-index: 3;
+
+  display: grid;
+
+  width: 42px;
+  height: 42px;
+
+  flex: 0 0 42px;
+
+  place-items: center;
+
+  margin-right: 14px;
+
+  color: #ffffff;
+
+  filter:
+    drop-shadow(
+      0 0 3px rgba(255, 255, 255, 0.05)
+    );
+}
+
+.mainIcon svg {
+  width: 31px;
+  height: 31px;
+}
+
+
+/* =========================================================
+   TEXTO
+   ========================================================= */
+
+.menuLabel {
+  position: relative;
+  z-index: 3;
+
+  max-width: 145px;
+
+  color: #ffffff;
+
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.1;
+
+  text-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.55);
+}
+
+
+/* =========================================================
+   ÍCONE FANTASMA À DIREITA
+   ========================================================= */
+
+.ghostIcon {
+  position: absolute;
+
+  z-index: 1;
+
+  top: 50%;
+  right: 0;
+
+  display: grid;
+
+  width: 68px;
+  height: 68px;
+
+  place-items: center;
+
+  transform:
+    translateY(-50%);
+
+  /*
+   * Muito mais discreto nos botões inativos.
+   */
+  color:
+    rgba(255, 255, 255, 0.075);
+
+  opacity: 0.72;
+
+  pointer-events: none;
+
+  transition:
+    color 170ms ease,
+    opacity 170ms ease,
+    transform 170ms ease;
+}
+
+.ghostIcon svg {
+  width: 60px;
+  height: 60px;
+
+  stroke-width: 1.35;
+}
+
+
+/* =========================================================
+   FANTASMA NO HOVER
+   ========================================================= */
+
+.menuCard:hover .ghostIcon {
+  color:
+    rgba(255, 120, 125, 0.12);
+
+  opacity: 0.82;
+
+  transform:
+    translateY(-50%)
+    translateX(-2px);
+}
+
+
+/* =========================================================
+   FANTASMA DO BOTÃO ATIVO
+   Mais visível que os restantes
+   ========================================================= */
+
+.active .ghostIcon {
+  color:
+    rgba(255, 92, 101, 0.25);
+
+  opacity: 1;
+
+  transform:
+    translateY(-50%)
+    translateX(-2px);
+}
+
+.active:hover .ghostIcon {
+  color:
+    rgba(255, 92, 101, 0.30);
+}
+
+
+/* =========================================================
+   RODAPÉ
+   ========================================================= */
+
+.footer {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  margin-top: 22px;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.10);
+
+  padding: 18px 14px 2px;
+}
+
+.footerAvatar {
+  display: grid;
+
+  width: 46px;
+  height: 46px;
+
+  flex: 0 0 46px;
+
+  place-items: center;
+
+  border:
+    1px solid rgba(255, 255, 255, 0.40);
+
+  border-radius: 50%;
+
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.footerText {
+  display: flex;
+
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.footerText span {
+  color: #999999;
+
+  font-size: 10px;
+
+  letter-spacing: 0.055em;
+}
+
+.footerText strong {
+  color: #ffffff;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   CONTEÚDO PRINCIPAL
+   ========================================================= */
+
+:global(.app-main) {
+  width:
+    calc(100% - 285px) !important;
+
+  margin-left:
+    285px !important;
+}
+
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+
+@media (max-width: 1150px) {
+  .sidebar {
+    width: 260px;
+  }
+
+  :global(.app-main) {
+    width:
+      calc(100% - 260px) !important;
+
+    margin-left:
+      260px !important;
+  }
+
+  .navigation {
+    padding: 0 5px;
+  }
+
+  .menuLabel {
+    font-size: 14px;
+  }
+
+  .menuCard {
+    min-height: 72px;
+  }
+
+  .ghostIcon {
+    width: 62px;
+    height: 62px;
+  }
+
+  .ghostIcon svg {
+    width: 54px;
+    height: 54px;
+  }
+}
+
+
+@media (max-width: 800px) {
+  .sidebar {
+    position: relative;
+
+    width: 100%;
+    min-height: auto;
+  }
+
+  .navigation {
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    padding: 0;
+  }
+
+  .menuCard {
+    width:
+      calc(50% - 5px);
+  }
+
+  :global(.app-main) {
+    width: 100% !important;
+
+    margin-left: 0 !important;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .menuCard {
+    width: 100%;
+  }
+}
