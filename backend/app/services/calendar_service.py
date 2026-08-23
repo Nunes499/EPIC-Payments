@@ -20,6 +20,14 @@ from app.services.cedis_service import (
     clean_integer_value,
     load_cedis_dataframe,
 )
+from app.services.bank_reason_codes import (
+    get_reason_description,
+)
+from app.services.r2_storage import (
+    delete_object_from_r2,
+    download_bytes_from_r2,
+    upload_bytes_to_r2,
+)
 
 
 ALLOWED_EXTENSIONS = {
@@ -52,32 +60,76 @@ def get_file_type(filename: str) -> str:
     return file_type
 
 
-def build_destination_directory(
+def build_r2_object_key(
+    *,
     calendar_date: date,
     file_type: str,
-) -> Path:
+    stored_filename: str,
+) -> str:
+    """
+    Cria a chave privada usada no Cloudflare R2.
+
+    Exemplo:
+    bank-files/2026/08/2026-08-20/xml/abc123.xml
+    """
+
     folder_name_by_type = {
         "pdf": "pdf",
         "xml": "xml",
         "report": "reports",
     }
 
-    type_folder = folder_name_by_type[file_type]
+    type_folder = folder_name_by_type[
+        file_type
+    ]
 
-    destination = (
-        BANK_FILES_ROOT
-        / str(calendar_date.year)
-        / f"{calendar_date.month:02d}"
-        / calendar_date.isoformat()
-        / type_folder
+    return (
+        "bank-files/"
+        f"{calendar_date.year}/"
+        f"{calendar_date.month:02d}/"
+        f"{calendar_date.isoformat()}/"
+        f"{type_folder}/"
+        f"{stored_filename}"
     )
 
-    destination.mkdir(
-        parents=True,
-        exist_ok=True,
+
+def build_r2_file_path(
+    object_key: str,
+) -> str:
+    """
+    Valor guardado em calendar_files.file_path
+    para distinguir ficheiros cloud dos antigos locais.
+    """
+
+    return f"r2://{object_key}"
+
+
+def is_r2_file_path(
+    file_path: str,
+) -> bool:
+    return file_path.startswith(
+        "r2://"
     )
 
-    return destination
+
+def get_r2_object_key(
+    calendar_file: CalendarFile,
+) -> str:
+    file_path = (
+        calendar_file.file_path
+        or ""
+    )
+
+    if not is_r2_file_path(
+        file_path
+    ):
+        raise ValueError(
+            "O ficheiro não está armazenado no R2."
+        )
+
+    return file_path[
+        len("r2://"):
+    ]
 
 
 async def save_calendar_file(
@@ -87,6 +139,14 @@ async def save_calendar_file(
     upload: UploadFile,
     uploaded_by_id: int | None = None,
 ) -> CalendarFile:
+    """
+    Guarda novos ficheiros bancários diretamente
+    no Cloudflare R2.
+
+    Se o registo na base de dados falhar,
+    o objeto enviado para o R2 é removido.
+    """
+
     if not upload.filename:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -99,66 +159,67 @@ async def save_calendar_file(
 
     contents = await upload.read()
 
-    if not contents:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O ficheiro está vazio.",
-        )
-
-    if len(contents) > MAX_FILE_SIZE:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="O ficheiro excede o limite máximo de 25 MB.",
-        )
-
-    destination_directory = build_destination_directory(
-        calendar_date=calendar_date,
-        file_type=file_type,
-    )
-
-    extension = Path(
-        upload.filename,
-    ).suffix.lower()
-
-    stored_filename = (
-        f"{uuid4().hex}{extension}"
-    )
-
-    absolute_file_path = (
-        destination_directory
-        / stored_filename
-    )
-
-    relative_file_path = (
-        absolute_file_path.relative_to(
-            STORAGE_ROOT.parent,
-        )
-    )
-
     try:
-        absolute_file_path.write_bytes(
-            contents,
+        if not contents:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="O ficheiro está vazio.",
+            )
+
+        if len(contents) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="O ficheiro excede o limite máximo de 25 MB.",
+            )
+
+        extension = Path(
+            upload.filename,
+        ).suffix.lower()
+
+        stored_filename = (
+            f"{uuid4().hex}{extension}"
         )
 
-        calendar_file = create_calendar_file(
-            db,
+        object_key = build_r2_object_key(
             calendar_date=calendar_date,
-            original_filename=upload.filename,
-            stored_filename=stored_filename,
             file_type=file_type,
-            mime_type=upload.content_type,
-            file_size=len(contents),
-            file_path=str(relative_file_path),
-            uploaded_by_id=uploaded_by_id,
+            stored_filename=stored_filename,
         )
 
-        return calendar_file
+        upload_bytes_to_r2(
+            object_key=object_key,
+            contents=contents,
+            content_type=upload.content_type,
+        )
 
-    except Exception:
-        if absolute_file_path.exists():
-            absolute_file_path.unlink()
+        try:
+            calendar_file = create_calendar_file(
+                db,
+                calendar_date=calendar_date,
+                original_filename=upload.filename,
+                stored_filename=stored_filename,
+                file_type=file_type,
+                mime_type=upload.content_type,
+                file_size=len(contents),
+                file_path=build_r2_file_path(
+                    object_key
+                ),
+                uploaded_by_id=uploaded_by_id,
+            )
 
-        raise
+            return calendar_file
+
+        except Exception:
+            # Evita deixar um objeto órfão no R2
+            # se a gravação da BD falhar.
+            try:
+                delete_object_from_r2(
+                    object_key=object_key,
+                )
+            except Exception:
+                pass
+
+            raise
 
     finally:
         await upload.close()
@@ -167,6 +228,10 @@ async def save_calendar_file(
 def resolve_calendar_file_path(
     calendar_file: CalendarFile,
 ) -> Path:
+    """
+    Resolve apenas ficheiros antigos guardados localmente.
+    """
+
     file_path = Path(
         calendar_file.file_path,
     )
@@ -183,6 +248,24 @@ def resolve_calendar_file_path(
 def get_existing_calendar_file_path(
     calendar_file: CalendarFile,
 ) -> Path:
+    """
+    Compatibilidade com ficheiros antigos locais.
+
+    Ficheiros novos no R2 devem ser obtidos através
+    de get_calendar_file_contents().
+    """
+
+    if is_r2_file_path(
+        calendar_file.file_path
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Este ficheiro está armazenado online "
+                "no Cloudflare R2 e não possui caminho local."
+            ),
+        )
+
     file_path = resolve_calendar_file_path(
         calendar_file,
     )
@@ -202,11 +285,43 @@ def get_existing_calendar_file_path(
     return file_path
 
 
+def get_calendar_file_contents(
+    calendar_file: CalendarFile,
+) -> bytes:
+    """
+    Obtém o conteúdo de um ficheiro independentemente
+    de estar no R2 ou no armazenamento local antigo.
+    """
+
+    if is_r2_file_path(
+        calendar_file.file_path
+    ):
+        object_key = get_r2_object_key(
+            calendar_file
+        )
+
+        return download_bytes_from_r2(
+            object_key=object_key,
+        )
+
+    file_path = get_existing_calendar_file_path(
+        calendar_file
+    )
+
+    return file_path.read_bytes()
+
+
 def remove_calendar_file(
     db: Session,
     *,
     file_id: int,
 ) -> CalendarFile:
+    """
+    Remove o ficheiro do armazenamento correspondente.
+
+    Mantém compatibilidade com ficheiros locais antigos.
+    """
+
     calendar_file = get_calendar_file_by_id(
         db,
         file_id,
@@ -218,8 +333,26 @@ def remove_calendar_file(
             detail="Ficheiro não encontrado.",
         )
 
+    if is_r2_file_path(
+        calendar_file.file_path
+    ):
+        object_key = get_r2_object_key(
+            calendar_file
+        )
+
+        delete_object_from_r2(
+            object_key=object_key,
+        )
+
+        delete_calendar_file(
+            db,
+            calendar_file,
+        )
+
+        return calendar_file
+
     file_path = resolve_calendar_file_path(
-        calendar_file,
+        calendar_file
     )
 
     delete_calendar_file(
@@ -246,6 +379,11 @@ def remove_empty_parent_directories(
     start_directory: Path,
     stop_directory: Path,
 ) -> None:
+    """
+    Limpa apenas a antiga estrutura local,
+    sem tocar no armazenamento R2.
+    """
+
     current_directory = (
         start_directory.resolve()
     )
@@ -471,13 +609,13 @@ def process_xml_calendar_file(
             ),
         )
 
-    file_path = get_existing_calendar_file_path(
+    contents = get_calendar_file_contents(
         calendar_file,
     )
 
     try:
-        tree = ET.parse(
-            file_path,
+        root = ET.fromstring(
+            contents,
         )
     except ET.ParseError as exc:
         raise HTTPException(
@@ -487,8 +625,6 @@ def process_xml_calendar_file(
                 "ou está corrompido."
             ),
         ) from exc
-
-    root = tree.getroot()
 
     namespace_uri = ""
 
@@ -788,6 +924,11 @@ def process_xml_calendar_file(
 
                     "reason_code":
                         reason_code,
+
+                    "reason_description":
+                        get_reason_description(
+                            reason_code,
+                        ),
 
                     "collection_date":
                         collection_date,

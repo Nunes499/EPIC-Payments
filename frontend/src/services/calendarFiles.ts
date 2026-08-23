@@ -1,13 +1,13 @@
-export type ApiCalendarFile = {
-  id: number;
-  calendar_date: string;
-  original_filename: string;
-  stored_filename: string;
-  file_type: "pdf" | "xml" | "report";
-  mime_type: string | null;
-  file_size: number | null;
-  file_path: string;
-  uploaded_at: string;
+export type ApiBankMovement = {
+  sequence: number;
+  original_member_reference: string;
+  member_number: string;
+  name: string;
+  amount: string;
+  reason_code: string;
+  reason_description: string;
+  collection_date: string | null;
+  bank_reference: string | null;
 };
 
 export type ApiCalendarDaySummary = {

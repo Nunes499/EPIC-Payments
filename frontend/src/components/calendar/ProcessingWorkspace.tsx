@@ -526,7 +526,7 @@ export default function ProcessingWorkspace({
                                   )}
                                 </div>
 
-                                <div>
+                                <div className="processing-reason-cell">
                                   <span
                                     className={[
                                       "processing-reason-badge",
@@ -538,6 +538,12 @@ export default function ProcessingWorkspace({
                                     {movement.reason_code ||
                                       "—"}
                                   </span>
+
+                                  {movement.reason_description ? (
+                                    <small className="processing-reason-description">
+                                      {movement.reason_description}
+                                    </small>
+                                  ) : null}
                                 </div>
 
                                 <div className="processing-empty-value">

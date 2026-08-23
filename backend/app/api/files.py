@@ -1,4 +1,5 @@
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter,
@@ -9,7 +10,6 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.crud.calendar_file import (
@@ -24,7 +24,7 @@ from app.schemas.calendar_file import (
     CalendarFileRead,
 )
 from app.services.calendar_service import (
-    get_existing_calendar_file_path,
+    get_calendar_file_contents,
     process_xml_calendar_file,
     remove_calendar_file,
     save_calendar_file,
@@ -101,12 +101,16 @@ def process_calendar_file(
 
 @router.get(
     "/{file_id}/download",
-    response_class=FileResponse,
 )
 def download_calendar_file(
     file_id: int,
     db: Session = Depends(get_db),
 ):
+    """
+    Descarrega ficheiros novos guardados no R2
+    e mantém compatibilidade com ficheiros locais antigos.
+    """
+
     calendar_file = get_calendar_file_by_id(
         db,
         file_id,
@@ -118,17 +122,26 @@ def download_calendar_file(
             detail="Ficheiro não encontrado.",
         )
 
-    file_path = get_existing_calendar_file_path(
+    contents = get_calendar_file_contents(
         calendar_file,
     )
 
-    return FileResponse(
-        path=file_path,
-        filename=calendar_file.original_filename,
+    encoded_filename = quote(
+        calendar_file.original_filename
+    )
+
+    return Response(
+        content=contents,
         media_type=(
             calendar_file.mime_type
             or "application/octet-stream"
         ),
+        headers={
+            "Content-Disposition": (
+                "attachment; "
+                f"filename*=UTF-8''{encoded_filename}"
+            ),
+        },
     )
 
 
