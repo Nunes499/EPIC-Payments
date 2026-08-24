@@ -1,26 +1,24 @@
 from sqlalchemy.orm import Session
 
-from app.crud import create_user, get_user_by_username
-from app.schemas import UserCreate
+from app.models import User
 
 
 def create_initial_admin(db: Session) -> None:
-    """Cria o utilizador administrador caso ainda não exista."""
+    """Verifica se já existe um administrador."""
 
-    if get_user_by_username(db, "admin"):
+    admin = (
+        db.query(User)
+        .filter(User.role == "admin")
+        .first()
+    )
+
+    if admin:
+        print(
+            f"✓ Administrador existente: {admin.username}"
+        )
         return
 
-    admin = UserCreate(
-        name="Administrator",
-        username="admin",
-        email="nunesnunes49@gmail.com",
-        password="admin123",
+    print(
+        "⚠ Nenhum administrador encontrado. "
+        "Crie um administrador manualmente."
     )
-
-    create_user(
-        db=db,
-        user=admin,
-        role="admin",
-    )
-
-    print("✓ Utilizador administrador criado.")
