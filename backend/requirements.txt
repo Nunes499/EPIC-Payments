@@ -13,3 +13,4 @@ openpyxl
 pandas
 xlrd
 boto3
+pypdf==5.9.0

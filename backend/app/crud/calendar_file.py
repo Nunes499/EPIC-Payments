@@ -1,9 +1,79 @@
-from datetime import date
+from __future__ import annotations
 
-from sqlalchemy import case, func, select
+from datetime import date, datetime, timezone
+
 from sqlalchemy.orm import Session
 
 from app.models.calendar_file import CalendarFile
+from app.services.d1_service import (
+    execute_d1_query,
+    get_d1_rows,
+)
+
+
+def _parse_datetime(
+    value: str | None,
+) -> datetime:
+    if not value:
+        return datetime.now(timezone.utc)
+
+    normalized = value.strip()
+
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return datetime.now(timezone.utc)
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+
+    return parsed
+
+
+def _row_to_calendar_file(
+    row: dict,
+) -> CalendarFile:
+    calendar_date_value = row.get("calendar_date")
+
+    if isinstance(calendar_date_value, date):
+        calendar_date = calendar_date_value
+    else:
+        calendar_date = date.fromisoformat(
+            str(calendar_date_value)
+        )
+
+    calendar_file = CalendarFile(
+        id=int(row["id"]),
+        calendar_date=calendar_date,
+        original_filename=str(row["original_filename"]),
+        stored_filename=str(row["stored_filename"]),
+        file_type=str(row["file_type"]),
+        mime_type=(
+            str(row["mime_type"])
+            if row.get("mime_type") is not None
+            else None
+        ),
+        file_size=(
+            int(row["file_size"])
+            if row.get("file_size") is not None
+            else None
+        ),
+        file_path=str(row["file_path"]),
+        uploaded_by_id=(
+            int(row["uploaded_by_id"])
+            if row.get("uploaded_by_id") is not None
+            else None
+        ),
+    )
+
+    calendar_file.uploaded_at = _parse_datetime(
+        row.get("uploaded_at")
+    )
+
+    return calendar_file
 
 
 def create_calendar_file(
@@ -18,117 +88,217 @@ def create_calendar_file(
     file_path: str,
     uploaded_by_id: int | None,
 ) -> CalendarFile:
-    calendar_file = CalendarFile(
-        calendar_date=calendar_date,
-        original_filename=original_filename,
-        stored_filename=stored_filename,
-        file_type=file_type,
-        mime_type=mime_type,
-        file_size=file_size,
-        file_path=file_path,
-        uploaded_by_id=uploaded_by_id,
+    del db
+
+    uploaded_at = datetime.now(
+        timezone.utc
+    ).isoformat()
+
+    execute_d1_query(
+        """
+        INSERT INTO calendar_files (
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            calendar_date.isoformat(),
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id,
+        ],
     )
 
-    db.add(calendar_file)
-    db.commit()
-    db.refresh(calendar_file)
+    rows = get_d1_rows(
+        """
+        SELECT
+            id,
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id
+        FROM calendar_files
+        WHERE stored_filename = ?
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        [stored_filename],
+    )
 
-    return calendar_file
+    if not rows:
+        raise RuntimeError(
+            "O registo foi enviado para o D1, "
+            "mas não pôde ser relido."
+        )
+
+    return _row_to_calendar_file(rows[0])
 
 
 def get_calendar_file_by_id(
     db: Session,
     file_id: int,
 ) -> CalendarFile | None:
-    statement = select(CalendarFile).where(
-        CalendarFile.id == file_id
+    del db
+
+    rows = get_d1_rows(
+        """
+        SELECT
+            id,
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id
+        FROM calendar_files
+        WHERE id = ?
+        LIMIT 1
+        """,
+        [file_id],
     )
 
-    return db.scalar(statement)
+    if not rows:
+        return None
+
+    return _row_to_calendar_file(rows[0])
 
 
 def get_files_by_date(
     db: Session,
     calendar_date: date,
 ) -> list[CalendarFile]:
-    statement = (
-        select(CalendarFile)
-        .where(CalendarFile.calendar_date == calendar_date)
-        .order_by(CalendarFile.uploaded_at.asc())
+    del db
+
+    rows = get_d1_rows(
+        """
+        SELECT
+            id,
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id
+        FROM calendar_files
+        WHERE calendar_date = ?
+        ORDER BY uploaded_at ASC, id ASC
+        """,
+        [calendar_date.isoformat()],
     )
 
-    return list(db.scalars(statement).all())
+    return [
+        _row_to_calendar_file(row)
+        for row in rows
+    ]
 
 
 def get_files_by_year(
     db: Session,
     year: int,
 ) -> list[CalendarFile]:
-    statement = (
-        select(CalendarFile)
-        .where(
-            func.extract(
-                "year",
-                CalendarFile.calendar_date,
-            )
-            == year
-        )
-        .order_by(
-            CalendarFile.calendar_date.asc(),
-            CalendarFile.uploaded_at.asc(),
-        )
+    del db
+
+    rows = get_d1_rows(
+        """
+        SELECT
+            id,
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id
+        FROM calendar_files
+        WHERE calendar_date LIKE ?
+        ORDER BY calendar_date ASC, uploaded_at ASC, id ASC
+        """,
+        [f"{year:04d}-%"],
     )
 
-    return list(db.scalars(statement).all())
+    return [
+        _row_to_calendar_file(row)
+        for row in rows
+    ]
 
 
 def get_year_summary(
     db: Session,
     year: int,
 ) -> list[dict]:
-    statement = (
-        select(
-            CalendarFile.calendar_date,
-            func.count(CalendarFile.id).label("total_files"),
-            func.sum(
-                case(
-                    (CalendarFile.file_type == "pdf", 1),
-                    else_=0,
-                )
-            ).label("pdf_count"),
-            func.sum(
-                case(
-                    (CalendarFile.file_type == "xml", 1),
-                    else_=0,
-                )
-            ).label("xml_count"),
-            func.sum(
-                case(
-                    (CalendarFile.file_type == "report", 1),
-                    else_=0,
-                )
-            ).label("report_count"),
-        )
-        .where(
-            func.extract(
-                "year",
-                CalendarFile.calendar_date,
-            )
-            == year
-        )
-        .group_by(CalendarFile.calendar_date)
-        .order_by(CalendarFile.calendar_date.asc())
-    )
+    del db
 
-    rows = db.execute(statement).all()
+    rows = get_d1_rows(
+        """
+        SELECT
+            calendar_date,
+            COUNT(id) AS total_files,
+            SUM(
+                CASE
+                    WHEN file_type = 'pdf' THEN 1
+                    ELSE 0
+                END
+            ) AS pdf_count,
+            SUM(
+                CASE
+                    WHEN file_type = 'xml' THEN 1
+                    ELSE 0
+                END
+            ) AS xml_count,
+            SUM(
+                CASE
+                    WHEN file_type = 'report' THEN 1
+                    ELSE 0
+                END
+            ) AS report_count
+        FROM calendar_files
+        WHERE calendar_date LIKE ?
+        GROUP BY calendar_date
+        ORDER BY calendar_date ASC
+        """,
+        [f"{year:04d}-%"],
+    )
 
     return [
         {
-            "calendar_date": row.calendar_date,
-            "total_files": int(row.total_files or 0),
-            "pdf_count": int(row.pdf_count or 0),
-            "xml_count": int(row.xml_count or 0),
-            "report_count": int(row.report_count or 0),
+            "calendar_date":
+                date.fromisoformat(
+                    str(row["calendar_date"])
+                ),
+            "total_files":
+                int(row.get("total_files") or 0),
+            "pdf_count":
+                int(row.get("pdf_count") or 0),
+            "xml_count":
+                int(row.get("xml_count") or 0),
+            "report_count":
+                int(row.get("report_count") or 0),
         }
         for row in rows
     ]
@@ -138,17 +308,33 @@ def count_files_by_date(
     db: Session,
     calendar_date: date,
 ) -> int:
-    statement = (
-        select(func.count(CalendarFile.id))
-        .where(CalendarFile.calendar_date == calendar_date)
+    del db
+
+    rows = get_d1_rows(
+        """
+        SELECT COUNT(id) AS total
+        FROM calendar_files
+        WHERE calendar_date = ?
+        """,
+        [calendar_date.isoformat()],
     )
 
-    return int(db.scalar(statement) or 0)
+    if not rows:
+        return 0
+
+    return int(rows[0].get("total") or 0)
 
 
 def delete_calendar_file(
     db: Session,
     calendar_file: CalendarFile,
 ) -> None:
-    db.delete(calendar_file)
-    db.commit()
+    del db
+
+    execute_d1_query(
+        """
+        DELETE FROM calendar_files
+        WHERE id = ?
+        """,
+        [calendar_file.id],
+    )

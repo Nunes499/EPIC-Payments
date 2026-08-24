@@ -110,7 +110,8 @@ export default function ProcessingWorkspace({
         (file) => ({
           file,
           loading:
-            file.type === "xml",
+            file.type === "xml" ||
+            file.type === "pdf",
           error: null,
           data: null,
         }),
@@ -128,13 +129,14 @@ export default function ProcessingWorkspace({
           selection!.files.map(
             async (file) => {
               if (
-                file.type !== "xml"
+                file.type !== "xml" &&
+                file.type !== "pdf"
               ) {
                 return {
                   file,
                   loading: false,
                   error:
-                    "A leitura de PDF será ligada numa etapa seguinte.",
+                    "Este formato ainda não pode ser processado.",
                   data: null,
                 } satisfies ProcessingFileState;
               }

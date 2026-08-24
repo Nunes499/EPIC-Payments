@@ -25,7 +25,7 @@ from app.schemas.calendar_file import (
 )
 from app.services.calendar_service import (
     get_calendar_file_contents,
-    process_xml_calendar_file,
+    process_calendar_file as process_bank_calendar_file,
     remove_calendar_file,
     save_calendar_file,
 )
@@ -93,7 +93,7 @@ def process_calendar_file(
     file_id: int,
     db: Session = Depends(get_db),
 ):
-    return process_xml_calendar_file(
+    return process_bank_calendar_file(
         db,
         file_id=file_id,
     )

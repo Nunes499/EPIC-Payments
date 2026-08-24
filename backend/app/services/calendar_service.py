@@ -1,4 +1,5 @@
 from datetime import date
+from io import BytesIO
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 import re
@@ -6,6 +7,7 @@ import xml.etree.ElementTree as ET
 from uuid import uuid4
 
 from fastapi import HTTPException, UploadFile, status
+from pypdf import PdfReader
 from sqlalchemy.orm import Session
 
 from app.crud.calendar_file import (
@@ -1009,3 +1011,668 @@ def process_xml_calendar_file(
         "movements":
             movements,
     }
+
+# =========================================================
+# PROCESSAMENTO PDF BANCÁRIO
+# =========================================================
+
+
+PDF_ROW_START_PATTERN = re.compile(
+    r"^\s*\d+\s+[A-Za-z]*\d+\s+"
+)
+
+PDF_ROW_PATTERN = re.compile(
+    r"^\s*"
+    r"(?P<bank_reference>\d+)\s+"
+    r"(?P<member_reference>[A-Za-z]*\d+)\s+"
+    r"(?P<name>.+?)\s+"
+    r"(?P<iban>PT\d{23})\s+"
+    r"(?P<amount>\d[\d.]*,\d{2})\s*€\s+"
+    r"(?P<reason_code>[A-Z0-9]{4})\s*-\s*"
+    r"(?P<reason_description>.*)"
+    r"\s*$"
+)
+
+
+def parse_portuguese_decimal(
+    value: str | None,
+) -> Decimal:
+    """
+    Converte valores portugueses como:
+        1.476,30 -> Decimal("1476.30")
+        44,90    -> Decimal("44.90")
+    """
+
+    if not value:
+        return Decimal("0")
+
+    normalized = (
+        value
+        .strip()
+        .replace("EUR", "")
+        .replace("€", "")
+        .replace(" ", "")
+        .replace(".", "")
+        .replace(",", ".")
+    )
+
+    try:
+        return Decimal(
+            normalized,
+        )
+    except InvalidOperation:
+        return Decimal("0")
+
+
+def parse_portuguese_date(
+    value: str | None,
+) -> date | None:
+    """
+    Converte DD-MM-AAAA para date.
+    """
+
+    if not value:
+        return None
+
+    match = re.fullmatch(
+        r"(\d{2})-(\d{2})-(\d{4})",
+        value.strip(),
+    )
+
+    if not match:
+        return None
+
+    day, month, year = match.groups()
+
+    try:
+        return date(
+            int(year),
+            int(month),
+            int(day),
+        )
+    except ValueError:
+        return None
+
+
+def extract_pdf_metadata(
+    full_text: str,
+) -> dict:
+    """
+    Extrai os principais totais e a data do relatório bancário.
+    """
+
+    def search_text(
+        pattern: str,
+    ) -> str | None:
+        match = re.search(
+            pattern,
+            full_text,
+            flags=re.IGNORECASE,
+        )
+
+        if not match:
+            return None
+
+        return match.group(1).strip()
+
+    declared_transactions = None
+
+    transactions_text = search_text(
+        r"N[ºo]\s+Total\s+de\s+Registos\s*:\s*(\d+)"
+    )
+
+    if transactions_text:
+        try:
+            declared_transactions = int(
+                transactions_text
+            )
+        except ValueError:
+            declared_transactions = None
+
+    total_amount_text = search_text(
+        r"Montante\s+Total\s+do\s+Lote\s*:\s*"
+        r"([\d.]+,\d{2})\s*EUR"
+    )
+
+    if not total_amount_text:
+        total_amount_text = search_text(
+            r"Montante\s+Total\s+do\s+Ficheiro\s*:\s*"
+            r"([\d.]+,\d{2})\s*EUR"
+        )
+
+    collection_date_text = search_text(
+        r"Data\s+de\s+Liquida[cç][aã]o\s*:\s*"
+        r"(\d{2}-\d{2}-\d{4})"
+    )
+
+    file_identifier = search_text(
+        r"Identifica[cç][aã]o\s+do\s+Ficheiro\s*:\s*([^\n\r]+)"
+    )
+
+    return {
+        "declared_transactions":
+            declared_transactions,
+
+        "declared_total_amount":
+            parse_portuguese_decimal(
+                total_amount_text
+            )
+            if total_amount_text
+            else None,
+
+        "collection_date":
+            parse_portuguese_date(
+                collection_date_text
+            ),
+
+        "file_identifier":
+            file_identifier,
+    }
+
+
+def extract_pdf_rows(
+    contents: bytes,
+) -> tuple[
+    list[dict],
+    str,
+]:
+    """
+    Lê a tabela dos PDFs de retorno bancário.
+
+    A extração é feita página a página e agrupa linhas
+    partidas pelo próprio PDF antes de interpretar o registo.
+    Isto permite tratar nomes e descrições que ocupam
+    mais do que uma linha.
+    """
+
+    try:
+        reader = PdfReader(
+            BytesIO(contents),
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Não foi possível abrir o ficheiro PDF. "
+                "O ficheiro poderá estar corrompido."
+            ),
+        ) from exc
+
+    rows: list[dict] = []
+    all_page_texts: list[str] = []
+
+    for page in reader.pages:
+        try:
+            page_text = (
+                page.extract_text()
+                or ""
+            )
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Não foi possível extrair texto "
+                    "de uma das páginas do PDF."
+                ),
+            ) from exc
+
+        all_page_texts.append(
+            page_text
+        )
+
+        normalized_lines = [
+            " ".join(
+                line.split()
+            )
+            for line in page_text.splitlines()
+            if line.strip()
+        ]
+
+        raw_records: list[str] = []
+        current_record: str | None = None
+
+        for line in normalized_lines:
+            if PDF_ROW_START_PATTERN.match(
+                line
+            ):
+                if current_record:
+                    raw_records.append(
+                        current_record
+                    )
+
+                current_record = line
+                continue
+
+            if current_record is None:
+                continue
+
+            # Cabeçalhos e rodapés da tabela não fazem
+            # parte da descrição do movimento.
+            if (
+                line.startswith("Pág.")
+                or line.startswith("Referência da")
+                or line.startswith("ADC Nome do Devedor")
+            ):
+                continue
+
+            current_record = (
+                f"{current_record} {line}"
+            )
+
+        if current_record:
+            raw_records.append(
+                current_record
+            )
+
+        for raw_record in raw_records:
+            match = PDF_ROW_PATTERN.match(
+                raw_record
+            )
+
+            if not match:
+                continue
+
+            data = match.groupdict()
+
+            rows.append(
+                {
+                    "bank_reference":
+                        data[
+                            "bank_reference"
+                        ],
+
+                    "original_member_reference":
+                        data[
+                            "member_reference"
+                        ],
+
+                    "name":
+                        data[
+                            "name"
+                        ].strip(),
+
+                    "iban":
+                        data[
+                            "iban"
+                        ].strip(),
+
+                    "amount":
+                        parse_portuguese_decimal(
+                            data[
+                                "amount"
+                            ]
+                        ),
+
+                    "reason_code":
+                        data[
+                            "reason_code"
+                        ].strip().upper(),
+
+                    "reason_description":
+                        data[
+                            "reason_description"
+                        ].strip(),
+                }
+            )
+
+    full_text = "\n".join(
+        all_page_texts
+    )
+
+    return (
+        rows,
+        full_text,
+    )
+
+
+def process_pdf_calendar_file(
+    db: Session,
+    *,
+    file_id: int,
+) -> dict:
+    """
+    Processa PDFs do tipo:
+    "Detalhe do Retorno do Ficheiro de Cobranças".
+
+    O PDF fornece diretamente:
+    - Referência da cobrança
+    - Referência ADC / Nº Sócio
+    - Nome
+    - Montante
+    - Código de retorno
+    - Descrição do código
+
+    Depois é feito o mesmo cruzamento com a Base CEDIS
+    que já é usado no processamento XML.
+    """
+
+    calendar_file = get_calendar_file_by_id(
+        db,
+        file_id,
+    )
+
+    if calendar_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ficheiro não encontrado.",
+        )
+
+    if calendar_file.file_type != "pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O ficheiro selecionado não é um PDF."
+            ),
+        )
+
+    contents = get_calendar_file_contents(
+        calendar_file,
+    )
+
+    (
+        parsed_rows,
+        full_text,
+    ) = extract_pdf_rows(
+        contents,
+    )
+
+    if not parsed_rows:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Não foram encontrados movimentos bancários "
+                "no PDF. Confirme se é um relatório de retorno "
+                "de cobranças suportado pelo EPIC Payments."
+            ),
+        )
+
+    metadata = extract_pdf_metadata(
+        full_text,
+    )
+
+    (
+        cedis_lookup,
+        cedis_file_id,
+        cedis_filename,
+    ) = build_active_cedis_lookup(
+        db,
+    )
+
+    movements: list[dict] = []
+
+    collection_date = (
+        metadata[
+            "collection_date"
+        ]
+    )
+
+    for sequence, row in enumerate(
+        parsed_rows,
+        start=1,
+    ):
+        original_member_reference = (
+            row[
+                "original_member_reference"
+            ]
+        )
+
+        member_number = (
+            normalize_member_reference(
+                original_member_reference
+            )
+        )
+
+        cedis_member = cedis_lookup.get(
+            member_number,
+        )
+
+        cedis_match = (
+            cedis_member is not None
+        )
+
+        cedis_name = (
+            cedis_member.get("name")
+            if cedis_member
+            else None
+        )
+
+        phone = (
+            cedis_member.get("phone")
+            if cedis_member
+            else None
+        )
+
+        email = (
+            cedis_member.get("email")
+            if cedis_member
+            else None
+        )
+
+        birth_year = (
+            cedis_member.get("birth_year")
+            if cedis_member
+            else None
+        )
+
+        age = (
+            cedis_member.get("age")
+            if cedis_member
+            else None
+        )
+
+        is_minor = (
+            bool(
+                cedis_member.get(
+                    "is_minor"
+                )
+            )
+            if cedis_member
+            else False
+        )
+
+        reason_code = (
+            row[
+                "reason_code"
+            ]
+        )
+
+        pdf_description = (
+            row[
+                "reason_description"
+            ]
+            or ""
+        ).strip()
+
+        # O PDF é a fonte principal da descrição.
+        # Se por algum motivo vier vazia, usamos
+        # o nosso dicionário central.
+        reason_description = (
+            pdf_description
+            or get_reason_description(
+                reason_code
+            )
+        )
+
+        movements.append(
+            {
+                "sequence":
+                    sequence,
+
+                "original_member_reference":
+                    original_member_reference,
+
+                "member_number":
+                    member_number,
+
+                "name":
+                    (
+                        row["name"]
+                        or cedis_name
+                        or ""
+                    ),
+
+                "cedis_name":
+                    cedis_name,
+
+                "phone":
+                    phone,
+
+                "email":
+                    email,
+
+                "birth_year":
+                    birth_year,
+
+                "age":
+                    age,
+
+                "is_minor":
+                    is_minor,
+
+                "cedis_match":
+                    cedis_match,
+
+                "amount":
+                    row[
+                        "amount"
+                    ],
+
+                "reason_code":
+                    reason_code,
+
+                "reason_description":
+                    reason_description,
+
+                "collection_date":
+                    collection_date,
+
+                "bank_reference":
+                    row[
+                        "bank_reference"
+                    ],
+            }
+        )
+
+    parsed_total_amount = sum(
+        (
+            movement["amount"]
+            for movement in movements
+        ),
+        Decimal("0"),
+    )
+
+    cedis_matches = sum(
+        1
+        for movement in movements
+        if movement["cedis_match"]
+    )
+
+    cedis_unmatched = (
+        len(movements)
+        - cedis_matches
+    )
+
+    minor_members = sum(
+        1
+        for movement in movements
+        if movement["is_minor"]
+    )
+
+    return {
+        "file_id":
+            calendar_file.id,
+
+        "filename":
+            calendar_file.original_filename,
+
+        "file_type":
+            calendar_file.file_type,
+
+        "cedis_file_id":
+            cedis_file_id,
+
+        "cedis_filename":
+            cedis_filename,
+
+        "cedis_matches":
+            cedis_matches,
+
+        "cedis_unmatched":
+            cedis_unmatched,
+
+        "minor_members":
+            minor_members,
+
+        # O PDF não tem os mesmos IDs técnicos do XML.
+        "message_id":
+            metadata[
+                "file_identifier"
+            ],
+
+        "original_message_id":
+            None,
+
+        "declared_transactions":
+            metadata[
+                "declared_transactions"
+            ],
+
+        "declared_total_amount":
+            metadata[
+                "declared_total_amount"
+            ],
+
+        "parsed_transactions":
+            len(movements),
+
+        "parsed_total_amount":
+            parsed_total_amount,
+
+        "movements":
+            movements,
+    }
+
+
+def process_calendar_file(
+    db: Session,
+    *,
+    file_id: int,
+) -> dict:
+    """
+    Dispatcher único do processamento bancário.
+
+    XML -> process_xml_calendar_file
+    PDF -> process_pdf_calendar_file
+    """
+
+    calendar_file = get_calendar_file_by_id(
+        db,
+        file_id,
+    )
+
+    if calendar_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ficheiro não encontrado.",
+        )
+
+    if calendar_file.file_type == "xml":
+        return process_xml_calendar_file(
+            db,
+            file_id=file_id,
+        )
+
+    if calendar_file.file_type == "pdf":
+        return process_pdf_calendar_file(
+            db,
+            file_id=file_id,
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=(
+            "Este formato de ficheiro ainda não "
+            "pode ser processado."
+        ),
+    )
+
