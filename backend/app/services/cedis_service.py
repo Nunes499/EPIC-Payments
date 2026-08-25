@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from io import BytesIO
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,6 +13,11 @@ from app.crud.cedis_file import (
     get_cedis_file_by_id,
 )
 from app.models.cedis_file import CedisFile
+from app.services.r2_storage import (
+    delete_object_from_r2,
+    download_bytes_from_r2,
+    upload_bytes_to_r2,
+)
 
 
 # =========================================================
@@ -23,6 +31,8 @@ ALLOWED_EXTENSIONS = {
 
 MAX_FILE_SIZE = 25 * 1024 * 1024
 
+# Mantidos apenas para compatibilidade com Bases CEDIS
+# antigas que tenham sido guardadas no disco local.
 STORAGE_ROOT = Path("storage")
 CEDIS_STORAGE_ROOT = STORAGE_ROOT / "cedis"
 
@@ -82,15 +92,71 @@ def clean_integer_value(value) -> int | None:
 
 
 # =========================================================
-# CAMINHOS
+# R2
+# =========================================================
+
+def build_cedis_r2_object_key(
+    *,
+    stored_filename: str,
+) -> str:
+    """
+    Cria a chave privada da Base CEDIS no Cloudflare R2.
+
+    Exemplo:
+        cedis/abc123.xlsx
+    """
+
+    return f"cedis/{stored_filename}"
+
+
+def build_r2_file_path(
+    object_key: str,
+) -> str:
+    """
+    Valor guardado em cedis_files.file_path.
+
+    Permite distinguir Bases CEDIS guardadas no R2
+    de versões antigas guardadas localmente.
+    """
+
+    return f"r2://{object_key}"
+
+
+def is_r2_file_path(
+    file_path: str,
+) -> bool:
+    return bool(
+        file_path
+        and file_path.startswith("r2://")
+    )
+
+
+def get_r2_object_key(
+    cedis_file: CedisFile,
+) -> str:
+    file_path = (
+        cedis_file.file_path
+        or ""
+    )
+
+    if not is_r2_file_path(file_path):
+        raise ValueError(
+            "A Base CEDIS não está armazenada no R2."
+        )
+
+    return file_path[len("r2://"):]
+
+
+# =========================================================
+# COMPATIBILIDADE COM FICHEIROS LOCAIS ANTIGOS
 # =========================================================
 
 def resolve_cedis_file_path(
     cedis_file: CedisFile,
 ) -> Path:
     """
-    Converte o caminho guardado na base de dados
-    num caminho absoluto no servidor.
+    Resolve apenas Bases CEDIS antigas guardadas
+    no armazenamento local.
     """
 
     file_path = Path(
@@ -110,11 +176,22 @@ def get_existing_cedis_file_path(
     cedis_file: CedisFile,
 ) -> Path:
     """
-    Devolve o caminho físico do ficheiro CEDIS.
+    Devolve o caminho físico de uma Base CEDIS antiga.
 
-    Gera 404 caso o ficheiro já não exista
-    no armazenamento do servidor.
+    Bases CEDIS novas devem ser obtidas através
+    de get_cedis_file_contents().
     """
+
+    if is_r2_file_path(
+        cedis_file.file_path
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Esta Base CEDIS está armazenada online "
+                "no Cloudflare R2 e não possui caminho local."
+            ),
+        )
 
     file_path = resolve_cedis_file_path(
         cedis_file
@@ -141,8 +218,7 @@ def get_existing_cedis_file(
     file_id: int,
 ) -> CedisFile:
     """
-    Procura uma versão da Base CEDIS
-    através do ID.
+    Procura uma versão da Base CEDIS através do ID.
     """
 
     cedis_file = get_cedis_file_by_id(
@@ -160,28 +236,66 @@ def get_existing_cedis_file(
 
 
 # =========================================================
+# CONTEÚDO DA BASE CEDIS
+# =========================================================
+
+def get_cedis_file_contents(
+    cedis_file: CedisFile,
+) -> bytes:
+    """
+    Obtém o conteúdo da Base CEDIS independentemente
+    de estar no Cloudflare R2 ou no armazenamento
+    local antigo.
+    """
+
+    if is_r2_file_path(
+        cedis_file.file_path
+    ):
+        object_key = get_r2_object_key(
+            cedis_file
+        )
+
+        return download_bytes_from_r2(
+            object_key=object_key,
+        )
+
+    file_path = get_existing_cedis_file_path(
+        cedis_file
+    )
+
+    return file_path.read_bytes()
+
+
+# =========================================================
 # LEITURA DO EXCEL
 # =========================================================
 
-def read_cedis_excel(
-    file_path: Path,
+def read_cedis_excel_bytes(
+    contents: bytes,
+    *,
+    extension: str,
 ) -> pd.DataFrame:
     """
-    Lê ficheiros CEDIS XLS ou XLSX.
+    Lê uma Base CEDIS diretamente a partir de bytes.
+
+    Isto permite ler o Excel diretamente do R2
+    sem criar ficheiros temporários no servidor.
     """
 
-    extension = file_path.suffix.lower()
+    extension = extension.lower()
 
     try:
+        buffer = BytesIO(contents)
+
         if extension == ".xls":
             dataframe = pd.read_excel(
-                file_path,
+                buffer,
                 engine="xlrd",
             )
 
         elif extension == ".xlsx":
             dataframe = pd.read_excel(
-                file_path,
+                buffer,
                 engine="openpyxl",
             )
 
@@ -208,20 +322,55 @@ def read_cedis_excel(
     return dataframe
 
 
+def read_cedis_excel(
+    file_path: Path,
+) -> pd.DataFrame:
+    """
+    Compatibilidade com código antigo que ainda possa
+    fornecer diretamente um caminho físico.
+    """
+
+    try:
+        contents = file_path.read_bytes()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "O ficheiro físico da Base CEDIS "
+                "não foi encontrado no servidor."
+            ),
+        ) from exc
+
+    return read_cedis_excel_bytes(
+        contents,
+        extension=file_path.suffix,
+    )
+
+
 def load_cedis_dataframe(
     cedis_file: CedisFile,
 ) -> pd.DataFrame:
     """
-    Carrega uma Base CEDIS já guardada
-    no servidor.
+    Carrega uma Base CEDIS guardada no R2 ou,
+    para compatibilidade, no armazenamento local antigo.
     """
 
-    file_path = get_existing_cedis_file_path(
+    contents = get_cedis_file_contents(
         cedis_file
     )
 
-    return read_cedis_excel(
-        file_path
+    extension = Path(
+        cedis_file.original_filename
+    ).suffix.lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        extension = Path(
+            cedis_file.stored_filename
+        ).suffix.lower()
+
+    return read_cedis_excel_bytes(
+        contents,
+        extension=extension,
     )
 
 
@@ -288,10 +437,14 @@ async def save_cedis_file(
     uploaded_by_id: int | None = None,
 ) -> CedisFile:
     """
-    Valida e guarda uma nova versão da Base CEDIS.
+    Valida e guarda uma nova versão da Base CEDIS
+    diretamente no Cloudflare R2.
 
-    A versão anterior apenas é desativada depois
-    de a nova versão ter sido validada e guardada.
+    O Excel é validado em memória antes do upload.
+
+    Se o registo na base de dados falhar depois do
+    upload para o R2, o objeto é removido para evitar
+    ficheiros órfãos.
     """
 
     if not upload.filename:
@@ -331,58 +484,55 @@ async def save_cedis_file(
                 ),
             )
 
-        CEDIS_STORAGE_ROOT.mkdir(
-            parents=True,
-            exist_ok=True,
+        # Validamos primeiro o Excel em memória.
+        # Assim não enviamos ficheiros inválidos para o R2.
+        dataframe = read_cedis_excel_bytes(
+            contents,
+            extension=extension,
+        )
+
+        validate_cedis_dataframe(
+            dataframe
         )
 
         stored_filename = (
             f"{uuid4().hex}{extension}"
         )
 
-        absolute_file_path = (
-            CEDIS_STORAGE_ROOT
-            / stored_filename
+        object_key = build_cedis_r2_object_key(
+            stored_filename=stored_filename,
         )
 
-        absolute_file_path.write_bytes(
-            contents
+        upload_bytes_to_r2(
+            object_key=object_key,
+            contents=contents,
+            content_type=upload.content_type,
         )
 
         try:
-            # Primeiro validamos fisicamente o Excel.
-            dataframe = read_cedis_excel(
-                absolute_file_path
-            )
-
-            validate_cedis_dataframe(
-                dataframe
-            )
-
-            relative_file_path = (
-                absolute_file_path.relative_to(
-                    STORAGE_ROOT.parent
-                )
-            )
-
             cedis_file = create_cedis_file(
                 db,
                 original_filename=upload.filename,
                 stored_filename=stored_filename,
                 mime_type=upload.content_type,
                 file_size=len(contents),
-                file_path=str(relative_file_path),
+                file_path=build_r2_file_path(
+                    object_key
+                ),
                 uploaded_by_id=uploaded_by_id,
             )
 
             return cedis_file
 
         except Exception:
-            # Se a nova base falhar na validação
-            # ou no registo na BD, removemos apenas
-            # o novo ficheiro físico.
-            if absolute_file_path.exists():
-                absolute_file_path.unlink()
+            # Se a gravação na BD falhar depois
+            # do upload, removemos o objeto do R2.
+            try:
+                delete_object_from_r2(
+                    object_key=object_key,
+                )
+            except Exception:
+                pass
 
             raise
 
