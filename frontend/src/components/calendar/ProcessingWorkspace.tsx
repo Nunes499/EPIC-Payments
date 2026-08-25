@@ -10,6 +10,7 @@ import {
   Layers3,
   Loader2,
 } from "lucide-react";
+
 import {
   useEffect,
   useMemo,
@@ -28,10 +29,12 @@ import type {
 
 import "./processing.css";
 
+
 type ProcessingWorkspaceProps = {
   selection: ProcessingSelection | null;
   onClose: () => void;
 };
+
 
 type ProcessingFileState = {
   file: CalendarFile;
@@ -39,6 +42,7 @@ type ProcessingFileState = {
   error: string | null;
   data: ApiBankFileProcessing | null;
 };
+
 
 function getFileIcon(
   file: CalendarFile,
@@ -49,6 +53,7 @@ function getFileIcon(
 
   return FileText;
 }
+
 
 function formatCurrency(
   value: string | number,
@@ -71,6 +76,7 @@ function formatCurrency(
   ).format(numericValue);
 }
 
+
 function formatDate(
   value: string | null,
 ): string {
@@ -87,6 +93,7 @@ function formatDate(
 
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
+
 
 export default function ProcessingWorkspace({
   selection,
@@ -182,6 +189,7 @@ export default function ProcessingWorkspace({
     };
   }, [selection]);
 
+
   const totals =
     useMemo(() => {
       let movements = 0;
@@ -210,9 +218,11 @@ export default function ProcessingWorkspace({
       };
     }, [fileStates]);
 
+
   if (!selection) {
     return null;
   }
+
 
   const pdfCount =
     selection.files.filter(
@@ -220,14 +230,17 @@ export default function ProcessingWorkspace({
         file.type === "pdf",
     ).length;
 
+
   const xmlCount =
     selection.files.filter(
       (file) =>
         file.type === "xml",
     ).length;
 
+
   const hasLoadedMovements =
     totals.movements > 0;
+
 
   return (
     <div className="processing-workspace">
@@ -269,6 +282,7 @@ export default function ProcessingWorkspace({
           </span>
         </div>
       </header>
+
 
       <main className="processing-workspace-content">
         <section className="processing-summary-grid">
@@ -321,6 +335,7 @@ export default function ProcessingWorkspace({
           </article>
         </section>
 
+
         <section className="processing-toolbar">
           <div>
             <span className="section-label">
@@ -351,6 +366,7 @@ export default function ProcessingWorkspace({
             Filtrar sócios
           </button>
         </section>
+
 
         <div className="processing-file-groups">
           {fileStates.map(
@@ -431,6 +447,7 @@ export default function ProcessingWorkspace({
                     ) : null}
                   </header>
 
+
                   <div className="processing-table-shell">
                     <div className="processing-table-head">
                       <span>Nº Sócio</span>
@@ -441,6 +458,7 @@ export default function ProcessingWorkspace({
                       <span>Email</span>
                       <span>Nascimento</span>
                     </div>
+
 
                     {state.loading ? (
                       <div className="processing-empty-table">
@@ -458,6 +476,7 @@ export default function ProcessingWorkspace({
                         </span>
                       </div>
                     ) : null}
+
 
                     {!state.loading &&
                     state.error ? (
@@ -477,6 +496,7 @@ export default function ProcessingWorkspace({
                         </span>
                       </div>
                     ) : null}
+
 
                     {!state.loading &&
                     state.data ? (
@@ -548,16 +568,16 @@ export default function ProcessingWorkspace({
                                   ) : null}
                                 </div>
 
-                                <div className="processing-empty-value">
-                                  —
+                                <div>
+                                  {movement.phone || "—"}
                                 </div>
 
-                                <div className="processing-empty-value">
-                                  —
+                                <div>
+                                  {movement.email || "—"}
                                 </div>
 
-                                <div className="processing-empty-value">
-                                  —
+                                <div>
+                                  {movement.birth_year ?? "—"}
                                 </div>
                               </div>
                             );

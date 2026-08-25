@@ -3,6 +3,15 @@ export type ApiBankMovement = {
   original_member_reference: string;
   member_number: string;
   name: string;
+
+  cedis_name: string | null;
+  phone: string | null;
+  email: string | null;
+  birth_year: number | null;
+  age: number | null;
+  is_minor: boolean;
+  cedis_match: boolean;
+
   amount: string;
   reason_code: string;
   reason_description: string;
@@ -34,12 +43,22 @@ export type ApiBankFileProcessing = {
   file_id: number;
   filename: string;
   file_type: string;
+
+  cedis_file_id: number | null;
+  cedis_filename: string | null;
+  cedis_matches: number;
+  cedis_unmatched: number;
+  minor_members: number;
+
   message_id: string | null;
   original_message_id: string | null;
+
   declared_transactions: number | null;
   declared_total_amount: string | null;
+
   parsed_transactions: number;
   parsed_total_amount: string;
+
   movements: ApiBankMovement[];
 };
 
@@ -74,7 +93,9 @@ export async function listCalendarFiles(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
@@ -92,7 +113,9 @@ export async function listYearSummary(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
@@ -104,7 +127,10 @@ export async function uploadCalendarFile(
 ): Promise<ApiCalendarFile> {
   const formData = new FormData();
 
-  formData.append("upload", file);
+  formData.append(
+    "upload",
+    file,
+  );
 
   const response = await fetch(
     `${API_URL}/files/calendar/${calendarDate}`,
@@ -115,7 +141,9 @@ export async function uploadCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
@@ -132,7 +160,9 @@ export async function deleteCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 }
 
@@ -148,7 +178,9 @@ export async function processCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
   return response.json();
@@ -165,30 +197,51 @@ export async function downloadCalendarFile(
   );
 
   if (!response.ok) {
-    throw new Error(await parseError(response));
+    throw new Error(
+      await parseError(response),
+    );
   }
 
-  const blob = await response.blob();
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
+  const blob =
+    await response.blob();
 
-  anchor.href = objectUrl;
-  anchor.download = file.original_filename;
+  const objectUrl =
+    URL.createObjectURL(
+      blob,
+    );
 
-  document.body.appendChild(anchor);
+  const anchor =
+    document.createElement(
+      "a",
+    );
+
+  anchor.href =
+    objectUrl;
+
+  anchor.download =
+    file.original_filename;
+
+  document.body.appendChild(
+    anchor,
+  );
+
   anchor.click();
+
   anchor.remove();
 
-  URL.revokeObjectURL(objectUrl);
+  URL.revokeObjectURL(
+    objectUrl,
+  );
 }
 
 export async function previewCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
-  const previewWindow = window.open(
-    "",
-    "_blank",
-  );
+  const previewWindow =
+    window.open(
+      "",
+      "_blank",
+    );
 
   if (!previewWindow) {
     throw new Error(
@@ -196,14 +249,20 @@ export async function previewCalendarFile(
     );
   }
 
-  previewWindow.opener = null;
+  previewWindow.opener =
+    null;
 
   previewWindow.document.write(`
     <!doctype html>
+
     <html lang="pt">
       <head>
         <meta charset="utf-8" />
-        <title>A carregar ficheiro...</title>
+
+        <title>
+          A carregar ficheiro...
+        </title>
+
         <style>
           body {
             margin: 0;
@@ -252,25 +311,39 @@ export async function previewCalendarFile(
   previewWindow.document.close();
 
   try {
-    const response = await fetch(
-      `${API_URL}/files/${file.id}/download`,
-      {
-        method: "GET",
-      },
-    );
+    const response =
+      await fetch(
+        `${API_URL}/files/${file.id}/download`,
+        {
+          method: "GET",
+        },
+      );
 
     if (!response.ok) {
-      throw new Error(await parseError(response));
+      throw new Error(
+        await parseError(response),
+      );
     }
 
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
+    const blob =
+      await response.blob();
 
-    previewWindow.location.href = objectUrl;
+    const objectUrl =
+      URL.createObjectURL(
+        blob,
+      );
 
-    window.setTimeout(() => {
-      URL.revokeObjectURL(objectUrl);
-    }, 5 * 60 * 1000);
+    previewWindow.location.href =
+      objectUrl;
+
+    window.setTimeout(
+      () => {
+        URL.revokeObjectURL(
+          objectUrl,
+        );
+      },
+      5 * 60 * 1000,
+    );
   } catch (error) {
     previewWindow.close();
 
