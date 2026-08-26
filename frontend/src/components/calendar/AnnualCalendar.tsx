@@ -27,7 +27,6 @@ import {
 import DayDrawer from "./DayDrawer";
 import MonthCard from "./MonthCard";
 import UploadFileDialog from "./UploadFileDialog";
-import ProcessingWorkspace from "./ProcessingWorkspace";
 
 import type {
   CalendarDayData,
@@ -83,6 +82,9 @@ function mapApiFile(
     size: formatFileSize(file.file_size),
     mimeType: file.mime_type,
     uploadedAt: file.uploaded_at,
+    fileCategory: file.file_category,
+    recoveryPart: file.recovery_part,
+    relatedFileId: file.related_file_id,
   };
 }
 
@@ -162,13 +164,6 @@ export default function AnnualCalendar({
     selectedFileIds,
     setSelectedFileIds,
   ] = useState<number[]>([]);
-
-  const [
-    processingSelection,
-    setProcessingSelection,
-  ] = useState<ProcessingSelection | null>(
-    null,
-  );
 
 
   const selectedDayData =
@@ -459,43 +454,46 @@ export default function AnnualCalendar({
     payload: UploadFilePayload,
   ) {
     try {
-      for (
-        const file
-        of payload.files
-      ) {
+      if (payload.mode === "standard") {
+        for (const file of payload.files) {
+          await uploadCalendarFile(
+            payload.date,
+            file,
+            {
+              fileCategory: payload.fileCategory,
+            },
+          );
+        }
+      } else {
+        const recoveryFile1 =
+          await uploadCalendarFile(
+            payload.date,
+            payload.recoveryFile1,
+            {
+              fileCategory: "recovery",
+              recoveryPart: 1,
+            },
+          );
+
         await uploadCalendarFile(
           payload.date,
-          file,
+          payload.recoveryFile2,
+          {
+            fileCategory: "recovery",
+            recoveryPart: 2,
+            relatedFileId: recoveryFile1.id,
+          },
         );
       }
 
-      /*
-       * Atualiza imediatamente
-       * o drawer.
-       */
-      await loadFilesForDate(
-        payload.date,
+      await loadFilesForDate(payload.date);
+
+      const uploadYear = Number(
+        payload.date.slice(0, 4),
       );
 
-      const uploadYear =
-        Number(
-          payload.date.slice(
-            0,
-            4,
-          ),
-        );
-
-      /*
-       * Atualiza os badges
-       * PDF/XML/REL do calendário.
-       */
-      await loadYearData(
-        uploadYear,
-      );
-
-      setSelectedDate(
-        payload.date,
-      );
+      await loadYearData(uploadYear);
+      setSelectedDate(payload.date);
     } catch (error) {
       setDrawerError(
         error instanceof Error
@@ -526,6 +524,18 @@ export default function AnnualCalendar({
 
           file_type:
             file.type,
+
+          file_category:
+            file.fileCategory ??
+            "normal",
+
+          recovery_part:
+            file.recoveryPart ??
+            null,
+
+          related_file_id:
+            file.relatedFileId ??
+            null,
 
           mime_type:
             file.mimeType ??
@@ -582,6 +592,18 @@ export default function AnnualCalendar({
 
           file_type:
             file.type,
+
+          file_category:
+            file.fileCategory ??
+            "normal",
+
+          recovery_part:
+            file.recoveryPart ??
+            null,
+
+          related_file_id:
+            file.relatedFileId ??
+            null,
 
           mime_type:
             file.mimeType ??
@@ -836,18 +858,35 @@ export default function AnnualCalendar({
       return;
     }
 
-    setProcessingSelection({
+    /*
+     * Estrutura oficial que será entregue
+     * à nova interface de processamento.
+     *
+     * Por enquanto validamos a seleção.
+     * No passo seguinte esta estrutura será
+     * passada ao componente ProcessingWorkspace.
+     */
+    const selection: ProcessingSelection = {
       date:
         selectedDate,
       files:
         selectedFiles,
-    });
-  }
+    };
 
+    console.log(
+      "Ficheiros selecionados para processamento:",
+      selection,
+    );
 
-  function handleCloseProcessing() {
-    setProcessingSelection(
-      null,
+    window.alert(
+      selectedFiles.length === 1
+        ? `1 ficheiro selecionado para processamento:\n\n${selectedFiles[0].name}`
+        : `${selectedFiles.length} ficheiros selecionados para processamento:\n\n${selectedFiles
+            .map(
+              (file) =>
+                `• ${file.name}`,
+            )
+            .join("\n")}`,
     );
   }
 
@@ -1024,15 +1063,6 @@ export default function AnnualCalendar({
         }
         onDelete={
           handleDelete
-        }
-      />
-
-      <ProcessingWorkspace
-        selection={
-          processingSelection
-        }
-        onClose={
-          handleCloseProcessing
         }
       />
 

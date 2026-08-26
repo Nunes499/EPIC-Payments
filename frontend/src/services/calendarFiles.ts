@@ -27,12 +27,34 @@ export type ApiCalendarDaySummary = {
   report_count: number;
 };
 
+export type ApiBankFileCategory =
+  | "normal"
+  | "returned"
+  | "recovery";
+
 export type ApiCalendarFile = {
   id: number;
   calendar_date: string;
+
   original_filename: string;
   stored_filename: string;
-  file_type: "pdf" | "xml" | "report";
+
+  file_type:
+    | "pdf"
+    | "xml"
+    | "report";
+
+  file_category: ApiBankFileCategory;
+
+  recovery_part:
+    | 1
+    | 2
+    | null;
+
+  related_file_id:
+    | number
+    | null;
+
   mime_type: string | null;
   file_size: number | null;
   file_path: string;
@@ -62,35 +84,65 @@ export type ApiBankFileProcessing = {
   movements: ApiBankMovement[];
 };
 
+export type UploadCalendarFileOptions = {
+  fileCategory?:
+    | "normal"
+    | "returned"
+    | "recovery";
+
+  recoveryPart?:
+    | 1
+    | 2
+    | null;
+
+  relatedFileId?:
+    | number
+    | null;
+};
+
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL ??
+  "http://localhost:8000";
+
 
 async function parseError(
   response: Response,
 ): Promise<string> {
   try {
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    if (typeof data.detail === "string") {
+    if (
+      typeof data.detail ===
+      "string"
+    ) {
       return data.detail;
     }
 
-    return "Ocorreu um erro ao comunicar com o servidor.";
+    return (
+      "Ocorreu um erro ao comunicar " +
+      "com o servidor."
+    );
   } catch {
-    return "Ocorreu um erro ao comunicar com o servidor.";
+    return (
+      "Ocorreu um erro ao comunicar " +
+      "com o servidor."
+    );
   }
 }
+
 
 export async function listCalendarFiles(
   calendarDate: string,
 ): Promise<ApiCalendarFile[]> {
-  const response = await fetch(
-    `${API_URL}/files/calendar/${calendarDate}`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/files/calendar/${calendarDate}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -100,17 +152,19 @@ export async function listCalendarFiles(
 
   return response.json();
 }
+
 
 export async function listYearSummary(
   year: number,
 ): Promise<ApiCalendarDaySummary[]> {
-  const response = await fetch(
-    `${API_URL}/files/year/${year}`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/files/year/${year}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -121,24 +175,62 @@ export async function listYearSummary(
   return response.json();
 }
 
+
 export async function uploadCalendarFile(
   calendarDate: string,
   file: File,
+  options: UploadCalendarFileOptions = {},
 ): Promise<ApiCalendarFile> {
-  const formData = new FormData();
+  const formData =
+    new FormData();
 
   formData.append(
     "upload",
     file,
   );
 
-  const response = await fetch(
-    `${API_URL}/files/calendar/${calendarDate}`,
-    {
-      method: "POST",
-      body: formData,
-    },
+  formData.append(
+    "file_category",
+    options.fileCategory ??
+      "normal",
   );
+
+  if (
+    options.recoveryPart !==
+      undefined &&
+    options.recoveryPart !==
+      null
+  ) {
+    formData.append(
+      "recovery_part",
+      String(
+        options.recoveryPart,
+      ),
+    );
+  }
+
+  if (
+    options.relatedFileId !==
+      undefined &&
+    options.relatedFileId !==
+      null
+  ) {
+    formData.append(
+      "related_file_id",
+      String(
+        options.relatedFileId,
+      ),
+    );
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/files/calendar/${calendarDate}`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -148,16 +240,18 @@ export async function uploadCalendarFile(
 
   return response.json();
 }
+
 
 export async function deleteCalendarFile(
   fileId: number,
 ): Promise<void> {
-  const response = await fetch(
-    `${API_URL}/files/${fileId}`,
-    {
-      method: "DELETE",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/files/${fileId}`,
+      {
+        method: "DELETE",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -166,16 +260,18 @@ export async function deleteCalendarFile(
   }
 }
 
+
 export async function processCalendarFile(
   fileId: number,
 ): Promise<ApiBankFileProcessing> {
-  const response = await fetch(
-    `${API_URL}/files/${fileId}/process`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/files/${fileId}/process`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -186,15 +282,17 @@ export async function processCalendarFile(
   return response.json();
 }
 
+
 export async function downloadCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
-  const response = await fetch(
-    `${API_URL}/files/${file.id}/download`,
-    {
-      method: "GET",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/files/${file.id}/download`,
+      {
+        method: "GET",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -234,6 +332,7 @@ export async function downloadCalendarFile(
   );
 }
 
+
 export async function previewCalendarFile(
   file: ApiCalendarFile,
 ): Promise<void> {
@@ -245,7 +344,8 @@ export async function previewCalendarFile(
 
   if (!previewWindow) {
     throw new Error(
-      "O navegador bloqueou a janela de pré-visualização.",
+      "O navegador bloqueou a janela " +
+      "de pré-visualização.",
     );
   }
 

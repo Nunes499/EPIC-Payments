@@ -3,6 +3,15 @@ export type CalendarFileType =
   | "xml"
   | "report";
 
+export type BankFileCategory =
+  | "normal"
+  | "returned"
+  | "recovery";
+
+export type RecoveryPart =
+  | 1
+  | 2;
+
 export type DayStatus =
   | "empty"
   | "uploaded"
@@ -16,6 +25,10 @@ export type CalendarFile = {
   size?: string;
   mimeType?: string | null;
   uploadedAt?: string;
+
+  fileCategory?: BankFileCategory;
+  recoveryPart?: RecoveryPart | null;
+  relatedFileId?: number | null;
 };
 
 export type CalendarDayData = {
@@ -31,11 +44,28 @@ export type CalendarDayData = {
   status: DayStatus;
 };
 
-export type UploadFilePayload = {
+export type StandardUploadFilePayload = {
+  mode: "standard";
+
   date: string;
-  type: CalendarFileType;
+  type: "pdf" | "xml";
   files: File[];
+
+  fileCategory: "normal" | "returned";
 };
+
+export type RecoveryUploadFilePayload = {
+  mode: "recovery";
+
+  date: string;
+
+  recoveryFile1: File;
+  recoveryFile2: File;
+};
+
+export type UploadFilePayload =
+  | StandardUploadFilePayload
+  | RecoveryUploadFilePayload;
 
 export type ProcessingSelection = {
   date: string;
