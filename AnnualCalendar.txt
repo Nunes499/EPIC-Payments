@@ -27,7 +27,6 @@ import {
 import DayDrawer from "./DayDrawer";
 import MonthCard from "./MonthCard";
 import UploadFileDialog from "./UploadFileDialog";
-import ProcessingWorkspace from "./ProcessingWorkspace";
 
 import type {
   CalendarDayData,
@@ -158,20 +157,13 @@ export default function AnnualCalendar({
   /*
    * IDs dos PDF/XML selecionados no drawer.
    *
-   * A seleÃ§Ã£o pertence sempre ao dia
+   * A seleção pertence sempre ao dia
    * atualmente aberto.
    */
   const [
     selectedFileIds,
     setSelectedFileIds,
   ] = useState<number[]>([]);
-
-  const [
-    processingSelection,
-    setProcessingSelection,
-  ] = useState<ProcessingSelection | null>(
-    null,
-  );
 
 
   const selectedDayData =
@@ -254,7 +246,7 @@ export default function AnnualCalendar({
 
               /*
                * Preserva a lista real de ficheiros
-               * quando o drawer jÃ¡ a carregou.
+               * quando o drawer já a carregou.
                */
               files:
                 existing?.files ??
@@ -362,9 +354,9 @@ export default function AnnualCalendar({
       );
 
       /*
-       * Se a lista for atualizada apÃ³s eliminar
-       * um ficheiro, remove da seleÃ§Ã£o IDs que
-       * jÃ¡ deixaram de existir.
+       * Se a lista for atualizada após eliminar
+       * um ficheiro, remove da seleção IDs que
+       * já deixaram de existir.
        */
       const validProcessableIds =
         new Set(
@@ -409,8 +401,8 @@ export default function AnnualCalendar({
     date: string,
   ) {
     /*
-     * Ao mudar de dia, comeÃ§amos uma
-     * nova seleÃ§Ã£o de processamento.
+     * Ao mudar de dia, começamos uma
+     * nova seleção de processamento.
      */
     setSelectedFileIds(
       [],
@@ -506,7 +498,7 @@ export default function AnnualCalendar({
       setDrawerError(
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel enviar os ficheiros.",
+          : "Não foi possível enviar os ficheiros.",
       );
     }
   }
@@ -562,16 +554,16 @@ export default function AnnualCalendar({
       );
     } catch (error) {
       /*
-       * NÃ£o usamos drawerError para
+       * Não usamos drawerError para
        * erros isolados de preview.
        *
        * Desta forma a lista de ficheiros
-       * permanece visÃvel.
+       * permanece visível.
        */
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel prÃ©-visualizar o ficheiro.";
+          : "Não foi possível pré-visualizar o ficheiro.";
 
       window.alert(
         message,
@@ -632,7 +624,7 @@ export default function AnnualCalendar({
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel descarregar o ficheiro.";
+          : "Não foi possível descarregar o ficheiro.";
 
       window.alert(
         message,
@@ -663,7 +655,7 @@ export default function AnnualCalendar({
 
       /*
        * Remove imediatamente o ficheiro
-       * eliminado da seleÃ§Ã£o.
+       * eliminado da seleção.
        */
       setSelectedFileIds(
         (current) =>
@@ -691,7 +683,7 @@ export default function AnnualCalendar({
         );
 
       /*
-       * Atualiza tambÃ©m o resumo anual.
+       * Atualiza também o resumo anual.
        */
       await loadYearData(
         selectedYear,
@@ -700,7 +692,7 @@ export default function AnnualCalendar({
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel eliminar o ficheiro.";
+          : "Não foi possível eliminar o ficheiro.";
 
       window.alert(
         message,
@@ -716,10 +708,10 @@ export default function AnnualCalendar({
 
       /*
        * Se estamos a visualizar o ano atual,
-       * usa o dia/mÃªs de hoje.
+       * usa o dia/mês de hoje.
        *
-       * Se estamos noutro ano, mantÃ©m esse
-       * ano e usa o mesmo dia/mÃªs.
+       * Se estamos noutro ano, mantém esse
+       * ano e usa o mesmo dia/mês.
        */
       const date = [
         year,
@@ -767,9 +759,9 @@ export default function AnnualCalendar({
         );
 
     /*
-     * SeguranÃ§a adicional:
-     * relatÃ³rios nunca entram
-     * no processamento bancÃ¡rio.
+     * Segurança adicional:
+     * relatórios nunca entram
+     * no processamento bancário.
      */
     if (
       !file ||
@@ -866,18 +858,35 @@ export default function AnnualCalendar({
       return;
     }
 
-    setProcessingSelection({
+    /*
+     * Estrutura oficial que será entregue
+     * à nova interface de processamento.
+     *
+     * Por enquanto validamos a seleção.
+     * No passo seguinte esta estrutura será
+     * passada ao componente ProcessingWorkspace.
+     */
+    const selection: ProcessingSelection = {
       date:
         selectedDate,
       files:
         selectedFiles,
-    });
-  }
+    };
 
+    console.log(
+      "Ficheiros selecionados para processamento:",
+      selection,
+    );
 
-  function handleCloseProcessing() {
-    setProcessingSelection(
-      null,
+    window.alert(
+      selectedFiles.length === 1
+        ? `1 ficheiro selecionado para processamento:\n\n${selectedFiles[0].name}`
+        : `${selectedFiles.length} ficheiros selecionados para processamento:\n\n${selectedFiles
+            .map(
+              (file) =>
+                `• ${file.name}`,
+            )
+            .join("\n")}`,
     );
   }
 
@@ -903,7 +912,7 @@ export default function AnnualCalendar({
         <div className="annual-calendar-header">
           <div>
             <span className="section-label">
-              CalendÃ¡rio bancÃ¡rio
+              Calendário bancário
             </span>
 
             <h2>
@@ -1054,15 +1063,6 @@ export default function AnnualCalendar({
         }
         onDelete={
           handleDelete
-        }
-      />
-
-      <ProcessingWorkspace
-        selection={
-          processingSelection
-        }
-        onClose={
-          handleCloseProcessing
         }
       />
 

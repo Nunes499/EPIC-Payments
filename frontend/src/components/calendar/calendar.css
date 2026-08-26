@@ -2071,3 +2071,328 @@ button:hover {
   }
 }
 
+/* =========================================================
+   EPIC PAYMENTS
+   GRUPOS DE FICHEIROS NO DRAWER
+
+   PDF         -> VERMELHO
+   XML         -> VERDE
+   RECUPERAÇÃO -> AMARELO
+   RELATÓRIO   -> LARANJA
+   ========================================================= */
+
+.drawer-file-groups {
+  display: flex;
+  max-height: 430px;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.drawer-file-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.drawer-file-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.drawer-file-group-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.drawer-file-group-title h4 {
+  margin: 0;
+  color: #262626;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.055em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.drawer-file-group-marker {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 999px;
+}
+
+.drawer-file-group-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 6px;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.drawer-file-group .drawer-file-list {
+  max-height: none;
+  gap: 7px;
+  overflow: visible;
+  padding-right: 0;
+}
+
+
+/* =========================================================
+   PDF DO BANCO - VERMELHO
+   ========================================================= */
+
+.drawer-file-group-marker-pdf {
+  background: #c71925;
+  box-shadow: 0 0 0 3px rgba(199, 25, 37, 0.10);
+}
+
+.drawer-file-group-pdf
+.drawer-file-group-count {
+  background: #ffecee;
+  color: #c71925;
+}
+
+.drawer-file-card-pdf {
+  border-color: rgba(199, 25, 37, 0.25);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(199, 25, 37, 0.055),
+      #ffffff 42%
+    );
+  box-shadow:
+    inset 3px 0 0 rgba(199, 25, 37, 0.82);
+}
+
+.drawer-file-card-pdf:hover {
+  border-color: rgba(199, 25, 37, 0.55);
+}
+
+.drawer-file-icon-pdf {
+  background: #ffecee;
+  color: #c71925;
+}
+
+.drawer-file-card-pdf
+.drawer-file-checkbox input {
+  accent-color: #c71925;
+}
+
+.drawer-file-card-pdf.drawer-file-card-selected {
+  border-color: rgba(199, 25, 37, 0.62);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(199, 25, 37, 0.13),
+      #ffffff 48%
+    );
+  box-shadow:
+    inset 4px 0 0 #c71925,
+    0 5px 13px rgba(199, 25, 37, 0.08);
+}
+
+
+/* =========================================================
+   XML DO BANCO - VERDE
+   ========================================================= */
+
+.drawer-file-group-marker-xml {
+  background: #247344;
+  box-shadow: 0 0 0 3px rgba(36, 115, 68, 0.10);
+}
+
+.drawer-file-group-xml
+.drawer-file-group-count {
+  background: #edf8f1;
+  color: #247344;
+}
+
+.drawer-file-card-xml {
+  border-color: rgba(36, 115, 68, 0.25);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(36, 115, 68, 0.055),
+      #ffffff 42%
+    );
+  box-shadow:
+    inset 3px 0 0 rgba(36, 115, 68, 0.82);
+}
+
+.drawer-file-card-xml:hover {
+  border-color: rgba(36, 115, 68, 0.55);
+}
+
+.drawer-file-icon-xml {
+  background: #edf8f1;
+  color: #247344;
+}
+
+.drawer-file-card-xml
+.drawer-file-checkbox input {
+  accent-color: #247344;
+}
+
+.drawer-file-card-xml.drawer-file-card-selected {
+  border-color: rgba(36, 115, 68, 0.62);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(36, 115, 68, 0.13),
+      #ffffff 48%
+    );
+  box-shadow:
+    inset 4px 0 0 #247344,
+    0 5px 13px rgba(36, 115, 68, 0.08);
+}
+
+
+/* =========================================================
+   RECUPERAÇÃO - AMARELO
+   ========================================================= */
+
+.drawer-file-group-marker-recovery {
+  background: #d59b00;
+  box-shadow: 0 0 0 3px rgba(213, 155, 0, 0.12);
+}
+
+.drawer-file-group-recovery
+.drawer-file-group-count {
+  background: #fff5cc;
+  color: #8a6200;
+}
+
+.drawer-file-card-recovery {
+  border-color: rgba(213, 155, 0, 0.32);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 205, 46, 0.16),
+      #ffffff 44%
+    );
+  box-shadow:
+    inset 3px 0 0 #d59b00;
+}
+
+.drawer-file-card-recovery:hover {
+  border-color: rgba(213, 155, 0, 0.68);
+}
+
+.drawer-file-icon-recovery {
+  background: #fff5cc;
+  color: #9a6c00;
+}
+
+.drawer-file-card-recovery
+.drawer-file-checkbox input {
+  accent-color: #d59b00;
+}
+
+.drawer-file-card-recovery.drawer-file-card-selected {
+  border-color: rgba(213, 155, 0, 0.72);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 205, 46, 0.27),
+      #ffffff 50%
+    );
+  box-shadow:
+    inset 4px 0 0 #d59b00,
+    0 5px 13px rgba(213, 155, 0, 0.10);
+}
+
+
+/* =========================================================
+   RELATÓRIOS - LARANJA
+   O relatório final será PDF, mas permanece
+   visualmente separado dos PDFs bancários.
+   ========================================================= */
+
+.drawer-file-group-marker-report {
+  background: #db6b16;
+  box-shadow: 0 0 0 3px rgba(219, 107, 22, 0.10);
+}
+
+.drawer-file-group-report
+.drawer-file-group-count {
+  background: #fff0e5;
+  color: #b84f00;
+}
+
+.drawer-file-card-report {
+  border-color: rgba(219, 107, 22, 0.28);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(219, 107, 22, 0.075),
+      #ffffff 43%
+    );
+  box-shadow:
+    inset 3px 0 0 #db6b16;
+}
+
+.drawer-file-card-report:hover {
+  border-color: rgba(219, 107, 22, 0.62);
+}
+
+.drawer-file-icon-report {
+  background: #fff0e5;
+  color: #c2580b;
+}
+
+
+/* =========================================================
+   TEXTO SECUNDÁRIO DOS CARTÕES
+   ========================================================= */
+
+.drawer-file-card-pdf
+.drawer-file-main small {
+  color: #9c4a50;
+}
+
+.drawer-file-card-xml
+.drawer-file-main small {
+  color: #527c63;
+}
+
+.drawer-file-card-recovery
+.drawer-file-main small {
+  color: #8a6d1e;
+}
+
+.drawer-file-card-report
+.drawer-file-main small {
+  color: #9b633c;
+}
+
+
+/* =========================================================
+   RESPONSIVO DOS GRUPOS
+   ========================================================= */
+
+@media (max-width: 600px) {
+  .drawer-file-groups {
+    max-height: 390px;
+  }
+
+  .drawer-file-group {
+    gap: 6px;
+  }
+
+  .drawer-file-group-title h4 {
+    font-size: 9px;
+  }
+}
+

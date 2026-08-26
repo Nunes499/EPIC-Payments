@@ -7,6 +7,7 @@ import {
   FileText,
   FolderOpen,
   Plus,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react";
@@ -40,6 +41,18 @@ type DayDrawerProps = {
   onDelete: (file: CalendarFile) => void;
 };
 
+type FileGroupKind =
+  | "pdf"
+  | "xml"
+  | "recovery"
+  | "report";
+
+type FileGroupDefinition = {
+  kind: FileGroupKind;
+  title: string;
+  files: CalendarFile[];
+};
+
 const formatter = new Intl.DateTimeFormat(
   "pt-PT",
   {
@@ -50,12 +63,57 @@ const formatter = new Intl.DateTimeFormat(
   },
 );
 
-function getFileIcon(type: string) {
-  if (type === "report") {
+function getFileIcon(
+  kind: FileGroupKind,
+) {
+  if (kind === "report") {
     return FileSpreadsheet;
   }
 
+  if (kind === "recovery") {
+    return RefreshCw;
+  }
+
   return FileText;
+}
+
+function getFileSecondaryLabel(
+  file: CalendarFile,
+  kind: FileGroupKind,
+) {
+  if (kind === "recovery") {
+    const partLabel =
+      file.recoveryPart === 1
+        ? "FICHEIRO 1"
+        : file.recoveryPart === 2
+          ? "FICHEIRO 2"
+          : "FICHEIRO";
+
+    return [
+      "RECUPERAÇÃO",
+      partLabel,
+      file.size,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  if (kind === "report") {
+    return [
+      "RELATÓRIO",
+      "PDF",
+      file.size,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  return [
+    file.type.toUpperCase(),
+    file.size,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export default function DayDrawer({
@@ -84,24 +142,265 @@ export default function DayDrawer({
   }
 
   const formattedDate = formatter.format(
-    new Date(`${selectedDate}T12:00:00`),
+    new Date(
+      `${selectedDate}T12:00:00`,
+    ),
   );
 
+  const allFiles =
+    data?.files ??
+    [];
+
+  const recoveryFiles =
+    allFiles.filter(
+      (file) =>
+        file.fileCategory ===
+        "recovery",
+    );
+
+  const pdfFiles =
+    allFiles.filter(
+      (file) =>
+        file.fileCategory !==
+          "recovery" &&
+        file.type ===
+          "pdf",
+    );
+
+  const xmlFiles =
+    allFiles.filter(
+      (file) =>
+        file.fileCategory !==
+          "recovery" &&
+        file.type ===
+          "xml",
+    );
+
+  const reportFiles =
+    allFiles.filter(
+      (file) =>
+        file.type ===
+        "report",
+    );
+
+  const groups: FileGroupDefinition[] = [
+    {
+      kind: "pdf",
+      title: "PDF do banco",
+      files: pdfFiles,
+    },
+    {
+      kind: "xml",
+      title: "XML do banco",
+      files: xmlFiles,
+    },
+    {
+      kind: "recovery",
+      title: "Recuperação",
+      files: recoveryFiles,
+    },
+    {
+      kind: "report",
+      title: "Relatórios",
+      files: reportFiles,
+    },
+  ];
+
   const processableFiles =
-    data?.files.filter(
+    allFiles.filter(
       (file) =>
         file.type === "pdf" ||
         file.type === "xml",
-    ) ?? [];
+    );
 
   const selectedCount =
-    processableFiles.filter((file) =>
-      selectedFileIds.includes(file.id),
+    processableFiles.filter(
+      (file) =>
+        selectedFileIds.includes(
+          file.id,
+        ),
     ).length;
 
   const allSelected =
     processableFiles.length > 0 &&
-    selectedCount === processableFiles.length;
+    selectedCount ===
+      processableFiles.length;
+
+  function renderFileGroup(
+    group: FileGroupDefinition,
+  ) {
+    if (
+      group.files.length ===
+      0
+    ) {
+      return null;
+    }
+
+    const Icon =
+      getFileIcon(
+        group.kind,
+      );
+
+    return (
+      <section
+        key={group.kind}
+        className={[
+          "drawer-file-group",
+          `drawer-file-group-${group.kind}`,
+        ].join(" ")}
+      >
+        <div className="drawer-file-group-header">
+          <div className="drawer-file-group-title">
+            <span
+              className={[
+                "drawer-file-group-marker",
+                `drawer-file-group-marker-${group.kind}`,
+              ].join(" ")}
+            />
+
+            <h4>
+              {group.title}
+            </h4>
+          </div>
+
+          <span className="drawer-file-group-count">
+            {group.files.length}
+          </span>
+        </div>
+
+        <div className="drawer-file-list">
+          {group.files.map(
+            (file) => {
+              const isProcessable =
+                file.type ===
+                  "pdf" ||
+                file.type ===
+                  "xml";
+
+              const isSelected =
+                selectedFileIds.includes(
+                  file.id,
+                );
+
+              return (
+                <article
+                  key={file.id}
+                  className={[
+                    "drawer-file-card",
+                    `drawer-file-card-${group.kind}`,
+                    isSelected
+                      ? "drawer-file-card-selected"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  {isProcessable ? (
+                    <label
+                      className="drawer-file-checkbox"
+                      title="Selecionar para processamento"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          isSelected
+                        }
+                        onChange={() =>
+                          onToggleFile(
+                            file.id,
+                          )
+                        }
+                      />
+
+                      <span />
+                    </label>
+                  ) : (
+                    <span className="drawer-file-checkbox-placeholder" />
+                  )}
+
+                  <div className="drawer-file-main">
+                    <span
+                      className={[
+                        "drawer-file-icon",
+                        `drawer-file-icon-${group.kind}`,
+                      ].join(" ")}
+                    >
+                      <Icon
+                        size={21}
+                      />
+                    </span>
+
+                    <div>
+                      <strong>
+                        {file.name}
+                      </strong>
+
+                      <small>
+                        {getFileSecondaryLabel(
+                          file,
+                          group.kind,
+                        )}
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="drawer-file-actions">
+                    <button
+                      type="button"
+                      className="file-action-preview"
+                      title="Pré-visualizar"
+                      aria-label={`Pré-visualizar ${file.name}`}
+                      onClick={() =>
+                        onPreview(
+                          file,
+                        )
+                      }
+                    >
+                      <Eye
+                        size={17}
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="file-action-download"
+                      title="Descarregar"
+                      aria-label={`Descarregar ${file.name}`}
+                      onClick={() =>
+                        onDownload(
+                          file,
+                        )
+                      }
+                    >
+                      <Download
+                        size={17}
+                      />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="file-action-delete"
+                      title="Eliminar"
+                      aria-label={`Eliminar ${file.name}`}
+                      onClick={() =>
+                        onDelete(
+                          file,
+                        )
+                      }
+                    >
+                      <Trash2
+                        size={17}
+                      />
+                    </button>
+                  </div>
+                </article>
+              );
+            },
+          )}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <>
@@ -119,7 +418,9 @@ export default function DayDrawer({
               Dia selecionado
             </span>
 
-            <h2>{formattedDate}</h2>
+            <h2>
+              {formattedDate}
+            </h2>
           </div>
 
           <button
@@ -128,20 +429,25 @@ export default function DayDrawer({
             onClick={onClose}
             aria-label="Fechar"
           >
-            <X size={21} />
+            <X
+              size={21}
+            />
           </button>
         </div>
 
         <div className="drawer-section">
           <div className="drawer-section-header">
-            <h3>Ficheiros</h3>
+            <h3>
+              Ficheiros
+            </h3>
 
             <span>
-              {data?.files.length ?? 0}
+              {allFiles.length}
             </span>
           </div>
 
-          {processableFiles.length > 0 &&
+          {processableFiles.length >
+            0 &&
           !isLoading &&
           !error ? (
             <div className="drawer-selection-toolbar">
@@ -180,134 +486,38 @@ export default function DayDrawer({
             </div>
           ) : null}
 
-          {!isLoading && error ? (
+          {!isLoading &&
+          error ? (
             <div className="drawer-error-state">
               <strong>
                 Não foi possível carregar
               </strong>
 
-              <span>{error}</span>
+              <span>
+                {error}
+              </span>
             </div>
           ) : null}
 
           {!isLoading &&
           !error &&
-          data?.files.length ? (
-            <div className="drawer-file-list">
-              {data.files.map((file) => {
-                const Icon =
-                  getFileIcon(file.type);
-
-                const isProcessable =
-                  file.type === "pdf" ||
-                  file.type === "xml";
-
-                const isSelected =
-                  selectedFileIds.includes(
-                    file.id,
-                  );
-
-                return (
-                  <article
-                    key={file.id}
-                    className={[
-                      "drawer-file-card",
-                      isSelected
-                        ? "drawer-file-card-selected"
-                        : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                  >
-                    {isProcessable ? (
-                      <label
-                        className="drawer-file-checkbox"
-                        title="Selecionar para processamento"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() =>
-                            onToggleFile(
-                              file.id,
-                            )
-                          }
-                        />
-
-                        <span />
-                      </label>
-                    ) : (
-                      <span className="drawer-file-checkbox-placeholder" />
-                    )}
-
-                    <div className="drawer-file-main">
-                      <span className="drawer-file-icon">
-                        <Icon size={21} />
-                      </span>
-
-                      <div>
-                        <strong>
-                          {file.name}
-                        </strong>
-
-                        <small>
-                          {file.type.toUpperCase()}
-
-                          {file.size
-                            ? ` · ${file.size}`
-                            : ""}
-                        </small>
-                      </div>
-                    </div>
-
-                    <div className="drawer-file-actions">
-                      <button
-                        type="button"
-                        className="file-action-preview"
-                        title="Pré-visualizar"
-                        aria-label={`Pré-visualizar ${file.name}`}
-                        onClick={() =>
-                          onPreview(file)
-                        }
-                      >
-                        <Eye size={17} />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="file-action-download"
-                        title="Descarregar"
-                        aria-label={`Descarregar ${file.name}`}
-                        onClick={() =>
-                          onDownload(file)
-                        }
-                      >
-                        <Download size={17} />
-                      </button>
-
-                      <button
-                        type="button"
-                        className="file-action-delete"
-                        title="Eliminar"
-                        aria-label={`Eliminar ${file.name}`}
-                        onClick={() =>
-                          onDelete(file)
-                        }
-                      >
-                        <Trash2 size={17} />
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+          allFiles.length >
+            0 ? (
+            <div className="drawer-file-groups">
+              {groups.map(
+                renderFileGroup,
+              )}
             </div>
           ) : null}
 
           {!isLoading &&
           !error &&
-          !data?.files.length ? (
+          allFiles.length ===
+            0 ? (
             <div className="drawer-empty-state">
-              <FileText size={27} />
+              <FileText
+                size={27}
+              />
 
               <strong>
                 Sem ficheiros
@@ -323,12 +533,14 @@ export default function DayDrawer({
 
         <div className="drawer-section">
           <div className="drawer-section-header">
-            <h3>Processamento</h3>
+            <h3>
+              Processamento
+            </h3>
           </div>
 
           <div className="processing-selection-summary">
             <span>
-              PDF e XML selecionados
+              PDF, XML e Recuperação selecionados
             </span>
 
             <strong>
@@ -339,11 +551,18 @@ export default function DayDrawer({
           <button
             type="button"
             className="drawer-action-card"
-            disabled={selectedCount === 0}
-            onClick={onOpenProcessing}
+            disabled={
+              selectedCount ===
+              0
+            }
+            onClick={
+              onOpenProcessing
+            }
           >
             <span className="drawer-action-icon">
-              <FolderOpen size={22} />
+              <FolderOpen
+                size={22}
+              />
             </span>
 
             <span>
@@ -358,15 +577,18 @@ export default function DayDrawer({
               </small>
             </span>
 
-            {selectedCount > 0 ? (
+            {selectedCount >
+            0 ? (
               <span className="drawer-action-count">
                 {selectedCount}
               </span>
             ) : null}
           </button>
 
-          {processableFiles.length === 0 &&
-          data?.files.length ? (
+          {processableFiles.length ===
+            0 &&
+          allFiles.length >
+            0 ? (
             <p className="processing-selection-help">
               Os relatórios não podem ser
               selecionados para processamento.
@@ -376,8 +598,14 @@ export default function DayDrawer({
 
         <div className="day-drawer-footer">
           <Button
-            icon={<Plus size={18} />}
-            onClick={onAddFile}
+            icon={
+              <Plus
+                size={18}
+              />
+            }
+            onClick={
+              onAddFile
+            }
           >
             Adicionar ficheiros
           </Button>

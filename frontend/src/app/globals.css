@@ -1971,3 +1971,369 @@ a {
     min-width: 78px;
   }
 }
+
+/* =========================================================
+   EPIC PAYMENTS — DENSIDADE DESKTOP A 100%
+   ========================================================= */
+
+@media (min-width: 901px) {
+  .sidebar {
+    width: 220px;
+    padding: 18px 14px 16px;
+  }
+
+  .app-main {
+    width: calc(100% - 220px);
+    margin-left: 220px;
+  }
+
+  .sidebar-logo {
+    min-height: 82px;
+    margin-bottom: 14px;
+    padding: 5px;
+  }
+
+  .sidebar-logo-image {
+    max-height: 72px;
+  }
+
+  .sidebar-nav {
+    gap: 5px;
+  }
+
+  .sidebar-link {
+    gap: 10px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .sidebar-link-icon {
+    width: 22px;
+    height: 22px;
+    flex-basis: 22px;
+    font-size: 16px;
+  }
+
+  .sidebar-footer {
+    padding: 14px 10px 0;
+  }
+
+  .sidebar-footer-label {
+    font-size: 9px;
+  }
+
+  .sidebar-footer strong {
+    font-size: 11px;
+  }
+
+  .topbar {
+    min-height: 74px;
+    padding: 12px 22px;
+  }
+
+  .page-kicker,
+  .section-label {
+    font-size: 9px;
+  }
+
+  .topbar-title {
+    margin-top: 3px;
+    font-size: 22px;
+  }
+
+  .topbar-subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+  }
+
+  .topbar-user {
+    gap: 9px;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .user-info {
+    min-width: 92px;
+    font-size: 12px;
+  }
+
+  .user-info span {
+    font-size: 10px;
+  }
+
+  .logout-button {
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+  .app-content {
+    padding: 20px 22px 34px;
+  }
+
+  .page-intro,
+  .page-title {
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+
+  .page-intro p,
+  .page-title p {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .primary-button {
+    border-radius: 9px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .dashboard-grid {
+    gap: 14px;
+    margin: 16px 0;
+  }
+
+  .stat-card {
+    min-height: 120px;
+    border-radius: 14px;
+    padding: 16px;
+  }
+
+  .stat-card-top,
+  .stat-card-title {
+    font-size: 12px;
+  }
+
+  .stat-card strong,
+  .stat-card-value {
+    margin-top: 10px;
+    font-size: 27px;
+  }
+
+  .stat-card-description,
+  .stat-card small {
+    font-size: 11px;
+  }
+
+  .stat-card-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ui-button {
+    gap: 7px;
+    border-radius: 9px;
+    padding: 9px 13px;
+    font-size: 12px;
+  }
+
+  .annual-calendar {
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  .annual-calendar-header {
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .annual-calendar-header h2 {
+    margin: 3px 0;
+    font-size: 23px;
+  }
+
+  .annual-calendar-header p {
+    font-size: 12px;
+  }
+
+  .annual-calendar-actions {
+    gap: 6px;
+  }
+
+  .annual-calendar-actions .ui-button-secondary,
+  .annual-calendar-actions .calendar-today-button,
+  .annual-calendar-actions .ui-button-primary {
+    min-height: 38px;
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+  .annual-calendar-actions .ui-button-secondary {
+    min-width: 38px;
+  }
+
+  .annual-calendar-actions .calendar-today-button {
+    min-width: 70px;
+  }
+
+  .annual-calendar-grid {
+    gap: 12px;
+  }
+
+  .month-card {
+    border-radius: 12px;
+    padding: 11px;
+  }
+
+  .month-card-header {
+    margin-bottom: 8px;
+  }
+
+  .month-card-header h3 {
+    font-size: 13px;
+  }
+
+  .month-card-header span {
+    font-size: 9px;
+  }
+
+  .month-weekdays {
+    margin-bottom: 3px;
+  }
+
+  .month-weekdays span {
+    padding: 2px 0;
+    font-size: 7px;
+  }
+
+  .month-days-grid {
+    gap: 2px;
+  }
+
+  .calendar-day,
+  .calendar-day-empty {
+    min-height: 44px;
+    border-radius: 6px;
+  }
+
+  .calendar-day {
+    padding: 4px;
+  }
+
+  .calendar-day-number {
+    font-size: 8px;
+  }
+
+  .calendar-day-today .calendar-day-number {
+    width: 16px;
+    height: 16px;
+  }
+
+  .calendar-day-badges {
+    gap: 1px;
+    margin-top: 2px;
+  }
+
+  .day-badge {
+    gap: 2px;
+    border-radius: 3px;
+    padding: 1px 3px;
+    font-size: 6px;
+  }
+}
+
+/* =========================================================
+   DRAWER — SCROLL GLOBAL + COMPACTAÇÃO
+   ========================================================= */
+
+.day-drawer {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.day-drawer-header {
+  flex: 0 0 auto;
+}
+
+.day-drawer-footer {
+  flex: 0 0 auto;
+  margin-top: 20px;
+}
+
+@media (min-width: 901px) {
+  .day-drawer {
+    width: min(410px, 100%);
+  }
+
+  .day-drawer-header,
+  .dialog-header {
+    padding: 18px 20px;
+  }
+
+  .day-drawer-header h2,
+  .dialog-header h2 {
+    font-size: 17px;
+  }
+
+  .drawer-section {
+    padding: 16px 20px 0;
+  }
+
+  .drawer-section-header {
+    margin-bottom: 9px;
+  }
+
+  .drawer-section-header h3 {
+    font-size: 12px;
+  }
+
+  .drawer-file-card {
+    gap: 9px;
+    border-radius: 10px;
+    padding: 9px;
+  }
+
+  .drawer-file-main {
+    gap: 8px;
+  }
+
+  .drawer-file-main strong {
+    font-size: 11px;
+  }
+
+  .drawer-file-main small {
+    margin-top: 2px;
+    font-size: 8px;
+  }
+
+  .drawer-file-icon,
+  .drawer-action-icon {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+    border-radius: 8px;
+  }
+
+  .drawer-file-actions button {
+    width: 29px;
+    height: 29px;
+    border-radius: 7px;
+  }
+
+  .drawer-action-card {
+    gap: 9px;
+    border-radius: 10px;
+    padding: 10px;
+  }
+
+  .drawer-action-card strong {
+    font-size: 11px;
+  }
+
+  .drawer-action-card small {
+    font-size: 9px;
+  }
+
+  .day-drawer-footer {
+    padding: 13px 20px;
+  }
+}
