@@ -1,6 +1,13 @@
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import (
+    BigInteger,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -33,9 +40,52 @@ class CalendarFile(Base):
         unique=True,
     )
 
+    # Formato físico do ficheiro:
+    # pdf / xml
     file_type: Mapped[str] = mapped_column(
         String(20),
         nullable=False,
+    )
+
+    # Função bancária do ficheiro:
+    # normal / returned / recovery
+    #
+    # Os ficheiros antigos ficam automaticamente
+    # classificados como "normal".
+    file_category: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="normal",
+        server_default="normal",
+        index=True,
+    )
+
+    # Usado exclusivamente nos ficheiros
+    # de recuperação:
+    #
+    # NULL = não é recuperação
+    # 1 = Ficheiro 1
+    # 2 = Ficheiro 2
+    recovery_part: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+
+    # Permite relacionar ficheiros.
+    #
+    # Exemplos:
+    # - devolvidos -> ficheiro normal
+    # - recuperação F2 -> recuperação F1
+    #
+    # A relação concreta será controlada
+    # pela lógica do serviço.
+    related_file_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "calendar_files.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
     )
 
     mime_type: Mapped[str | None] = mapped_column(

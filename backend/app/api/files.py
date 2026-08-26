@@ -5,6 +5,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Response,
     UploadFile,
@@ -45,13 +46,43 @@ router = APIRouter(
 async def upload_calendar_file(
     calendar_date: date,
     upload: UploadFile = File(...),
+    file_category: str = Form("normal"),
+    recovery_part: int | None = Form(None),
+    related_file_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
+    """
+    Carrega um ficheiro bancário para o calendário.
+
+    Categorias suportadas:
+
+    normal
+        Ficheiro normal de cobrança.
+        Pode ser PDF ou XML.
+
+    returned
+        Ficheiro de devoluções bancárias.
+
+    recovery
+        Ficheiro de recuperação.
+        Deve indicar recovery_part 1 ou 2.
+
+    Para Recovery F2, related_file_id deve conter
+    o ID do respetivo Recovery F1.
+
+    Se file_category não for enviado, mantém-se
+    compatibilidade com o frontend antigo e o
+    ficheiro é tratado como normal.
+    """
+
     calendar_file = await save_calendar_file(
         db,
         calendar_date=calendar_date,
         upload=upload,
         uploaded_by_id=None,
+        file_category=file_category,
+        recovery_part=recovery_part,
+        related_file_id=related_file_id,
     )
 
     return calendar_file

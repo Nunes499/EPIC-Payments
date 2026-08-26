@@ -11,7 +11,27 @@ class CalendarFileRead(BaseModel):
     original_filename: str
     stored_filename: str
 
+    # Formato físico:
+    # pdf / xml / report
     file_type: str
+
+    # Função bancária:
+    # normal / returned / recovery
+    file_category: str = "normal"
+
+    # Apenas para recuperação:
+    # None = não é recuperação
+    # 1 = Ficheiro 1
+    # 2 = Ficheiro 2
+    recovery_part: int | None = None
+
+    # Relação entre ficheiros.
+    #
+    # Exemplos:
+    # Recovery F2 -> ID do Recovery F1
+    # Returned -> poderá posteriormente apontar
+    # para o ficheiro normal relacionado.
+    related_file_id: int | None = None
 
     mime_type: str | None = None
     file_size: int | None = None

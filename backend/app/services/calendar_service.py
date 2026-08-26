@@ -140,13 +140,25 @@ async def save_calendar_file(
     calendar_date: date,
     upload: UploadFile,
     uploaded_by_id: int | None = None,
+    file_category: str = "normal",
+    recovery_part: int | None = None,
+    related_file_id: int | None = None,
 ) -> CalendarFile:
     """
     Guarda novos ficheiros bancários diretamente
     no Cloudflare R2.
 
-    Se o registo na base de dados falhar,
-    o objeto enviado para o R2 é removido.
+    Categorias:
+    - normal: ficheiro normal PDF/XML
+    - returned: ficheiro de devolvidos
+    - recovery: ficheiro de recuperação
+
+    Recuperação:
+    - recovery_part = 1 -> Ficheiro 1
+    - recovery_part = 2 -> Ficheiro 2
+
+    O Ficheiro 2 de recuperação deve estar
+    associado ao respetivo Ficheiro 1.
     """
 
     if not upload.filename:
@@ -155,9 +167,103 @@ async def save_calendar_file(
             detail="O ficheiro não tem um nome válido.",
         )
 
+    file_category = (
+        file_category
+        or "normal"
+    ).strip().lower()
+
+    allowed_categories = {
+        "normal",
+        "returned",
+        "recovery",
+    }
+
+    if file_category not in allowed_categories:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Categoria de ficheiro inválida. "
+                "Utilize normal, returned ou recovery."
+            ),
+        )
+
     file_type = get_file_type(
         upload.filename,
     )
+
+    if file_category == "recovery":
+        if file_type != "pdf":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Os ficheiros de recuperação "
+                    "devem estar em formato PDF."
+                ),
+            )
+
+        if recovery_part not in {1, 2}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Os ficheiros de recuperação "
+                    "devem indicar Ficheiro 1 ou Ficheiro 2."
+                ),
+            )
+
+        if recovery_part == 1:
+            related_file_id = None
+
+        if recovery_part == 2:
+            if related_file_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "O Ficheiro 2 de recuperação "
+                        "tem de estar associado "
+                        "ao respetivo Ficheiro 1."
+                    ),
+                )
+
+            related_file = get_calendar_file_by_id(
+                db,
+                related_file_id,
+            )
+
+            if related_file is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "O Ficheiro 1 de recuperação "
+                        "selecionado não existe."
+                    ),
+                )
+
+            if (
+                related_file.file_category != "recovery"
+                or related_file.recovery_part != 1
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "O Ficheiro 2 só pode ser "
+                        "associado a um Ficheiro 1 "
+                        "de recuperação."
+                    ),
+                )
+
+            if related_file.calendar_date != calendar_date:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "Os Ficheiros 1 e 2 de recuperação "
+                        "devem pertencer ao mesmo dia "
+                        "do calendário."
+                    ),
+                )
+    else:
+        recovery_part = None
+        if file_category == "normal":
+            related_file_id = None
 
     contents = await upload.read()
 
@@ -207,13 +313,14 @@ async def save_calendar_file(
                     object_key
                 ),
                 uploaded_by_id=uploaded_by_id,
+                file_category=file_category,
+                recovery_part=recovery_part,
+                related_file_id=related_file_id,
             )
 
             return calendar_file
 
         except Exception:
-            # Evita deixar um objeto órfão no R2
-            # se a gravação da BD falhar.
             try:
                 delete_object_from_r2(
                     object_key=object_key,
@@ -225,7 +332,6 @@ async def save_calendar_file(
 
     finally:
         await upload.close()
-
 
 def resolve_calendar_file_path(
     calendar_file: CalendarFile,
