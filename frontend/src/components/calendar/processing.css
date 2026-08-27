@@ -511,3 +511,1265 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =========================================================
+   RECUPERAÇÃO - TOOLTIP EPIC PAYMENTS
+   ========================================================= */
+
+.processing-reason-cell {
+  overflow: visible !important;
+}
+
+.processing-code-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.processing-code-tooltip-popover {
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  max-width: 300px;
+  transform: translate(-50%, 4px);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  border: 1px solid rgba(255, 32, 45, 0.22);
+  border-radius: 12px;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.99),
+      rgba(247, 247, 247, 0.99)
+    );
+  padding: 11px 13px;
+  color: #222222;
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.15),
+    inset 3px 0 0 var(--primary);
+  transition:
+    opacity 130ms ease,
+    transform 130ms ease,
+    visibility 130ms ease;
+}
+
+.processing-code-tooltip-popover::after {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  border-right: 1px solid rgba(255, 32, 45, 0.16);
+  border-bottom: 1px solid rgba(255, 32, 45, 0.16);
+  background: #f8f8f8;
+  content: "";
+}
+
+.processing-code-tooltip:hover
+.processing-code-tooltip-popover,
+.processing-code-tooltip:focus-within
+.processing-code-tooltip-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.processing-code-tooltip-brand {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--primary);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.processing-code-tooltip-popover strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #111111;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.processing-code-tooltip-popover > span:last-child {
+  display: block;
+  max-width: 270px;
+  color: #606060;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+
+/* =========================================================
+   RECUPERAÇÃO - TABELA ORIGINAL F1/F2
+   ========================================================= */
+
+.processing-recovery-source-grid {
+  grid-template-columns:
+    0.85fr
+    1fr
+    2fr
+    0.9fr
+    1fr !important;
+}
+
+
+/* =========================================================
+   RECUPERAÇÃO - CARTÕES DAS 3 ETAPAS
+   ========================================================= */
+
+.recovery-step-section {
+  margin-top: 28px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 24px;
+}
+
+.recovery-step-heading {
+  margin-bottom: 16px;
+}
+
+.recovery-step-heading h2,
+.recovery-result-header h2,
+.recovery-print-preview-card h2 {
+  margin: 5px 0 4px;
+  font-size: 20px;
+}
+
+.recovery-step-heading p,
+.recovery-result-header p,
+.recovery-print-preview-card p {
+  margin: 0;
+  color: #777777;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.recovery-action-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.recovery-action-card {
+  position: relative;
+  display: grid;
+  min-height: 130px;
+  grid-template-columns:
+    auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  border:
+    1px solid
+    rgba(255, 32, 45, 0.34);
+  border-radius: 15px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(255, 32, 45, 0.09),
+      transparent 38%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.99),
+      rgba(249, 249, 249, 0.98)
+    );
+  padding: 18px;
+  color: #171717;
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 25px rgba(0, 0, 0, 0.055);
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.recovery-action-card:not(:disabled):hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 16px 34px rgba(0, 0, 0, 0.10);
+}
+
+.recovery-action-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.44;
+  filter: grayscale(0.25);
+}
+
+.recovery-action-card-complete {
+  border-color: rgba(35, 137, 78, 0.32);
+  box-shadow:
+    inset 4px 0 0 #23894e,
+    0 10px 25px rgba(0, 0, 0, 0.055);
+}
+
+.recovery-action-number {
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.recovery-action-icon {
+  display: inline-flex;
+  width: 47px;
+  height: 47px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 32, 45, 0.10);
+  color: var(--primary);
+}
+
+.recovery-action-copy {
+  min-width: 0;
+}
+
+.recovery-action-copy strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.recovery-action-copy small {
+  display: block;
+  color: #737373;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.recovery-action-check {
+  color: #23894e;
+}
+
+
+/* =========================================================
+   RESULTADOS DAS ETAPAS
+   ========================================================= */
+
+.recovery-result-card {
+  scroll-margin-top: 125px;
+  margin-top: 22px;
+  overflow: visible;
+  border: 1px solid #d9d9d9;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.recovery-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  border-bottom: 1px solid #ececec;
+  padding: 18px 20px;
+}
+
+.recovery-result-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.recovery-stat {
+  display: inline-flex;
+  min-height: 39px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dedede;
+  border-radius: 999px;
+  background: #fafafa;
+  padding: 7px 11px;
+  color: #666666;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.recovery-stat strong {
+  color: #111111;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.recovery-stat-success {
+  border-color: rgba(35, 137, 78, 0.25);
+  background: rgba(35, 137, 78, 0.07);
+  color: #237a49;
+}
+
+.recovery-stat-danger {
+  border-color: rgba(255, 32, 45, 0.25);
+  background: rgba(255, 32, 45, 0.07);
+  color: #b91e29;
+}
+
+.recovery-result-table {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.recovery-result-table-head,
+.recovery-result-table-row {
+  display: grid;
+  min-width: 1180px;
+}
+
+.recovery-filter-grid {
+  grid-template-columns:
+    0.75fr
+    0.9fr
+    1.45fr
+    0.75fr
+    1.2fr
+    0.75fr
+    1.8fr;
+}
+
+.recovery-enriched-grid {
+  grid-template-columns:
+    0.9fr
+    1.5fr
+    0.75fr
+    0.75fr
+    1.05fr
+    1.8fr
+    0.7fr;
+}
+
+.recovery-result-table-head {
+  border-bottom: 1px solid #e8e8e8;
+  background: #fafafa;
+}
+
+.recovery-result-table-head span {
+  padding: 11px 12px;
+  color: #666666;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.recovery-result-table-row {
+  min-height: 54px;
+  border-bottom: 1px solid #eeeeee;
+  background: #ffffff;
+}
+
+.recovery-result-table-row:last-child {
+  border-bottom: 0;
+}
+
+.recovery-result-table-row > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding: 9px 12px;
+  color: #222222;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.recovery-result-row-success {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(35, 137, 78, 0.045),
+      #ffffff 18%
+    );
+  box-shadow:
+    inset 3px 0 0 rgba(35, 137, 78, 0.65);
+}
+
+.recovery-result-row-danger {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.045),
+      #ffffff 18%
+    );
+  box-shadow:
+    inset 3px 0 0 rgba(255, 32, 45, 0.72);
+}
+
+.recovery-status-badge {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 8px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.recovery-status-badge-success {
+  border: 1px solid rgba(35, 137, 78, 0.24);
+  background: rgba(35, 137, 78, 0.08);
+  color: #237a49;
+}
+
+.recovery-status-badge-danger {
+  border: 1px solid rgba(255, 32, 45, 0.24);
+  background: rgba(255, 32, 45, 0.08);
+  color: #c51824;
+}
+
+.recovery-conclusion-cell {
+  color: #595959 !important;
+  font-weight: 700;
+}
+
+.recovery-email-cell {
+  overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   PREPARAR / IMPRIMIR
+   ========================================================= */
+
+.recovery-print-preview-card {
+  scroll-margin-top: 125px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 22px;
+  border: 1px solid rgba(255, 32, 45, 0.30);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 32, 45, 0.07),
+      rgba(255, 255, 255, 0.98) 30%
+    );
+  padding: 19px 20px;
+  box-shadow:
+    inset 4px 0 0 var(--primary),
+    0 10px 28px rgba(0, 0, 0, 0.055);
+}
+
+.processing-print-button {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #111111;
+  border-radius: 10px;
+  background: #111111;
+  padding: 9px 16px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.processing-print-button:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+
+.recovery-print-sheet {
+  display: none;
+}
+
+
+/* =========================================================
+   IMPRESSÃO A4
+   ========================================================= */
+
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .recovery-print-sheet,
+  .recovery-print-sheet * {
+    visibility: visible !important;
+  }
+
+  .recovery-print-sheet {
+    position: absolute;
+    inset: 0;
+    display: block !important;
+    width: 100%;
+    background: #ffffff;
+    color: #111111;
+    font-family:
+      Arial,
+      Helvetica,
+      sans-serif;
+  }
+
+  .recovery-print-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    border-bottom: 2px solid #ef2733;
+    padding-bottom: 7mm;
+    margin-bottom: 5mm;
+  }
+
+  .recovery-print-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 1mm;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+  }
+
+  .recovery-print-brand-mark {
+    color: #ef2733;
+    font-size: 24pt;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+  }
+
+  .recovery-print-brand > span:last-child {
+    font-size: 8pt;
+    letter-spacing: 0.32em;
+  }
+
+  .recovery-print-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1mm;
+  }
+
+  .recovery-print-title strong {
+    font-size: 16pt;
+  }
+
+  .recovery-print-title span {
+    color: #666666;
+    font-size: 9pt;
+  }
+
+  .recovery-print-summary {
+    display: flex;
+    gap: 5mm;
+    margin-bottom: 5mm;
+  }
+
+  .recovery-print-summary span {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2mm;
+    border: 1px solid #dddddd;
+    border-radius: 3mm;
+    padding: 2mm 3mm;
+    color: #555555;
+    font-size: 7.5pt;
+  }
+
+  .recovery-print-summary strong {
+    color: #111111;
+    font-size: 10pt;
+  }
+
+  .recovery-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 6.8pt;
+  }
+
+  .recovery-print-table th {
+    border: 1px solid #cccccc;
+    background: #f2f2f2;
+    padding: 2mm 1.5mm;
+    text-align: left;
+    font-size: 6.5pt;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-table td {
+    border: 1px solid #dddddd;
+    padding: 1.8mm 1.5mm;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+
+  .recovery-print-table th:nth-child(1),
+  .recovery-print-table td:nth-child(1) {
+    width: 7%;
+  }
+
+  .recovery-print-table th:nth-child(2),
+  .recovery-print-table td:nth-child(2) {
+    width: 8%;
+  }
+
+  .recovery-print-table th:nth-child(3),
+  .recovery-print-table td:nth-child(3) {
+    width: 14%;
+  }
+
+  .recovery-print-table th:nth-child(4),
+  .recovery-print-table td:nth-child(4) {
+    width: 7%;
+  }
+
+  .recovery-print-table th:nth-child(5),
+  .recovery-print-table td:nth-child(5) {
+    width: 23%;
+  }
+
+  .recovery-print-table th:nth-child(6),
+  .recovery-print-table td:nth-child(6) {
+    width: 10%;
+  }
+
+  .recovery-print-table th:nth-child(7),
+  .recovery-print-table td:nth-child(7) {
+    width: 24%;
+  }
+
+  .recovery-print-table th:nth-child(8),
+  .recovery-print-table td:nth-child(8) {
+    width: 7%;
+  }
+
+  .recovery-print-footer {
+    margin-top: 4mm;
+    border-top: 1px solid #dddddd;
+    padding-top: 2mm;
+    color: #888888;
+    font-size: 6.5pt;
+    text-align: right;
+  }
+}
+
+
+@media (max-width: 1000px) {
+  .recovery-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .recovery-result-header,
+  .recovery-print-preview-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .recovery-result-stats {
+    justify-content: flex-start;
+  }
+}
+
+
+/* =========================================================
+   RELATÓRIO DE RECUPERAÇÃO - IMPRESSÃO PROFISSIONAL A4
+   ========================================================= */
+
+.recovery-print-document {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  html,
+  body {
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .recovery-print-document,
+  .recovery-print-document * {
+    visibility: visible !important;
+  }
+
+  .recovery-print-document {
+    position: absolute;
+    inset: 0;
+    display: block !important;
+    width: 100%;
+    background: #ffffff;
+    color: #151515;
+    font-family:
+      Arial,
+      Helvetica,
+      sans-serif;
+  }
+
+  .recovery-print-page {
+    width: 100%;
+    background: #ffffff;
+  }
+
+  .recovery-print-page-unpaid {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .recovery-print-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8mm;
+    border-bottom: 1.2pt solid #ef2733;
+    padding-bottom: 5mm;
+    margin-bottom: 5mm;
+  }
+
+  .recovery-print-logo {
+    display: block;
+    width: 43mm;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .recovery-print-report-title {
+    text-align: right;
+  }
+
+  .recovery-print-report-title h1 {
+    margin: 0;
+    color: #151515;
+    font-size: 17pt;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-report-title span {
+    display: block;
+    margin-top: 1.5mm;
+    color: #777777;
+    font-size: 7.5pt;
+    font-weight: 700;
+  }
+
+  .recovery-print-metadata {
+    display: grid;
+    grid-template-columns:
+      1fr
+      0.85fr
+      1.8fr
+      0.72fr
+      0.82fr;
+    gap: 2.5mm;
+    margin-bottom: 6mm;
+  }
+
+  .recovery-print-metadata > div {
+    min-height: 16mm;
+    border: 0.6pt solid #dedede;
+    border-radius: 2.5mm;
+    background: #fbfbfb;
+    padding: 2.6mm 3mm;
+  }
+
+  .recovery-print-metadata span {
+    display: block;
+    margin-bottom: 1.4mm;
+    color: #777777;
+    font-size: 6.2pt;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-metadata strong {
+    display: block;
+    color: #161616;
+    font-size: 7.8pt;
+    font-weight: 850;
+    line-height: 1.3;
+  }
+
+  .recovery-print-files strong {
+    overflow-wrap: anywhere;
+    font-size: 6.8pt;
+  }
+
+  .recovery-print-count {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .recovery-print-count strong {
+    font-size: 17pt;
+    line-height: 1;
+  }
+
+  .recovery-print-count span {
+    margin: 1.4mm 0 0;
+    font-size: 5.8pt;
+  }
+
+  .recovery-print-count-success {
+    border-color: rgba(22, 126, 65, 0.28) !important;
+    background: rgba(22, 126, 65, 0.045) !important;
+  }
+
+  .recovery-print-count-success strong,
+  .recovery-print-count-success span {
+    color: #167e41;
+  }
+
+  .recovery-print-count-danger {
+    border-color: rgba(211, 25, 38, 0.28) !important;
+    background: rgba(211, 25, 38, 0.045) !important;
+  }
+
+  .recovery-print-count-danger strong,
+  .recovery-print-count-danger span {
+    color: #d31926;
+  }
+
+  .recovery-print-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6mm;
+    border-radius: 2.5mm 2.5mm 0 0;
+    padding: 3.2mm 3.8mm;
+    color: #ffffff;
+  }
+
+  .recovery-print-section-title > div {
+    display: flex;
+    align-items: baseline;
+    gap: 3mm;
+  }
+
+  .recovery-print-section-title strong {
+    font-size: 11pt;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-section-title span {
+    font-size: 7pt;
+    font-weight: 800;
+  }
+
+  .recovery-print-section-title small {
+    max-width: 92mm;
+    font-size: 6.3pt;
+    font-weight: 650;
+    line-height: 1.35;
+    text-align: right;
+  }
+
+  .recovery-print-section-title-success {
+    background: #167e41;
+  }
+
+  .recovery-print-section-title-danger {
+    background: #d31926;
+  }
+
+  .recovery-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 7pt;
+  }
+
+  .recovery-print-table thead {
+    display: table-header-group;
+  }
+
+  .recovery-print-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .recovery-print-table th {
+    border-bottom: 0.7pt solid #d6d6d6;
+    padding: 2.2mm 2mm;
+    background: #f3f3f3;
+    color: #555555;
+    font-size: 6.2pt;
+    font-weight: 900;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-table td {
+    border-bottom: 0.45pt solid #e5e5e5;
+    padding: 2.2mm 2mm;
+    vertical-align: middle;
+    color: #222222;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .recovery-print-table-recovered tbody tr:nth-child(even) {
+    background: rgba(22, 126, 65, 0.027);
+  }
+
+  .recovery-print-table-unpaid tbody tr:nth-child(even) {
+    background: rgba(211, 25, 38, 0.027);
+  }
+
+  .recovery-print-table td:nth-child(4) {
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .recovery-print-table-recovered th:nth-child(1),
+  .recovery-print-table-recovered td:nth-child(1) {
+    width: 10%;
+  }
+
+  .recovery-print-table-recovered th:nth-child(2),
+  .recovery-print-table-recovered td:nth-child(2) {
+    width: 13%;
+  }
+
+  .recovery-print-table-recovered th:nth-child(3),
+  .recovery-print-table-recovered td:nth-child(3) {
+    width: 28%;
+  }
+
+  .recovery-print-table-recovered th:nth-child(4),
+  .recovery-print-table-recovered td:nth-child(4) {
+    width: 13%;
+  }
+
+  .recovery-print-table-recovered th:nth-child(5),
+  .recovery-print-table-recovered td:nth-child(5) {
+    width: 13%;
+  }
+
+  .recovery-print-table-recovered th:nth-child(6),
+  .recovery-print-table-recovered td:nth-child(6) {
+    width: 23%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(1),
+  .recovery-print-table-unpaid td:nth-child(1) {
+    width: 8%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(2),
+  .recovery-print-table-unpaid td:nth-child(2) {
+    width: 11%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(3),
+  .recovery-print-table-unpaid td:nth-child(3) {
+    width: 20%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(4),
+  .recovery-print-table-unpaid td:nth-child(4) {
+    width: 10%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(5),
+  .recovery-print-table-unpaid td:nth-child(5) {
+    width: 23%;
+  }
+
+  .recovery-print-table-unpaid th:nth-child(6),
+  .recovery-print-table-unpaid td:nth-child(6) {
+    width: 28%;
+  }
+
+  .recovery-print-code-success {
+    display: inline-block;
+    border: 0.6pt solid rgba(22, 126, 65, 0.32);
+    border-radius: 8mm;
+    background: rgba(22, 126, 65, 0.06);
+    padding: 1mm 2.2mm;
+    color: #167e41;
+    font-size: 6.4pt;
+    font-weight: 900;
+  }
+
+  .recovery-print-result-success {
+    color: #167e41;
+    font-size: 6.8pt;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-result-success::before {
+    margin-right: 1.3mm;
+    content: "✓";
+  }
+
+  .recovery-print-code-danger {
+    display: block;
+    margin-bottom: 0.7mm;
+    color: #d31926;
+    font-size: 6.7pt;
+    font-weight: 900;
+  }
+
+  .recovery-print-reason-description {
+    display: block;
+    color: #454545;
+    font-size: 6.1pt;
+    line-height: 1.3;
+  }
+
+  .recovery-print-origin-badge {
+    display: inline-block;
+    margin-bottom: 1mm;
+    border: 0.6pt solid rgba(211, 25, 38, 0.28);
+    border-radius: 8mm;
+    background: rgba(211, 25, 38, 0.05);
+    padding: 0.9mm 1.8mm;
+    color: #c81824;
+    font-size: 5.7pt;
+    font-weight: 900;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .recovery-print-origin-description {
+    display: block;
+    color: #555555;
+    font-size: 5.9pt;
+    line-height: 1.3;
+  }
+
+  /* Esconde a versão antiga da folha, se ainda existir no CSS anterior. */
+  .recovery-print-sheet {
+    display: none !important;
+  }
+}
+
+
+/* =========================================================
+   FLUXO DE RECUPERAÇÃO - 2 AÇÕES DIRETAS
+   ========================================================= */
+
+.recovery-action-grid-two {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  max-width: 1020px;
+}
+
+.recovery-action-grid-two .recovery-action-card {
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  min-height: 118px;
+}
+
+.recovery-action-grid-two .recovery-action-icon {
+  width: 50px;
+  height: 50px;
+}
+
+.recovery-action-grid-two .recovery-action-copy strong {
+  font-size: 14px;
+}
+
+.recovery-action-grid-two .recovery-action-copy small {
+  max-width: 430px;
+  font-size: 9px;
+}
+
+/* O antigo cartão intermédio de "Imprimir A4" deixa de existir. */
+.recovery-print-preview-card {
+  display: none !important;
+}
+
+
+/* =========================================================
+   CORREÇÃO DE IMPRESSÃO — fluxo real F1/F2
+   Evita repetir a mesma página e permite que as tabelas
+   continuem naturalmente pelas páginas seguintes.
+   ========================================================= */
+
+@media print {
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  /*
+   * A workspace normal é fixed + 100dvh + scroll.
+   * Em impressão isso fazia o navegador repetir a mesma
+   * zona visível em várias folhas.
+   */
+  .processing-workspace {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    overscroll-behavior: auto !important;
+    background: #ffffff !important;
+  }
+
+  .processing-workspace-content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /*
+   * Não usamos visibility:hidden para manter centenas de
+   * linhas invisíveis a ocupar páginas. Escondemos
+   * diretamente toda a interface que não pertence ao relatório.
+   */
+  .processing-workspace-topbar,
+  .processing-summary-grid,
+  .processing-toolbar,
+  .processing-file-groups,
+  .recovery-flow-section,
+  .recovery-results-section,
+  .recovery-print-preview-card {
+    display: none !important;
+  }
+
+  .recovery-print-document {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  .recovery-print-document,
+  .recovery-print-document * {
+    visibility: visible !important;
+  }
+
+  .recovery-print-page {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  .recovery-print-page-unpaid {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .recovery-print-table {
+    width: 100% !important;
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+  }
+
+  .recovery-print-table thead {
+    display: table-header-group !important;
+  }
+
+  .recovery-print-table tbody {
+    display: table-row-group !important;
+  }
+
+  .recovery-print-table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /*
+   * Não repetir o cabeçalho completo da secção em cada folha.
+   * O navegador apenas repete o cabeçalho das colunas da tabela.
+   */
+  .recovery-print-report-header,
+  .recovery-print-metadata,
+  .recovery-print-section-title {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+
+/* =========================================================
+   FIX FINAL DE IMPRESSÃO
+   Remove da paginação a tabela/ecrã da etapa de filtragem.
+   Sem isto, o conteúdo ficava invisível mas continuava a
+   ocupar páginas antes do relatório.
+   ========================================================= */
+
+@media print {
+  .recovery-step-section {
+    display: none !important;
+  }
+
+  .processing-workspace-content > .processing-summary-grid,
+  .processing-workspace-content > .processing-toolbar,
+  .processing-workspace-content > .processing-file-groups,
+  .processing-workspace-content > .recovery-step-section {
+    display: none !important;
+  }
+
+  .processing-workspace-content {
+    display: block !important;
+  }
+
+  .recovery-print-document {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

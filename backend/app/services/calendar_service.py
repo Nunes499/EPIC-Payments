@@ -1739,16 +1739,649 @@ def process_pdf_calendar_file(
     }
 
 
-def process_calendar_file(
+
+# =========================================================
+# PROCESSAMENTO DE RECUPERAÇÃO F1 + F2
+# =========================================================
+
+
+def get_recovery_pair(
+    db: Session,
+    *,
+    calendar_file: CalendarFile,
+) -> tuple[CalendarFile, CalendarFile | None]:
+    """
+    Resolve o par funcional de recuperação.
+
+    Regras:
+    - F1: file_category = recovery, recovery_part = 1
+    - F2: file_category = recovery, recovery_part = 2
+    - F2.related_file_id = F1.id
+
+    É permitido processar F1 sem F2. Nesse caso, os movimentos
+    inicialmente aceites (0000) ficam provisórios até o F2
+    ser carregado.
+
+    F2 sem F1 válido é considerado inconsistente.
+    """
+
+    if calendar_file.file_category != "recovery":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O ficheiro selecionado não pertence "
+                "à categoria de recuperação."
+            ),
+        )
+
+    if calendar_file.recovery_part == 1:
+        recovery_file_1 = calendar_file
+
+        recovery_file_2 = (
+            db.query(CalendarFile)
+            .filter(
+                CalendarFile.file_category == "recovery",
+                CalendarFile.recovery_part == 2,
+                CalendarFile.related_file_id
+                == recovery_file_1.id,
+            )
+            .order_by(CalendarFile.id.desc())
+            .first()
+        )
+
+        if (
+            recovery_file_2 is not None
+            and recovery_file_2.calendar_date
+            != recovery_file_1.calendar_date
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "O par de recuperação está inconsistente: "
+                    "F1 e F2 pertencem a dias diferentes."
+                ),
+            )
+
+        return (
+            recovery_file_1,
+            recovery_file_2,
+        )
+
+    if calendar_file.recovery_part == 2:
+        if calendar_file.related_file_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "O Ficheiro 2 de recuperação não possui "
+                    "ligação ao respetivo Ficheiro 1."
+                ),
+            )
+
+        recovery_file_1 = get_calendar_file_by_id(
+            db,
+            calendar_file.related_file_id,
+        )
+
+        if (
+            recovery_file_1 is None
+            or recovery_file_1.file_category != "recovery"
+            or recovery_file_1.recovery_part != 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "O Ficheiro 1 associado a esta recuperação "
+                    "não existe ou é inválido."
+                ),
+            )
+
+        if (
+            recovery_file_1.calendar_date
+            != calendar_file.calendar_date
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "O par de recuperação está inconsistente: "
+                    "F1 e F2 pertencem a dias diferentes."
+                ),
+            )
+
+        return (
+            recovery_file_1,
+            calendar_file,
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=(
+            "O ficheiro de recuperação não indica "
+            "corretamente se é Ficheiro 1 ou Ficheiro 2."
+        ),
+    )
+
+
+def build_unique_movements_by_bank_reference(
+    movements: list[dict],
+    *,
+    filename: str,
+) -> dict[str, dict]:
+    """
+    Cria um índice pela Referência da Cobrança.
+
+    A Referência da Cobrança é a chave prioritária do
+    processamento de recuperação. Não é permitido resolver
+    ambiguidades usando nº de sócio, nome ou valor.
+    """
+
+    lookup: dict[str, dict] = {}
+
+    for movement in movements:
+        bank_reference = str(
+            movement.get("bank_reference")
+            or ""
+        ).strip()
+
+        if not bank_reference:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Foi encontrado um movimento sem "
+                    "Referência da Cobrança no ficheiro "
+                    f"{filename}."
+                ),
+            )
+
+        if bank_reference in lookup:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    "Foi encontrada uma Referência da Cobrança "
+                    f"duplicada ({bank_reference}) no ficheiro "
+                    f"{filename}. O EPIC Payments não irá "
+                    "fundir movimentos de forma automática."
+                ),
+            )
+
+        lookup[bank_reference] = movement
+
+    return lookup
+
+
+def process_recovery_consolidation(
     db: Session,
     *,
     file_id: int,
 ) -> dict:
     """
-    Dispatcher único do processamento bancário.
+    Consolida uma recuperação como um único conjunto F1 + F2.
 
-    XML -> process_xml_calendar_file
-    PDF -> process_pdf_calendar_file
+    Regra por Referência da Cobrança:
+
+    1) F1 diferente de 0000:
+       -> NÃO PAGA
+       -> mantém o motivo original do F1
+
+    2) F1 = 0000 e ainda não existe F2:
+       -> PROVISÓRIO
+       -> "Ficheiro 2 ainda não carregado"
+
+    3) F1 = 0000 e a mesma referência NÃO aparece no F2:
+       -> RECUPERADA COM SUCESSO
+
+    4) F1 = 0000 e a mesma referência aparece no F2:
+       -> NÃO PAGA
+       -> usa código/motivo do F2
+
+    Nunca cruza movimentos apenas pelo nº de sócio.
+    """
+
+    selected_file = get_calendar_file_by_id(
+        db,
+        file_id,
+    )
+
+    if selected_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ficheiro não encontrado.",
+        )
+
+    (
+        recovery_file_1,
+        recovery_file_2,
+    ) = get_recovery_pair(
+        db,
+        calendar_file=selected_file,
+    )
+
+    # Os ficheiros físicos de recuperação são PDFs,
+    # mas funcionalmente formam uma categoria própria.
+    if recovery_file_1.file_type != "pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O Ficheiro 1 de recuperação não é um PDF."
+            ),
+        )
+
+    if (
+        recovery_file_2 is not None
+        and recovery_file_2.file_type != "pdf"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O Ficheiro 2 de recuperação não é um PDF."
+            ),
+        )
+
+    result_f1 = process_pdf_calendar_file(
+        db,
+        file_id=recovery_file_1.id,
+    )
+
+    movements_f1 = result_f1[
+        "movements"
+    ]
+
+    # Validamos também F1 para impedir que uma referência
+    # ambígua seja consolidada silenciosamente.
+    build_unique_movements_by_bank_reference(
+        movements_f1,
+        filename=recovery_file_1.original_filename,
+    )
+
+    result_f2: dict | None = None
+    movements_f2_by_reference: dict[str, dict] = {}
+
+    if recovery_file_2 is not None:
+        result_f2 = process_pdf_calendar_file(
+            db,
+            file_id=recovery_file_2.id,
+        )
+
+        movements_f2_by_reference = (
+            build_unique_movements_by_bank_reference(
+                result_f2["movements"],
+                filename=(
+                    recovery_file_2.original_filename
+                ),
+            )
+        )
+
+    consolidated_movements: list[dict] = []
+
+    for movement_f1 in movements_f1:
+        bank_reference = str(
+            movement_f1.get("bank_reference")
+            or ""
+        ).strip()
+
+        original_f1_reason_code = str(
+            movement_f1.get("reason_code")
+            or ""
+        ).strip().upper()
+
+        movement_f2 = (
+            movements_f2_by_reference.get(
+                bank_reference
+            )
+            if recovery_file_2 is not None
+            else None
+        )
+
+        consolidated = dict(
+            movement_f1
+        )
+
+        consolidated.update(
+            {
+                "recovery_file_1_id":
+                    recovery_file_1.id,
+
+                "recovery_file_2_id":
+                    (
+                        recovery_file_2.id
+                        if recovery_file_2
+                        else None
+                    ),
+
+                "recovery_f1_reason_code":
+                    original_f1_reason_code,
+
+                "recovery_f1_reason_description":
+                    movement_f1.get(
+                        "reason_description"
+                    ),
+
+                "recovery_f2_reason_code":
+                    (
+                        movement_f2.get(
+                            "reason_code"
+                        )
+                        if movement_f2
+                        else None
+                    ),
+
+                "recovery_f2_reason_description":
+                    (
+                        movement_f2.get(
+                            "reason_description"
+                        )
+                        if movement_f2
+                        else None
+                    ),
+
+                "recovery_status":
+                    None,
+
+                "requires_action":
+                    False,
+            }
+        )
+
+        # F1 rejeitada: já sabemos que não foi recuperada.
+        if original_f1_reason_code != "0000":
+            consolidated[
+                "recovery_status"
+            ] = "NAO_PAGA"
+
+            consolidated[
+                "requires_action"
+            ] = True
+
+        # F1 aceite mas ainda não existe F2.
+        elif recovery_file_2 is None:
+            consolidated[
+                "recovery_status"
+            ] = "PROVISORIO"
+
+            consolidated[
+                "reason_description"
+            ] = (
+                "Ficheiro 2 ainda não carregado"
+            )
+
+        # F1 aceite e devolvida posteriormente no F2.
+        elif movement_f2 is not None:
+            final_reason_code = str(
+                movement_f2.get(
+                    "reason_code"
+                )
+                or ""
+            ).strip().upper()
+
+            consolidated[
+                "recovery_status"
+            ] = "NAO_PAGA"
+
+            consolidated[
+                "requires_action"
+            ] = True
+
+            # Colocamos o motivo final nos campos principais
+            # para o frontend atual poder filtrar/tratar este
+            # movimento sem depender já de novos componentes.
+            consolidated[
+                "reason_code"
+            ] = final_reason_code
+
+            consolidated[
+                "reason_description"
+            ] = (
+                movement_f2.get(
+                    "reason_description"
+                )
+                or get_reason_description(
+                    final_reason_code
+                )
+            )
+
+        # F1 aceite e não aparece no F2.
+        else:
+            consolidated[
+                "recovery_status"
+            ] = "RECUPERADA_COM_SUCESSO"
+
+            consolidated[
+                "requires_action"
+            ] = False
+
+            consolidated[
+                "reason_code"
+            ] = "0000"
+
+            consolidated[
+                "reason_description"
+            ] = "Recuperada com sucesso"
+
+        consolidated_movements.append(
+            consolidated
+        )
+
+    recovered_successfully = sum(
+        1
+        for movement in consolidated_movements
+        if movement["recovery_status"]
+        == "RECUPERADA_COM_SUCESSO"
+    )
+
+    not_paid = sum(
+        1
+        for movement in consolidated_movements
+        if movement["recovery_status"]
+        == "NAO_PAGA"
+    )
+
+    provisional = sum(
+        1
+        for movement in consolidated_movements
+        if movement["recovery_status"]
+        == "PROVISORIO"
+    )
+
+    recovered_successfully_amount = sum(
+        (
+            movement["amount"]
+            for movement in consolidated_movements
+            if movement["recovery_status"]
+            == "RECUPERADA_COM_SUCESSO"
+        ),
+        Decimal("0"),
+    )
+
+    not_paid_amount = sum(
+        (
+            movement["amount"]
+            for movement in consolidated_movements
+            if movement["recovery_status"]
+            == "NAO_PAGA"
+        ),
+        Decimal("0"),
+    )
+
+    provisional_amount = sum(
+        (
+            movement["amount"]
+            for movement in consolidated_movements
+            if movement["recovery_status"]
+            == "PROVISORIO"
+        ),
+        Decimal("0"),
+    )
+
+    cedis_matches = sum(
+        1
+        for movement in consolidated_movements
+        if movement["cedis_match"]
+    )
+
+    cedis_unmatched = (
+        len(consolidated_movements)
+        - cedis_matches
+    )
+
+    minor_members = sum(
+        1
+        for movement in consolidated_movements
+        if movement["is_minor"]
+    )
+
+    return {
+        "file_id":
+            recovery_file_1.id,
+
+        "filename":
+            recovery_file_1.original_filename,
+
+        "file_type":
+            "pdf",
+
+        "file_category":
+            "recovery",
+
+        "recovery_part":
+            1,
+
+        "recovery_file_1_id":
+            recovery_file_1.id,
+
+        "recovery_file_1_filename":
+            recovery_file_1.original_filename,
+
+        "recovery_file_2_id":
+            (
+                recovery_file_2.id
+                if recovery_file_2
+                else None
+            ),
+
+        "recovery_file_2_filename":
+            (
+                recovery_file_2.original_filename
+                if recovery_file_2
+                else None
+            ),
+
+        "recovery_pair_complete":
+            recovery_file_2 is not None,
+
+        "recovery_result_status":
+            (
+                "FINAL"
+                if recovery_file_2 is not None
+                else "PROVISORIO"
+            ),
+
+        "cedis_file_id":
+            result_f1.get(
+                "cedis_file_id"
+            ),
+
+        "cedis_filename":
+            result_f1.get(
+                "cedis_filename"
+            ),
+
+        "cedis_matches":
+            cedis_matches,
+
+        "cedis_unmatched":
+            cedis_unmatched,
+
+        "minor_members":
+            minor_members,
+
+        "message_id":
+            result_f1.get(
+                "message_id"
+            ),
+
+        "original_message_id":
+            None,
+
+        "declared_transactions":
+            result_f1.get(
+                "declared_transactions"
+            ),
+
+        "declared_total_amount":
+            result_f1.get(
+                "declared_total_amount"
+            ),
+
+        "parsed_transactions":
+            len(consolidated_movements),
+
+        "parsed_total_amount":
+            sum(
+                (
+                    movement["amount"]
+                    for movement
+                    in consolidated_movements
+                ),
+                Decimal("0"),
+            ),
+
+        "recovered_successfully":
+            recovered_successfully,
+
+        "recovered_successfully_amount":
+            recovered_successfully_amount,
+
+        "not_paid":
+            not_paid,
+
+        "not_paid_amount":
+            not_paid_amount,
+
+        "provisional":
+            provisional,
+
+        "provisional_amount":
+            provisional_amount,
+
+        "recovery_f2_transactions":
+            (
+                result_f2.get(
+                    "parsed_transactions"
+                )
+                if result_f2
+                else 0
+            ),
+
+        "recovery_f2_total_amount":
+            (
+                result_f2.get(
+                    "parsed_total_amount"
+                )
+                if result_f2
+                else Decimal("0")
+            ),
+
+        "movements":
+            consolidated_movements,
+    }
+
+
+
+def process_recovery_source_file(
+    db: Session,
+    *,
+    file_id: int,
+) -> dict:
+    """
+    Lê UM ficheiro de recuperação sem conciliar F1 com F2.
+
+    Esta é a visualização inicial do processamento de Recuperação:
+    - F1 mostra apenas o conteúdo original de F1;
+    - F2 mostra apenas o conteúdo original de F2;
+    - não determina ainda PAGO / NÃO PAGO;
+    - não apresenta dados enriquecidos da Base CEDIS.
+
+    A conciliação F1 x F2 fica reservada para a etapa
+    "Realizar filtragem".
     """
 
     calendar_file = get_calendar_file_by_id(
@@ -1760,6 +2393,112 @@ def process_calendar_file(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Ficheiro não encontrado.",
+        )
+
+    if calendar_file.file_category != "recovery":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O ficheiro selecionado não pertence "
+                "à categoria de recuperação."
+            ),
+        )
+
+    if calendar_file.recovery_part not in {1, 2}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "O ficheiro de recuperação não indica "
+                "corretamente se é Ficheiro 1 ou Ficheiro 2."
+            ),
+        )
+
+    if calendar_file.file_type != "pdf":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O ficheiro de recuperação não é um PDF.",
+        )
+
+    result = process_pdf_calendar_file(
+        db,
+        file_id=file_id,
+    )
+
+    # A primeira leitura da recuperação deve reproduzir apenas
+    # o conteúdo bancário do próprio PDF. A Base CEDIS só entra
+    # na etapa posterior "Filtrar e inserir informações".
+    source_movements: list[dict] = []
+
+    for movement in result["movements"]:
+        source_movement = dict(movement)
+
+        source_movement.update(
+            {
+                "cedis_name": None,
+                "phone": None,
+                "email": None,
+                "birth_year": None,
+                "age": None,
+                "is_minor": False,
+                "cedis_match": False,
+            }
+        )
+
+        source_movements.append(
+            source_movement
+        )
+
+    result.update(
+        {
+            "file_category": "recovery",
+            "recovery_part": calendar_file.recovery_part,
+            "related_file_id": calendar_file.related_file_id,
+            "recovery_stage": "SOURCE",
+            "cedis_file_id": None,
+            "cedis_filename": None,
+            "cedis_matches": 0,
+            "cedis_unmatched": 0,
+            "minor_members": 0,
+            "movements": source_movements,
+        }
+    )
+
+    return result
+
+
+
+def process_calendar_file(
+    db: Session,
+    *,
+    file_id: int,
+) -> dict:
+    """
+    Dispatcher único do processamento bancário.
+
+    Recuperação -> process_recovery_source_file (leitura original)
+    XML         -> process_xml_calendar_file
+    PDF         -> process_pdf_calendar_file
+    """
+
+    calendar_file = get_calendar_file_by_id(
+        db,
+        file_id,
+    )
+
+    if calendar_file is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Ficheiro não encontrado.",
+        )
+
+    # IMPORTANTE:
+    # Recuperação é uma categoria funcional própria.
+    # Apesar de F1/F2 serem PDFs físicos, nunca devem
+    # passar diretamente pelo fluxo de PDF bancário normal.
+    if calendar_file.file_category == "recovery":
+        return process_recovery_source_file(
+            db,
+            file_id=file_id,
         )
 
     if calendar_file.file_type == "xml":

@@ -52,6 +52,7 @@ class CalendarDaySummary(BaseModel):
 
     pdf_count: int
     xml_count: int
+    recovery_count: int
     report_count: int
 
 

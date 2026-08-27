@@ -437,19 +437,33 @@ def get_year_summary(
             COUNT(id) AS total_files,
             SUM(
                 CASE
-                    WHEN file_type = 'pdf' THEN 1
+                    WHEN
+                        file_type = 'pdf'
+                        AND COALESCE(file_category, 'normal') != 'recovery'
+                    THEN 1
                     ELSE 0
                 END
             ) AS pdf_count,
             SUM(
                 CASE
-                    WHEN file_type = 'xml' THEN 1
+                    WHEN
+                        file_type = 'xml'
+                        AND COALESCE(file_category, 'normal') != 'recovery'
+                    THEN 1
                     ELSE 0
                 END
             ) AS xml_count,
             SUM(
                 CASE
-                    WHEN file_type = 'report' THEN 1
+                    WHEN file_category = 'recovery'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS recovery_count,
+            SUM(
+                CASE
+                    WHEN file_type = 'report'
+                    THEN 1
                     ELSE 0
                 END
             ) AS report_count
@@ -486,6 +500,12 @@ def get_year_summary(
                     or 0
                 ),
 
+            "recovery_count":
+                int(
+                    row.get("recovery_count")
+                    or 0
+                ),
+
             "report_count":
                 int(
                     row.get("report_count")
@@ -494,6 +514,7 @@ def get_year_summary(
         }
         for row in rows
     ]
+
 
 def count_files_by_date(
     db: Session,

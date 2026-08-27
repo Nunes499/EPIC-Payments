@@ -80,12 +80,20 @@ function mapApiFile(
     id: file.id,
     name: file.original_filename,
     type: file.file_type,
-    size: formatFileSize(file.file_size),
+    size: formatFileSize(
+      file.file_size,
+    ),
     mimeType: file.mime_type,
     uploadedAt: file.uploaded_at,
-    fileCategory: file.file_category,
-    recoveryPart: file.recovery_part,
-    relatedFileId: file.related_file_id,
+
+    fileCategory:
+      file.file_category,
+
+    recoveryPart:
+      file.recovery_part,
+
+    relatedFileId:
+      file.related_file_id,
   };
 }
 
@@ -93,23 +101,48 @@ function mapApiFile(
 function countFileTypes(
   files: ApiCalendarFile[],
 ) {
+  const recoveryFiles =
+    files.filter(
+      (file) =>
+        file.file_category ===
+        "recovery",
+    );
+
+  const normalPdfFiles =
+    files.filter(
+      (file) =>
+        file.file_type === "pdf" &&
+        file.file_category !==
+          "recovery",
+    );
+
+  const normalXmlFiles =
+    files.filter(
+      (file) =>
+        file.file_type === "xml" &&
+        file.file_category !==
+          "recovery",
+    );
+
   return {
-    totalFiles: files.length,
+    totalFiles:
+      files.length,
 
-    pdfCount: files.filter(
-      (file) =>
-        file.file_type === "pdf",
-    ).length,
+    pdfCount:
+      normalPdfFiles.length,
 
-    xmlCount: files.filter(
-      (file) =>
-        file.file_type === "xml",
-    ).length,
+    xmlCount:
+      normalXmlFiles.length,
 
-    reportCount: files.filter(
-      (file) =>
-        file.file_type === "report",
-    ).length,
+    recoveryCount:
+      recoveryFiles.length,
+
+    reportCount:
+      files.filter(
+        (file) =>
+          file.file_type ===
+          "report",
+      ).length,
   };
 }
 
@@ -118,8 +151,12 @@ export default function AnnualCalendar({
   initialYear =
     new Date().getFullYear(),
 }: AnnualCalendarProps) {
-  const [year, setYear] =
-    useState(initialYear);
+  const [
+    year,
+    setYear,
+  ] = useState(
+    initialYear,
+  );
 
   const [
     selectedDate,
@@ -155,12 +192,6 @@ export default function AnnualCalendar({
     null,
   );
 
-  /*
-   * IDs dos PDF/XML selecionados no drawer.
-   *
-   * A seleÃ§Ã£o pertence sempre ao dia
-   * atualmente aberto.
-   */
   const [
     selectedFileIds,
     setSelectedFileIds,
@@ -169,14 +200,18 @@ export default function AnnualCalendar({
   const [
     processingSelection,
     setProcessingSelection,
-  ] = useState<ProcessingSelection | null>(
+  ] = useState<
+    ProcessingSelection | null
+  >(
     null,
   );
 
 
   const selectedDayData =
     selectedDate
-      ? daysData[selectedDate]
+      ? daysData[
+          selectedDate
+        ]
       : undefined;
 
 
@@ -185,13 +220,17 @@ export default function AnnualCalendar({
       return Object.fromEntries(
         Object.entries(
           daysData,
-        ).filter(([date]) =>
-          date.startsWith(
-            `${year}-`,
-          ),
+        ).filter(
+          ([date]) =>
+            date.startsWith(
+              `${year}-`,
+            ),
         ),
       );
-    }, [daysData, year]);
+    }, [
+      daysData,
+      year,
+    ]);
 
 
   async function loadYearData(
@@ -252,10 +291,6 @@ export default function AnnualCalendar({
               date:
                 item.calendar_date,
 
-              /*
-               * Preserva a lista real de ficheiros
-               * quando o drawer jÃ¡ a carregou.
-               */
               files:
                 existing?.files ??
                 [],
@@ -268,6 +303,9 @@ export default function AnnualCalendar({
 
               xmlCount:
                 item.xml_count,
+
+              recoveryCount:
+                item.recovery_count,
 
               reportCount:
                 item.report_count,
@@ -307,8 +345,13 @@ export default function AnnualCalendar({
   async function loadFilesForDate(
     date: string,
   ) {
-    setIsLoadingFiles(true);
-    setDrawerError(null);
+    setIsLoadingFiles(
+      true,
+    );
+
+    setDrawerError(
+      null,
+    );
 
     try {
       const files =
@@ -345,11 +388,16 @@ export default function AnnualCalendar({
             xmlCount:
               counts.xmlCount,
 
+            recoveryCount:
+              counts.recoveryCount,
+
             reportCount:
               counts.reportCount,
 
             pendingMembers:
-              current[date]
+              current[
+                date
+              ]
                 ?.pendingMembers ??
               0,
 
@@ -361,11 +409,6 @@ export default function AnnualCalendar({
         }),
       );
 
-      /*
-       * Se a lista for atualizada apÃ³s eliminar
-       * um ficheiro, remove da seleÃ§Ã£o IDs que
-       * jÃ¡ deixaram de existir.
-       */
       const validProcessableIds =
         new Set(
           mappedFiles
@@ -408,10 +451,6 @@ export default function AnnualCalendar({
   async function handleSelectDay(
     date: string,
   ) {
-    /*
-     * Ao mudar de dia, comeÃ§amos uma
-     * nova seleÃ§Ã£o de processamento.
-     */
     setSelectedFileIds(
       [],
     );
@@ -432,14 +471,13 @@ export default function AnnualCalendar({
 
     const date = [
       today.getFullYear(),
-
       String(
-        today.getMonth() + 1,
+        today.getMonth() +
+        1,
       ).padStart(
         2,
         "0",
       ),
-
       String(
         today.getDate(),
       ).padStart(
@@ -458,28 +496,99 @@ export default function AnnualCalendar({
   }
 
 
+  function openUploadForSelectedDate() {
+    if (!selectedDate) {
+      openCurrentDay();
+
+      window.setTimeout(
+        () => {
+          setIsUploadOpen(
+            true,
+          );
+        },
+        0,
+      );
+
+      return;
+    }
+
+    setIsUploadOpen(
+      true,
+    );
+  }
+
+
+  function handleToggleFile(
+    fileId: number,
+  ) {
+    setSelectedFileIds(
+      (current) =>
+        current.includes(
+          fileId,
+        )
+          ? current.filter(
+              (id) =>
+                id !==
+                fileId,
+            )
+          : [
+              ...current,
+              fileId,
+            ],
+    );
+  }
+
+
+  function handleSelectAllFiles() {
+    if (!selectedDayData) {
+      return;
+    }
+
+    const ids =
+      selectedDayData.files
+        .filter(
+          (file) =>
+            file.type ===
+              "pdf" ||
+            file.type ===
+              "xml",
+        )
+        .map(
+          (file) =>
+            file.id,
+        );
+
+    setSelectedFileIds(
+      ids,
+    );
+  }
+
+
+  function handleClearSelection() {
+    setSelectedFileIds(
+      [],
+    );
+  }
+
+
   async function handleUpload(
     payload: UploadFilePayload,
   ) {
     try {
-      if (payload.mode === "standard") {
-        for (const file of payload.files) {
-          await uploadCalendarFile(
-            payload.date,
-            file,
-            {
-              fileCategory: payload.fileCategory,
-            },
-          );
-        }
-      } else {
+      if (
+        payload.mode ===
+        "recovery"
+      ) {
         const recoveryFile1 =
           await uploadCalendarFile(
             payload.date,
             payload.recoveryFile1,
             {
-              fileCategory: "recovery",
-              recoveryPart: 1,
+              fileCategory:
+                "recovery",
+
+              recoveryPart:
+                1,
             },
           );
 
@@ -487,26 +596,56 @@ export default function AnnualCalendar({
           payload.date,
           payload.recoveryFile2,
           {
-            fileCategory: "recovery",
-            recoveryPart: 2,
-            relatedFileId: recoveryFile1.id,
+            fileCategory:
+              "recovery",
+
+            recoveryPart:
+              2,
+
+            relatedFileId:
+              recoveryFile1.id,
           },
         );
+      } else {
+        for (
+          const file
+          of payload.files
+        ) {
+          await uploadCalendarFile(
+            payload.date,
+            file,
+            {
+              fileCategory:
+                payload.fileCategory,
+            },
+          );
+        }
       }
 
-      await loadFilesForDate(payload.date);
-
-      const uploadYear = Number(
-        payload.date.slice(0, 4),
+      await loadFilesForDate(
+        payload.date,
       );
 
-      await loadYearData(uploadYear);
-      setSelectedDate(payload.date);
+      const uploadYear =
+        Number(
+          payload.date.slice(
+            0,
+            4,
+          ),
+        );
+
+      await loadYearData(
+        uploadYear,
+      );
+
+      setSelectedDate(
+        payload.date,
+      );
     } catch (error) {
       setDrawerError(
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel enviar os ficheiros.",
+          : "Não foi possível enviar os ficheiros.",
       );
     }
   }
@@ -518,7 +657,8 @@ export default function AnnualCalendar({
     try {
       await previewCalendarFile(
         {
-          id: file.id,
+          id:
+            file.id,
 
           calendar_date:
             selectedDate ??
@@ -561,17 +701,10 @@ export default function AnnualCalendar({
         },
       );
     } catch (error) {
-      /*
-       * NÃ£o usamos drawerError para
-       * erros isolados de preview.
-       *
-       * Desta forma a lista de ficheiros
-       * permanece visÃvel.
-       */
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel prÃ©-visualizar o ficheiro.";
+          : "Não foi possível pré-visualizar o ficheiro.";
 
       window.alert(
         message,
@@ -586,7 +719,8 @@ export default function AnnualCalendar({
     try {
       await downloadCalendarFile(
         {
-          id: file.id,
+          id:
+            file.id,
 
           calendar_date:
             selectedDate ??
@@ -632,7 +766,7 @@ export default function AnnualCalendar({
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel descarregar o ficheiro.";
+          : "Não foi possível descarregar o ficheiro.";
 
       window.alert(
         message,
@@ -649,10 +783,7 @@ export default function AnnualCalendar({
         `Pretende eliminar o ficheiro "${file.name}"?`,
       );
 
-    if (
-      !confirmed ||
-      !selectedDate
-    ) {
+    if (!confirmed) {
       return;
     }
 
@@ -661,175 +792,32 @@ export default function AnnualCalendar({
         file.id,
       );
 
-      /*
-       * Remove imediatamente o ficheiro
-       * eliminado da seleÃ§Ã£o.
-       */
-      setSelectedFileIds(
-        (current) =>
-          current.filter(
-            (fileId) =>
-              fileId !==
-              file.id,
-          ),
-      );
-
-      /*
-       * Recarrega a lista real
-       * dos ficheiros restantes.
-       */
-      await loadFilesForDate(
-        selectedDate,
-      );
-
-      const selectedYear =
-        Number(
-          selectedDate.slice(
-            0,
-            4,
-          ),
+      if (
+        selectedDate
+      ) {
+        await loadFilesForDate(
+          selectedDate,
         );
 
-      /*
-       * Atualiza tambÃ©m o resumo anual.
-       */
-      await loadYearData(
-        selectedYear,
-      );
+        await loadYearData(
+          Number(
+            selectedDate.slice(
+              0,
+              4,
+            ),
+          ),
+        );
+      }
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "NÃ£o foi possÃvel eliminar o ficheiro.";
+          : "Não foi possível eliminar o ficheiro.";
 
       window.alert(
         message,
       );
     }
-  }
-
-
-  function openUploadForSelectedDate() {
-    if (!selectedDate) {
-      const today =
-        new Date();
-
-      /*
-       * Se estamos a visualizar o ano atual,
-       * usa o dia/mÃªs de hoje.
-       *
-       * Se estamos noutro ano, mantÃ©m esse
-       * ano e usa o mesmo dia/mÃªs.
-       */
-      const date = [
-        year,
-
-        String(
-          today.getMonth() +
-            1,
-        ).padStart(
-          2,
-          "0",
-        ),
-
-        String(
-          today.getDate(),
-        ).padStart(
-          2,
-          "0",
-        ),
-      ].join("-");
-
-      setSelectedFileIds(
-        [],
-      );
-
-      setSelectedDate(
-        date,
-      );
-    }
-
-    setIsUploadOpen(
-      true,
-    );
-  }
-
-
-  function handleToggleFile(
-    fileId: number,
-  ) {
-    const file =
-      selectedDayData
-        ?.files.find(
-          (item) =>
-            item.id ===
-            fileId,
-        );
-
-    /*
-     * SeguranÃ§a adicional:
-     * relatÃ³rios nunca entram
-     * no processamento bancÃ¡rio.
-     */
-    if (
-      !file ||
-      (
-        file.type !== "pdf" &&
-        file.type !== "xml"
-      )
-    ) {
-      return;
-    }
-
-    setSelectedFileIds(
-      (current) => {
-        if (
-          current.includes(
-            fileId,
-          )
-        ) {
-          return current.filter(
-            (id) =>
-              id !== fileId,
-          );
-        }
-
-        return [
-          ...current,
-          fileId,
-        ];
-      },
-    );
-  }
-
-
-  function handleSelectAllFiles() {
-    const ids =
-      selectedDayData
-        ?.files
-        .filter(
-          (file) =>
-            file.type ===
-              "pdf" ||
-            file.type ===
-              "xml",
-        )
-        .map(
-          (file) =>
-            file.id,
-        ) ??
-      [];
-
-    setSelectedFileIds(
-      ids,
-    );
-  }
-
-
-  function handleClearSelection() {
-    setSelectedFileIds(
-      [],
-    );
   }
 
 
@@ -860,7 +848,7 @@ export default function AnnualCalendar({
       0
     ) {
       window.alert(
-        "Selecione pelo menos um ficheiro PDF ou XML.",
+        "Selecione pelo menos um ficheiro PDF, XML ou de Recuperação.",
       );
 
       return;
@@ -869,6 +857,7 @@ export default function AnnualCalendar({
     setProcessingSelection({
       date:
         selectedDate,
+
       files:
         selectedFiles,
     });
@@ -903,7 +892,7 @@ export default function AnnualCalendar({
         <div className="annual-calendar-header">
           <div>
             <span className="section-label">
-              CalendÃ¡rio bancÃ¡rio
+              Calendário bancário
             </span>
 
             <h2>
@@ -920,11 +909,8 @@ export default function AnnualCalendar({
               variant="secondary"
               onClick={() =>
                 setYear(
-                  (
-                    current,
-                  ) =>
-                    current -
-                    1,
+                  (current) =>
+                    current - 1,
                 )
               }
               aria-label="Ano anterior"
@@ -947,11 +933,8 @@ export default function AnnualCalendar({
               variant="secondary"
               onClick={() =>
                 setYear(
-                  (
-                    current,
-                  ) =>
-                    current +
-                    1,
+                  (current) =>
+                    current + 1,
                 )
               }
               aria-label="Ano seguinte"
@@ -975,6 +958,7 @@ export default function AnnualCalendar({
             </Button>
           </div>
         </div>
+
 
         <div className="annual-calendar-grid">
           {monthNames.map(
@@ -1004,6 +988,7 @@ export default function AnnualCalendar({
           )}
         </div>
       </section>
+
 
       <DayDrawer
         isOpen={
@@ -1057,6 +1042,7 @@ export default function AnnualCalendar({
         }
       />
 
+
       <ProcessingWorkspace
         selection={
           processingSelection
@@ -1065,6 +1051,7 @@ export default function AnnualCalendar({
           handleCloseProcessing
         }
       />
+
 
       <UploadFileDialog
         isOpen={

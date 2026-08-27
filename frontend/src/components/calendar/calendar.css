@@ -2396,3 +2396,8 @@ button:hover {
   }
 }
 
+.day-badge-recovery {
+  background: #fff5cf;
+  color: #9a6a00;
+}
+

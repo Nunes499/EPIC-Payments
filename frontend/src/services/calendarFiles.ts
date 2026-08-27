@@ -21,9 +21,15 @@ export type ApiBankMovement = {
 
 export type ApiCalendarDaySummary = {
   calendar_date: string;
+
   total_files: number;
+
   pdf_count: number;
+
   xml_count: number;
+
+  recovery_count: number;
+
   report_count: number;
 };
 
