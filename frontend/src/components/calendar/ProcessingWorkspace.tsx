@@ -655,13 +655,67 @@ export default function ProcessingWorkspace({
         )
         .join(" + ");
 
-    const recoveredRows =
-      recoveredRecoveryResults
+    const chunkItems = <T,>(
+      items: T[],
+      size: number,
+    ): T[][] => {
+      const chunks: T[][] = [];
+
+      for (
+        let index = 0;
+        index < items.length;
+        index += size
+      ) {
+        chunks.push(
+          items.slice(
+            index,
+            index + size,
+          ),
+        );
+      }
+
+      return chunks;
+    };
+
+    const renderMemberCell = (
+      movement: RecoveryResult,
+    ) => {
+      const memberNumber =
+        movement.member_number ||
+        "—";
+
+      const bankMemberReference =
+        movement.original_member_reference ||
+        "";
+
+      const showBankReference =
+        Boolean(
+          bankMemberReference &&
+          bankMemberReference !==
+            memberNumber,
+        );
+
+      return `
+        <div class="member-cell">
+          <strong>${escapeHtml(memberNumber)}</strong>
+          ${
+            showBankReference
+              ? `<span class="bank-member-reference">Banco: ${escapeHtml(bankMemberReference)}</span>`
+              : ""
+          }
+        </div>
+      `;
+    };
+
+    const renderRecoveredRows = (
+      movements: RecoveryResult[],
+    ) =>
+      movements
         .map(
           (movement) => `
             <tr>
               <td>${escapeHtml(movement.bank_reference || "—")}</td>
-              <td>${escapeHtml(movement.member_number || "—")}</td>
+              <td>${renderMemberCell(movement)}</td>
               <td class="name-cell">${escapeHtml(movement.name || "—")}</td>
               <td class="amount-cell">${escapeHtml(formatCurrency(movement.amount))}</td>
               <td><span class="code code-ok">${escapeHtml(movement.final_reason_code)}</span></td>
@@ -671,8 +725,10 @@ export default function ProcessingWorkspace({
         )
         .join("");
 
-    const unpaidRows =
-      unpaidRecoveryResults
+    const renderUnpaidRows = (
+      movements: RecoveryResult[],
+    ) =>
+      movements
         .map(
           (movement) => {
             const origin =
@@ -683,7 +739,7 @@ export default function ProcessingWorkspace({
             return `
               <tr>
                 <td>${escapeHtml(movement.bank_reference || "—")}</td>
-                <td>${escapeHtml(movement.member_number || "—")}</td>
+                <td>${renderMemberCell(movement)}</td>
                 <td class="name-cell">${escapeHtml(movement.name || "—")}</td>
                 <td class="amount-cell">${escapeHtml(formatCurrency(movement.amount))}</td>
                 <td>
@@ -700,6 +756,213 @@ export default function ProcessingWorkspace({
         )
         .join("");
 
+    /*
+     * A paginação é feita pelo próprio relatório em blocos A4.
+     * Assim conseguimos apresentar "1-7", "2-7", etc. no rodapé,
+     * sem depender dos cabeçalhos/rodapés do navegador.
+     */
+    const recoveredPages =
+      chunkItems(
+        recoveredRecoveryResults,
+        18,
+      );
+
+    const unpaidPages =
+      chunkItems(
+        unpaidRecoveryResults,
+        13,
+      );
+
+    if (
+      recoveredPages.length === 0
+    ) {
+      recoveredPages.push([]);
+    }
+
+    if (
+      unpaidPages.length === 0
+    ) {
+      unpaidPages.push([]);
+    }
+
+    const totalPages =
+      recoveredPages.length +
+      unpaidPages.length;
+
+    const totalAttempts =
+      recoveredCount +
+      unpaidCount;
+
+    const renderHeader = (
+      subtitle: string,
+    ) => `
+      <header class="report-header">
+        <img class="logo" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
+
+        <div class="report-title">
+          <h1>Relatório de Recuperação</h1>
+          <span>${escapeHtml(subtitle)}</span>
+        </div>
+      </header>
+    `;
+
+    const renderContinuationHeader = (
+      subtitle: string,
+    ) => `
+      <header class="report-header report-header-compact">
+        <img class="logo logo-compact" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
+
+        <div class="report-title report-title-compact">
+          <h1>Relatório de Recuperação</h1>
+          <span>${escapeHtml(subtitle)}</span>
+        </div>
+      </header>
+    `;
+
+    const renderMetadata = () => `
+      <div class="metadata">
+        <div class="meta-card">
+          <span class="label">Data de criação</span>
+          <strong>${escapeHtml(formatDateTime(generatedAt))}</strong>
+        </div>
+
+        <div class="meta-card">
+          <span class="label">Gerado por</span>
+          <strong>${escapeHtml(generatedBy)}</strong>
+        </div>
+
+        <div class="meta-card meta-files">
+          <span class="label">Ficheiros processados</span>
+          <strong>${escapeHtml(fileNames)}</strong>
+        </div>
+
+        <div class="meta-card count-card count-total">
+          <strong>${totalAttempts}</strong>
+          <span class="label">tentativas</span>
+        </div>
+
+        <div class="meta-card count-card count-ok">
+          <strong>${recoveredCount}</strong>
+          <span class="label">recuperadas</span>
+        </div>
+
+        <div class="meta-card count-card count-bad">
+          <strong>${unpaidCount}</strong>
+          <span class="label">não recuperadas</span>
+        </div>
+      </div>
+    `;
+
+    const recoveredPagesHtml =
+      recoveredPages
+        .map(
+          (movements, pageIndex) => {
+            const pageNumber =
+              pageIndex + 1;
+
+            return `
+              <section class="print-page">
+                ${
+                  pageIndex === 0
+                    ? `${renderHeader(
+                        "Resultado final da conciliação F1 + F2",
+                      )}${renderMetadata()}`
+                    : renderContinuationHeader(
+                        "Cobranças recuperadas — continuação",
+                      )
+                }
+
+                <div class="section-title section-title-ok">
+                  <div class="section-title-main">
+                    <strong>Cobranças recuperadas</strong>
+                    <span>${recoveredCount} cobranças</span>
+                  </div>
+
+                  <small>
+                    Cobranças aceites no Ficheiro 1 (código 0000) que não surgiram posteriormente como devolvidas/reembolsadas no Ficheiro 2.
+                  </small>
+                </div>
+
+                <table class="recovered-table">
+                  <thead>
+                    <tr>
+                      <th>Ref.</th>
+                      <th>Nº Sócio</th>
+                      <th>Nome</th>
+                      <th>Valor</th>
+                      <th>Código</th>
+                      <th>Resultado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${renderRecoveredRows(movements)}
+                  </tbody>
+                </table>
+
+                <footer class="page-footer">
+                  <span>EPIC Payments · Relatório de Recuperação</span>
+                  <strong>${pageNumber}-${totalPages}</strong>
+                </footer>
+              </section>
+            `;
+          },
+        )
+        .join("");
+
+    const unpaidPagesHtml =
+      unpaidPages
+        .map(
+          (movements, pageIndex) => {
+            const pageNumber =
+              recoveredPages.length +
+              pageIndex +
+              1;
+
+            return `
+              <section class="print-page">
+                ${renderContinuationHeader(
+                  pageIndex === 0
+                    ? "Cobranças não recuperadas"
+                    : "Cobranças não recuperadas — continuação",
+                )}
+
+                <div class="section-title section-title-bad">
+                  <div class="section-title-main">
+                    <strong>Cobranças não recuperadas</strong>
+                    <span>${unpaidCount} cobranças</span>
+                  </div>
+
+                  <small>
+                    Inclui cobranças rejeitadas no Ficheiro 1 e cobranças inicialmente aceites no F1 que surgiram depois como devolvidas/reembolsadas no F2.
+                  </small>
+                </div>
+
+                <table class="unpaid-table">
+                  <thead>
+                    <tr>
+                      <th>Ref.</th>
+                      <th>Nº Sócio</th>
+                      <th>Nome</th>
+                      <th>Valor</th>
+                      <th>Código / Motivo</th>
+                      <th>Origem do não pagamento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${renderUnpaidRows(movements)}
+                  </tbody>
+                </table>
+
+                <footer class="page-footer">
+                  <span>EPIC Payments · Relatório de Recuperação</span>
+                  <strong>${pageNumber}-${totalPages}</strong>
+                </footer>
+              </section>
+            `;
+          },
+        )
+        .join("");
+
     const documentHtml = `
       <!doctype html>
       <html lang="pt">
@@ -711,7 +974,7 @@ export default function ProcessingWorkspace({
           <style>
             @page {
               size: A4 portrait;
-              margin: 10mm;
+              margin: 10mm 10mm 12mm 10mm;
             }
 
             * {
@@ -729,13 +992,19 @@ export default function ProcessingWorkspace({
               print-color-adjust: exact;
             }
 
-            .report-section {
+            .print-page {
+              position: relative;
               width: 100%;
+              height: 275mm;
+              overflow: hidden;
+              padding-bottom: 15mm;
+              break-after: page;
+              page-break-after: always;
             }
 
-            .report-section-unpaid {
-              break-before: page;
-              page-break-before: always;
+            .print-page:last-child {
+              break-after: auto;
+              page-break-after: auto;
             }
 
             .report-header {
@@ -746,7 +1015,6 @@ export default function ProcessingWorkspace({
               border-bottom: 1.2pt solid #ef2733;
               padding-bottom: 5mm;
               margin-bottom: 5mm;
-              break-inside: avoid;
             }
 
             .logo {
@@ -776,20 +1044,47 @@ export default function ProcessingWorkspace({
               font-weight: 700;
             }
 
+
+            .report-header-compact {
+              padding-bottom: 2mm;
+              margin-bottom: 2.5mm;
+            }
+
+            .logo-compact {
+              width: 27mm;
+              max-height: 10mm;
+            }
+
+            .report-title-compact h1 {
+              font-size: 12.5pt;
+            }
+
+            .report-title-compact span {
+              margin-top: 1mm;
+              font-size: 6.8pt;
+            }
+
             .metadata {
               display: grid;
-              grid-template-columns: 1fr 0.85fr 1.8fr 0.72fr 0.82fr;
-              gap: 2.5mm;
-              margin-bottom: 6mm;
-              break-inside: avoid;
+              grid-template-columns: 0.92fr 0.78fr 1.6fr 0.68fr 0.68fr 0.82fr;
+              gap: 2.2mm;
+              margin-bottom: 5mm;
             }
 
             .meta-card {
-              min-height: 16mm;
-              border: 0.6pt solid #dedede;
-              border-radius: 2.5mm;
-              background: #fbfbfb;
-              padding: 2.6mm 3mm;
+              min-height: 18mm;
+              border: 0.7pt solid #dddddd;
+              border-radius: 3.4mm;
+              background:
+                linear-gradient(
+                  180deg,
+                  #ffffff 0%,
+                  #f7f7f7 100%
+                );
+              padding: 3.2mm 3.3mm;
+              box-shadow:
+                0 1.4mm 4mm
+                rgba(0, 0, 0, 0.055);
             }
 
             .meta-card .label {
@@ -831,6 +1126,24 @@ export default function ProcessingWorkspace({
               font-size: 5.8pt;
             }
 
+            .count-total {
+              border-color: rgba(35, 35, 35, 0.20);
+              background:
+                linear-gradient(
+                  180deg,
+                  #ffffff 0%,
+                  #eeeeee 100%
+                );
+            }
+
+            .count-total strong {
+              color: #191919;
+            }
+
+            .count-total .label {
+              color: #5f5f5f;
+            }
+
             .count-ok {
               border-color: rgba(22, 126, 65, 0.28);
               background: rgba(22, 126, 65, 0.045);
@@ -859,7 +1172,6 @@ export default function ProcessingWorkspace({
               border-radius: 2.5mm 2.5mm 0 0;
               padding: 3.2mm 3.8mm;
               color: #ffffff;
-              break-inside: avoid;
             }
 
             .section-title-ok {
@@ -909,6 +1221,13 @@ export default function ProcessingWorkspace({
             tr {
               break-inside: avoid;
               page-break-inside: avoid;
+              orphans: 1;
+              widows: 1;
+            }
+
+            tbody tr {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
             }
 
             th {
@@ -924,9 +1243,9 @@ export default function ProcessingWorkspace({
 
             td {
               border-bottom: 0.45pt solid #e5e5e5;
-              padding: 2.2mm 2mm;
+              padding: 2.15mm 2mm;
               vertical-align: middle;
-              line-height: 1.25;
+              line-height: 1.22;
               overflow-wrap: anywhere;
             }
 
@@ -945,6 +1264,26 @@ export default function ProcessingWorkspace({
 
             .name-cell {
               font-weight: 700;
+            }
+
+            .member-cell {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 0.45mm;
+            }
+
+            .member-cell strong {
+              font-size: 7pt;
+              font-weight: 850;
+            }
+
+            .bank-member-reference {
+              display: block;
+              color: #b06a00;
+              font-size: 5.8pt;
+              font-weight: 800;
+              line-height: 1.15;
             }
 
             .recovered-table th:nth-child(1),
@@ -1028,139 +1367,72 @@ export default function ProcessingWorkspace({
               font-size: 5.9pt;
               line-height: 1.3;
             }
+
+
+            .unpaid-table td {
+              line-height: 1.38;
+            }
+
+            .unpaid-table .reason,
+            .unpaid-table .origin-description {
+              line-height: 1.35;
+            }
+
+            .recovered-table,
+            .unpaid-table {
+              margin-bottom: 8mm;
+            }
+
+
+            /* Compactação para aproveitar melhor a folha A4 */
+            .unpaid-table th,
+            .recovered-table th {
+              padding-top: 2.1mm;
+              padding-bottom: 2.1mm;
+            }
+
+            .unpaid-table td {
+              padding-top: 2.45mm;
+              padding-bottom: 2.45mm;
+              line-height: 1.24;
+            }
+
+            .recovered-table td {
+              padding-top: 2.25mm;
+              padding-bottom: 2.25mm;
+              line-height: 1.20;
+            }
+
+            .section-title {
+              margin-bottom: 2.5mm;
+            }
+
+            .page-footer {
+              position: absolute;
+              right: 0;
+              bottom: 2.5mm;
+              left: 0;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              border-top: 0.6pt solid #dddddd;
+              padding-top: 2.2mm;
+              color: #777777;
+              font-size: 6.2pt;
+              font-weight: 700;
+            }
+
+            .page-footer strong {
+              color: #202020;
+              font-size: 7pt;
+              font-weight: 900;
+            }
           </style>
         </head>
 
         <body>
-          <section class="report-section">
-            <header class="report-header">
-              <img class="logo" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
-
-              <div class="report-title">
-                <h1>Relatório de Recuperação</h1>
-                <span>Resultado final da conciliação F1 + F2</span>
-              </div>
-            </header>
-
-            <div class="metadata">
-              <div class="meta-card">
-                <span class="label">Data de criação</span>
-                <strong>${escapeHtml(formatDateTime(generatedAt))}</strong>
-              </div>
-
-              <div class="meta-card">
-                <span class="label">Gerado por</span>
-                <strong>${escapeHtml(generatedBy)}</strong>
-              </div>
-
-              <div class="meta-card meta-files">
-                <span class="label">Ficheiros processados</span>
-                <strong>${escapeHtml(fileNames)}</strong>
-              </div>
-
-              <div class="meta-card count-card count-ok">
-                <strong>${recoveredCount}</strong>
-                <span class="label">recuperadas</span>
-              </div>
-
-              <div class="meta-card count-card count-bad">
-                <strong>${unpaidCount}</strong>
-                <span class="label">não recuperadas</span>
-              </div>
-            </div>
-
-            <div class="section-title section-title-ok">
-              <div class="section-title-main">
-                <strong>Cobranças recuperadas</strong>
-                <span>${recoveredCount} cobranças</span>
-              </div>
-
-              <small>
-                Cobranças aceites no Ficheiro 1 (código 0000) que não surgiram posteriormente como devolvidas/reembolsadas no Ficheiro 2.
-              </small>
-            </div>
-
-            <table class="recovered-table">
-              <thead>
-                <tr>
-                  <th>Ref.</th>
-                  <th>Nº Sócio</th>
-                  <th>Nome</th>
-                  <th>Valor</th>
-                  <th>Código</th>
-                  <th>Resultado</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${recoveredRows}
-              </tbody>
-            </table>
-          </section>
-
-          <section class="report-section report-section-unpaid">
-            <header class="report-header">
-              <img class="logo" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
-
-              <div class="report-title">
-                <h1>Relatório de Recuperação</h1>
-                <span>Cobranças não recuperadas</span>
-              </div>
-            </header>
-
-            <div class="metadata">
-              <div class="meta-card">
-                <span class="label">Data de criação</span>
-                <strong>${escapeHtml(formatDateTime(generatedAt))}</strong>
-              </div>
-
-              <div class="meta-card">
-                <span class="label">Gerado por</span>
-                <strong>${escapeHtml(generatedBy)}</strong>
-              </div>
-
-              <div class="meta-card meta-files">
-                <span class="label">Ficheiros processados</span>
-                <strong>${escapeHtml(fileNames)}</strong>
-              </div>
-
-              <div class="meta-card count-card count-ok">
-                <strong>${recoveredCount}</strong>
-                <span class="label">recuperadas</span>
-              </div>
-
-              <div class="meta-card count-card count-bad">
-                <strong>${unpaidCount}</strong>
-                <span class="label">não recuperadas</span>
-              </div>
-            </div>
-
-            <div class="section-title section-title-bad">
-              <div class="section-title-main">
-                <strong>Cobranças não recuperadas</strong>
-                <span>${unpaidCount} cobranças</span>
-              </div>
-
-              <small>
-                Inclui cobranças rejeitadas no Ficheiro 1 e cobranças inicialmente aceites no F1 que surgiram depois como devolvidas/reembolsadas no F2.
-              </small>
-            </div>
-
-            <table class="unpaid-table">
-              <thead>
-                <tr>
-                  <th>Ref.</th>
-                  <th>Nº Sócio</th>
-                  <th>Nome</th>
-                  <th>Valor</th>
-                  <th>Código / Motivo</th>
-                  <th>Origem do não pagamento</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${unpaidRows}
-              </tbody>
-            </table>
-          </section>
+          ${recoveredPagesHtml}
+          ${unpaidPagesHtml}
         </body>
       </html>
     `;

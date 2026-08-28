@@ -455,10 +455,10 @@
 
 .day-badge-xml {
   background:
-    #edf4ff;
+    #eaf8ef;
 
   color:
-    #245b9b;
+    #1f7a44;
 }
 
 .day-badge-report {
@@ -1872,532 +1872,538 @@ button:hover {
     0 10px 24px rgba(255, 32, 45, 0.15);
 }
 
-/* =========================================================
-   SELEÇÃO DE FICHEIROS PARA PROCESSAMENTO
-   ========================================================= */
-
-.drawer-selection-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  border: 1px solid rgba(255, 32, 45, 0.18);
-  border-radius: 10px;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 32, 45, 0.07),
-      rgba(255, 255, 255, 0.96)
-    );
-  padding: 9px 10px;
-}
-
-.drawer-selection-toolbar > div:first-child {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #5f5f5f;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.drawer-selection-toolbar > div:first-child strong {
-  display: inline-flex;
-  min-width: 23px;
-  height: 23px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 900;
-}
-
-.drawer-selection-actions {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.drawer-selection-actions button {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 32, 45, 0.42);
-  border-radius: 8px;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 32, 45, 0.11),
-      rgba(255, 32, 45, 0.035)
-    );
-  padding: 6px 10px;
-  color: #222222;
-  font-size: 10px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow:
-    inset 3px 0 0 var(--primary);
-  transition:
-    background 160ms ease,
-    border-color 160ms ease,
-    color 160ms ease,
-    transform 160ms ease,
-    box-shadow 160ms ease;
-}
-
-.drawer-selection-actions button:hover {
-  border-color: var(--primary);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 32, 45, 0.19),
-      rgba(255, 32, 45, 0.07)
-    );
-  color: #111111;
-  transform: translateY(-1px);
-  box-shadow:
-    inset 3px 0 0 var(--primary),
-    0 6px 14px rgba(255, 32, 45, 0.10);
-}
 
 
 /* =========================================================
-   RESUMO DO PROCESSAMENTO
+   EPIC PAYMENTS — CORES FINAIS POR TIPO
+   PDF = vermelho | XML = verde | Recuperação = amarelo/dourado
    ========================================================= */
 
-.processing-selection-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 10px;
-  border: 1px solid #e7e7e7;
-  border-radius: 10px;
-  background: #fafafa;
-  padding: 9px 11px;
+.day-badge-pdf {
+  background: #ffecee !important;
+  color: #c71925 !important;
 }
 
-.processing-selection-summary span {
-  color: #666666;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.processing-selection-summary strong {
-  display: inline-flex;
-  min-width: 29px;
-  height: 29px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background:
-    linear-gradient(
-      135deg,
-      var(--primary),
-      var(--primary-hover)
-    );
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 900;
-  box-shadow:
-    0 5px 12px rgba(255, 32, 45, 0.18);
-}
-
-
-/* =========================================================
-   FICHEIRO SELECIONADO
-   ========================================================= */
-
-.drawer-file-card-selected {
-  border-color: rgba(255, 32, 45, 0.45);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 32, 45, 0.055),
-      #ffffff
-    );
-  box-shadow:
-    inset 3px 0 0 var(--primary);
-}
-
-.drawer-file-checkbox {
-  display: flex;
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.drawer-file-checkbox input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: var(--primary);
-  cursor: pointer;
-}
-
-.drawer-file-checkbox-placeholder {
-  width: 22px;
-  height: 22px;
-  flex: 0 0 22px;
-}
-
-.processing-selection-help {
-  margin: 9px 0 0;
-  color: #888888;
-  font-size: 9px;
-  line-height: 1.45;
-}
-
-@media (max-width: 600px) {
-  .drawer-selection-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .drawer-selection-actions {
-    width: 100%;
-  }
-
-  .drawer-selection-actions button {
-    width: 100%;
-  }
-}
-
-/* =========================================================
-   EPIC PAYMENTS
-   GRUPOS DE FICHEIROS NO DRAWER
-
-   PDF         -> VERMELHO
-   XML         -> VERDE
-   RECUPERAÇÃO -> AMARELO
-   RELATÓRIO   -> LARANJA
-   ========================================================= */
-
-.drawer-file-groups {
-  display: flex;
-  max-height: 430px;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  padding-right: 3px;
-}
-
-.drawer-file-group {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.drawer-file-group-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 0 2px;
-}
-
-.drawer-file-group-title {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 7px;
-}
-
-.drawer-file-group-title h4 {
-  margin: 0;
-  color: #262626;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 0.055em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-.drawer-file-group-marker {
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
-  border-radius: 999px;
-}
-
-.drawer-file-group-count {
-  display: inline-flex;
-  min-width: 22px;
-  height: 22px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0 6px;
-  font-size: 9px;
-  font-weight: 900;
-}
-
-.drawer-file-group .drawer-file-list {
-  max-height: none;
-  gap: 7px;
-  overflow: visible;
-  padding-right: 0;
-}
-
-
-/* =========================================================
-   PDF DO BANCO - VERMELHO
-   ========================================================= */
-
-.drawer-file-group-marker-pdf {
-  background: #c71925;
-  box-shadow: 0 0 0 3px rgba(199, 25, 37, 0.10);
-}
-
-.drawer-file-group-pdf
-.drawer-file-group-count {
-  background: #ffecee;
-  color: #c71925;
-}
-
-.drawer-file-card-pdf {
-  border-color: rgba(199, 25, 37, 0.25);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(199, 25, 37, 0.055),
-      #ffffff 42%
-    );
-  box-shadow:
-    inset 3px 0 0 rgba(199, 25, 37, 0.82);
-}
-
-.drawer-file-card-pdf:hover {
-  border-color: rgba(199, 25, 37, 0.55);
-}
-
-.drawer-file-icon-pdf {
-  background: #ffecee;
-  color: #c71925;
-}
-
-.drawer-file-card-pdf
-.drawer-file-checkbox input {
-  accent-color: #c71925;
-}
-
-.drawer-file-card-pdf.drawer-file-card-selected {
-  border-color: rgba(199, 25, 37, 0.62);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(199, 25, 37, 0.13),
-      #ffffff 48%
-    );
-  box-shadow:
-    inset 4px 0 0 #c71925,
-    0 5px 13px rgba(199, 25, 37, 0.08);
-}
-
-
-/* =========================================================
-   XML DO BANCO - VERDE
-   ========================================================= */
-
-.drawer-file-group-marker-xml {
-  background: #247344;
-  box-shadow: 0 0 0 3px rgba(36, 115, 68, 0.10);
-}
-
-.drawer-file-group-xml
-.drawer-file-group-count {
-  background: #edf8f1;
-  color: #247344;
-}
-
-.drawer-file-card-xml {
-  border-color: rgba(36, 115, 68, 0.25);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(36, 115, 68, 0.055),
-      #ffffff 42%
-    );
-  box-shadow:
-    inset 3px 0 0 rgba(36, 115, 68, 0.82);
-}
-
-.drawer-file-card-xml:hover {
-  border-color: rgba(36, 115, 68, 0.55);
-}
-
-.drawer-file-icon-xml {
-  background: #edf8f1;
-  color: #247344;
-}
-
-.drawer-file-card-xml
-.drawer-file-checkbox input {
-  accent-color: #247344;
-}
-
-.drawer-file-card-xml.drawer-file-card-selected {
-  border-color: rgba(36, 115, 68, 0.62);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(36, 115, 68, 0.13),
-      #ffffff 48%
-    );
-  box-shadow:
-    inset 4px 0 0 #247344,
-    0 5px 13px rgba(36, 115, 68, 0.08);
-}
-
-
-/* =========================================================
-   RECUPERAÇÃO - AMARELO
-   ========================================================= */
-
-.drawer-file-group-marker-recovery {
-  background: #d59b00;
-  box-shadow: 0 0 0 3px rgba(213, 155, 0, 0.12);
-}
-
-.drawer-file-group-recovery
-.drawer-file-group-count {
-  background: #fff5cc;
-  color: #8a6200;
-}
-
-.drawer-file-card-recovery {
-  border-color: rgba(213, 155, 0, 0.32);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 205, 46, 0.16),
-      #ffffff 44%
-    );
-  box-shadow:
-    inset 3px 0 0 #d59b00;
-}
-
-.drawer-file-card-recovery:hover {
-  border-color: rgba(213, 155, 0, 0.68);
-}
-
-.drawer-file-icon-recovery {
-  background: #fff5cc;
-  color: #9a6c00;
-}
-
-.drawer-file-card-recovery
-.drawer-file-checkbox input {
-  accent-color: #d59b00;
-}
-
-.drawer-file-card-recovery.drawer-file-card-selected {
-  border-color: rgba(213, 155, 0, 0.72);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 205, 46, 0.27),
-      #ffffff 50%
-    );
-  box-shadow:
-    inset 4px 0 0 #d59b00,
-    0 5px 13px rgba(213, 155, 0, 0.10);
-}
-
-
-/* =========================================================
-   RELATÓRIOS - LARANJA
-   O relatório final será PDF, mas permanece
-   visualmente separado dos PDFs bancários.
-   ========================================================= */
-
-.drawer-file-group-marker-report {
-  background: #db6b16;
-  box-shadow: 0 0 0 3px rgba(219, 107, 22, 0.10);
-}
-
-.drawer-file-group-report
-.drawer-file-group-count {
-  background: #fff0e5;
-  color: #b84f00;
-}
-
-.drawer-file-card-report {
-  border-color: rgba(219, 107, 22, 0.28);
-  background:
-    linear-gradient(
-      90deg,
-      rgba(219, 107, 22, 0.075),
-      #ffffff 43%
-    );
-  box-shadow:
-    inset 3px 0 0 #db6b16;
-}
-
-.drawer-file-card-report:hover {
-  border-color: rgba(219, 107, 22, 0.62);
-}
-
-.drawer-file-icon-report {
-  background: #fff0e5;
-  color: #c2580b;
-}
-
-
-/* =========================================================
-   TEXTO SECUNDÁRIO DOS CARTÕES
-   ========================================================= */
-
-.drawer-file-card-pdf
-.drawer-file-main small {
-  color: #9c4a50;
-}
-
-.drawer-file-card-xml
-.drawer-file-main small {
-  color: #527c63;
-}
-
-.drawer-file-card-recovery
-.drawer-file-main small {
-  color: #8a6d1e;
-}
-
-.drawer-file-card-report
-.drawer-file-main small {
-  color: #9b633c;
-}
-
-
-/* =========================================================
-   RESPONSIVO DOS GRUPOS
-   ========================================================= */
-
-@media (max-width: 600px) {
-  .drawer-file-groups {
-    max-height: 390px;
-  }
-
-  .drawer-file-group {
-    gap: 6px;
-  }
-
-  .drawer-file-group-title h4 {
-    font-size: 9px;
-  }
+.day-badge-xml {
+  background: #eaf8ef !important;
+  color: #1f7a44 !important;
 }
 
 .day-badge-recovery {
-  background: #fff5cf;
-  color: #9a6a00;
+  background: #fff3c4 !important;
+  color: #946500 !important;
 }
 
+/* PDF — drawer */
+.drawer-file-group-marker-pdf {
+  background: #d31926 !important;
+  box-shadow: 0 0 0 3px rgba(211, 25, 38, 0.10) !important;
+}
+
+.drawer-file-group-pdf .drawer-file-group-count {
+  background: #ffecee !important;
+  color: #c71925 !important;
+}
+
+.drawer-file-card-pdf {
+  border-color: rgba(211, 25, 38, 0.28) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(211, 25, 38, 0.075),
+      #ffffff 44%
+    ) !important;
+  box-shadow:
+    inset 3px 0 0 #d31926 !important;
+}
+
+.drawer-file-icon-pdf {
+  background: #ffecee !important;
+  color: #c71925 !important;
+}
+
+/* XML — drawer */
+.drawer-file-group-marker-xml {
+  background: #24834b !important;
+  box-shadow: 0 0 0 3px rgba(36, 131, 75, 0.11) !important;
+}
+
+.drawer-file-group-xml .drawer-file-group-count {
+  background: #eaf8ef !important;
+  color: #247344 !important;
+}
+
+.drawer-file-card-xml {
+  border-color: rgba(36, 115, 68, 0.28) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(36, 115, 68, 0.08),
+      #ffffff 44%
+    ) !important;
+  box-shadow:
+    inset 3px 0 0 #247344 !important;
+}
+
+.drawer-file-icon-xml {
+  background: #eaf8ef !important;
+  color: #247344 !important;
+}
+
+/* Recuperação — drawer */
+.drawer-file-group-marker-recovery {
+  background: #d59b00 !important;
+  box-shadow: 0 0 0 3px rgba(213, 155, 0, 0.13) !important;
+}
+
+.drawer-file-group-recovery .drawer-file-group-count {
+  background: #fff3c4 !important;
+  color: #8a6200 !important;
+}
+
+.drawer-file-card-recovery {
+  border-color: rgba(213, 155, 0, 0.35) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 205, 46, 0.18),
+      #ffffff 44%
+    ) !important;
+  box-shadow:
+    inset 3px 0 0 #d59b00 !important;
+}
+
+.drawer-file-card-recovery:hover {
+  border-color: rgba(213, 155, 0, 0.68) !important;
+}
+
+.drawer-file-icon-recovery {
+  background: #fff3c4 !important;
+  color: #946500 !important;
+}
+
+.drawer-file-card-recovery.drawer-file-card-selected {
+  border-color: rgba(213, 155, 0, 0.74) !important;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 205, 46, 0.29),
+      #ffffff 50%
+    ) !important;
+  box-shadow:
+    inset 4px 0 0 #d59b00,
+    0 5px 13px rgba(213, 155, 0, 0.10) !important;
+}
+
+/* =========================================================
+   NOVO CARTÃO — FICHEIROS DO DIA
+   ========================================================= */
+
+.files-of-day-card {
+  position: relative;
+  display: flex;
+  width: min(410px, 100%);
+  min-height: 92px;
+  align-items: center;
+  overflow: hidden;
+  border:
+    1px solid
+    rgba(211, 25, 38, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #fffafa 40%,
+      #ffe8ea 100%
+    );
+  padding: 18px 24px;
+  color: #151515;
+  cursor: pointer;
+  box-shadow:
+    0 10px 28px
+    rgba(211, 25, 38, 0.09);
+  text-align: left;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.files-of-day-card:hover {
+  transform: translateY(-2px);
+  border-color:
+    rgba(211, 25, 38, 0.48);
+  box-shadow:
+    0 15px 34px
+    rgba(211, 25, 38, 0.15);
+}
+
+.files-of-day-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.files-of-day-eyebrow {
+  display: block;
+  margin: 0 0 4px;
+  color: #d31926;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.files-of-day-content strong {
+  color: #111111;
+  font-size: 21px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.files-of-day-content small {
+  color: #6c6c6c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.files-of-day-watermark {
+  position: absolute;
+  z-index: 1;
+  color:
+    rgba(211, 25, 38, 0.09);
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.files-of-day-watermark-calendar {
+  right: 58px;
+  bottom: -19px;
+  font-size: 88px;
+  transform: rotate(-5deg);
+}
+
+.files-of-day-watermark-plus {
+  top: -13px;
+  right: 7px;
+  font-size: 90px;
+}
+
+
+/* =========================================================
+   AJUSTE VISUAL — FICHEIROS DO DIA
+   ========================================================= */
+
+.files-of-day-card {
+  isolation: isolate;
+  min-height: 96px !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #fffafa 42%,
+      #ffe9eb 100%
+    ) !important;
+  padding:
+    19px 118px 19px 24px !important;
+}
+
+.files-of-day-card::after {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  right: 18px;
+  width: 90px;
+  height: 70px;
+  transform: translateY(-50%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  content: "";
+  opacity: 0.11;
+  pointer-events: none;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 90' fill='none'%3E%3Crect x='7' y='15' width='72' height='64' rx='10' stroke='%23d31926' stroke-width='6'/%3E%3Cpath d='M7 34h72M24 8v15M61 8v15' stroke='%23d31926' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M96 22v32M80 38h32' stroke='%23d31926' stroke-width='7' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.files-of-day-watermark {
+  display: none !important;
+}
+
+.files-of-day-content {
+  z-index: 2 !important;
+  gap: 5px !important;
+}
+
+
+
+.files-of-day-content strong {
+  font-size: 22px !important;
+  letter-spacing: -0.02em;
+}
+
+.files-of-day-content small {
+  max-width: 250px;
+  color: #666666 !important;
+  font-size: 11px !important;
+  line-height: 1.35;
+}
+
+/* =========================================================
+   DRAWER — TIPOGRAFIA E CARTÕES DOS FICHEIROS
+   ========================================================= */
+
+.day-drawer {
+  width:
+    min(
+      480px,
+      94vw
+    ) !important;
+}
+
+.day-drawer-header {
+  padding:
+    22px 24px 20px !important;
+}
+
+.day-drawer-header .section-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.day-drawer-header h2 {
+  max-width: 340px;
+  margin: 0 !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+  line-height: 1.16 !important;
+  letter-spacing: -0.025em;
+}
+
+.drawer-section {
+  padding:
+    18px 24px !important;
+}
+
+.drawer-section-header {
+  margin-bottom: 14px !important;
+}
+
+.drawer-section-header h3 {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.01em;
+}
+
+.drawer-section-header > span {
+  min-width: 26px !important;
+  height: 26px !important;
+  background: #111111 !important;
+  color: #ffffff !important;
+  font-size: 10px !important;
+}
+
+.drawer-selection-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 16px !important;
+  border:
+    1px solid
+    #ececec !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fafafa
+    ) !important;
+  padding:
+    9px 11px !important;
+  color: #686868 !important;
+  font-size: 10px !important;
+}
+
+.drawer-selection-toolbar strong {
+  color: #111111 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+.drawer-selection-actions button {
+  border: 0 !important;
+  background: transparent !important;
+  color: #d31926 !important;
+  font-size: 10px !important;
+  font-weight: 850 !important;
+  cursor: pointer;
+}
+
+.drawer-file-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.drawer-file-group {
+  min-width: 0;
+}
+
+.drawer-file-group-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  margin-bottom: 8px !important;
+}
+
+.drawer-file-group-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.drawer-file-group-title h4 {
+  margin: 0 !important;
+  color: #1b1b1b !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+}
+
+.drawer-file-group-marker {
+  width: 7px !important;
+  height: 7px !important;
+  flex: 0 0 auto;
+  border-radius: 50% !important;
+}
+
+.drawer-file-group-count {
+  display: inline-flex !important;
+  min-width: 23px !important;
+  height: 23px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  padding: 0 7px !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.drawer-file-list {
+  max-height: none !important;
+  gap: 9px !important;
+  overflow: visible !important;
+}
+
+.drawer-file-card {
+  min-height: 62px !important;
+  border-radius: 12px !important;
+  padding: 10px 11px !important;
+}
+
+.drawer-file-main {
+  gap: 11px !important;
+}
+
+.drawer-file-icon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+}
+
+.drawer-file-main > div {
+  min-width: 0 !important;
+  flex: 1;
+}
+
+.drawer-file-main strong {
+  display: -webkit-box !important;
+  overflow: hidden !important;
+  color: #171717 !important;
+  font-size: 11.5px !important;
+  font-weight: 850 !important;
+  line-height: 1.26 !important;
+  letter-spacing: -0.01em;
+  text-overflow: unset !important;
+  white-space: normal !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.drawer-file-main small {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #8a8a8a !important;
+  font-size: 8.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0.02em;
+}
+
+.drawer-file-actions {
+  gap: 4px !important;
+}
+
+.drawer-file-actions button {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
+.processing-selection-summary {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  margin-bottom: 10px !important;
+  color: #666666 !important;
+  font-size: 10px !important;
+  line-height: 1.3 !important;
+}
+
+.processing-selection-summary span {
+  display: block !important;
+  min-width: 0;
+}
+
+.processing-selection-summary strong {
+  display: inline-flex !important;
+  min-width: 26px !important;
+  height: 26px !important;
+  flex: 0 0 auto;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 13px !important;
+  background: #111111 !important;
+  color: #ffffff !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.drawer-action-card strong {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+}
+
+.drawer-action-card small {
+  margin-top: 3px !important;
+  color: #8a8a8a !important;
+  font-size: 8.5px !important;
+  line-height: 1.35 !important;
+}

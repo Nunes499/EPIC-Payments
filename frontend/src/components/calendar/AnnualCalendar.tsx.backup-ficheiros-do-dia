@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useEffect,
@@ -904,40 +904,61 @@ export default function AnnualCalendar({
             </p>
           </div>
 
-          <button
-            type="button"
-            className="files-of-day-card"
-            onClick={openCurrentDay}
-          >
-            <span
-              className="files-of-day-watermark files-of-day-watermark-calendar"
-              aria-hidden="true"
+          <div className="annual-calendar-actions">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setYear(
+                  (current) =>
+                    current - 1,
+                )
+              }
+              aria-label="Ano anterior"
             >
-              â–¦
-            </span>
+              <ChevronLeft
+                size={18}
+              />
+            </Button>
 
-            <span
-              className="files-of-day-watermark files-of-day-watermark-plus"
-              aria-hidden="true"
+            <Button
+              variant="secondary"
+              onClick={
+                openCurrentDay
+              }
             >
-              +
-            </span>
+              Hoje
+            </Button>
 
-            <span className="files-of-day-content">
-              <span className="files-of-day-eyebrow">
-  {"ACESSO R\u00C1PIDO"}
-</span>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                setYear(
+                  (current) =>
+                    current + 1,
+                )
+              }
+              aria-label="Ano seguinte"
+            >
+              <ChevronRight
+                size={18}
+              />
+            </Button>
 
-              <strong>
-                Ficheiros do dia
-              </strong>
-
-              <small>
-                Abrir o dia de hoje e adicionar ficheiros
-              </small>
-            </span>
-          </button>
+            <Button
+              icon={
+                <Plus
+                  size={18}
+                />
+              }
+              onClick={
+                openUploadForSelectedDate
+              }
+            >
+              Adicionar ficheiros
+            </Button>
+          </div>
         </div>
+
 
         <div className="annual-calendar-grid">
           {monthNames.map(
