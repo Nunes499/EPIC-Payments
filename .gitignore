@@ -40,6 +40,9 @@ backend/storage/bank_files/
 RadGridExport.xls
 
 # Bases CEDIS armazenadas pelo servidor
-backend/storage/cedis/CREDENCIAIS API´s/
+backend/storage/cedis/CREDENCIAIS APIï¿½s/
 backend/storage/cedis/
 CREDENCIAIS API*/
+
+# Local Netlify folder
+.netlify

@@ -2006,7 +2006,7 @@ export default function ProcessingWorkspace({
 
     const year =
       String(
-        selection.date || "",
+        selection?.date || "",
       ).slice(0, 4);
 
     const dateMatch =
@@ -2088,7 +2088,7 @@ export default function ProcessingWorkspace({
     }
 
     const fileNames =
-      selection.files
+      selection!.files
         .map(
           (file) => file.name,
         )
