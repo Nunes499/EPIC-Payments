@@ -1589,187 +1589,383 @@
 
 
 /* =========================================================
-   FLUXO DE RECUPERAÇÃO - 2 AÇÕES DIRETAS
+   AJUSTES PROCESSAMENTO — RESUMO + ALERTAS
    ========================================================= */
 
-.recovery-action-grid-two {
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
-  max-width: 1020px;
+.processing-summary-card-files {
+  background: #ffffff;
 }
 
-.recovery-action-grid-two .recovery-action-card {
+.processing-summary-card-accepted {
+  border-color: rgba(25, 135, 84, 0.28);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(235, 250, 241, 0.98),
+      rgba(247, 253, 249, 0.98)
+    );
+  box-shadow:
+    inset 4px 0 0 #198754,
+    0 8px 24px rgba(0, 0, 0, 0.045);
+}
+
+.processing-summary-card-accepted strong {
+  color: #13723f;
+}
+
+.processing-summary-card-rejected {
+  border-color: rgba(224, 39, 53, 0.27);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 239, 241, 0.99),
+      rgba(255, 249, 249, 0.99)
+    );
+  box-shadow:
+    inset 4px 0 0 #df2735,
+    0 8px 24px rgba(0, 0, 0, 0.045);
+}
+
+.processing-summary-card-rejected strong {
+  color: #c91c2a;
+}
+
+.processing-summary-card-movements {
+  background: #ffffff;
+}
+
+.processing-selected-file-types {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.processing-file-count-badge {
+  display: inline-flex !important;
+  width: auto !important;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 8px !important;
+  font-weight: 900 !important;
+  line-height: 1;
+}
+
+.processing-file-count-pdf {
+  border: 1px solid rgba(239, 16, 28, 0.26);
+  background: rgba(239, 16, 28, 0.08);
+  color: #d5111d !important;
+}
+
+.processing-file-count-xml {
+  border: 1px solid rgba(22, 150, 92, 0.26);
+  background: rgba(22, 150, 92, 0.09);
+  color: #117e4d !important;
+}
+
+.processing-file-count-recovery {
+  border: 1px solid rgba(199, 145, 0, 0.34);
+  background: rgba(255, 201, 55, 0.16);
+  color: #8b6700 !important;
+}
+
+.processing-reason-cell {
+  gap: 7px;
+}
+
+.processing-important-code-alert {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(210, 32, 43, 0.30);
+  border-radius: 9px;
+  background: rgba(255, 232, 234, 0.98);
+  color: #d1202d;
+  box-shadow: 0 4px 11px rgba(209, 32, 45, 0.10);
+}
+
+/*
+ * Nesta primeira fase do processamento mostramos apenas:
+ * Nº Sócio, Nome, Valor e Motivo.
+ * Os dados CEDIS continuam disponíveis na lógica/API
+ * para uma etapa posterior.
+ */
+.processing-table-head,
+.processing-table-row {
+  min-width: 760px;
+  grid-template-columns:
+    0.9fr
+    2fr
+    0.8fr
+    1fr;
+}
+
+.processing-table-body {
+  min-width: 760px;
+}
+
+
+/* =========================================================
+   GERAR PDF BANCÁRIO A PARTIR DO XML
+   ========================================================= */
+
+.bank-pdf-generation-section {
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.05);
+}
+
+.bank-pdf-generation-heading {
+  margin-bottom: 16px;
+}
+
+.bank-pdf-generation-heading h2 {
+  margin: 5px 0 4px;
+  font-size: 19px;
+}
+
+.bank-pdf-generation-heading p {
+  max-width: 800px;
+  margin: 0;
+  color: #777777;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.bank-pdf-generation-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      auto-fit,
+      minmax(330px, 1fr)
+    );
+  gap: 12px;
+}
+
+.bank-pdf-generation-card {
+  display: grid;
   grid-template-columns:
     auto minmax(0, 1fr) auto;
-  min-height: 118px;
+  align-items: center;
+  gap: 13px;
+  min-height: 88px;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  border-radius: 13px;
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff,
+      #fafafa
+    );
+  padding: 14px;
 }
 
-.recovery-action-grid-two .recovery-action-icon {
-  width: 50px;
-  height: 50px;
+.bank-pdf-generation-icon {
+  display: inline-flex;
+  width: 45px;
+  height: 45px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: rgba(255, 32, 45, 0.09);
+  color: var(--primary);
 }
 
-.recovery-action-grid-two .recovery-action-copy strong {
-  font-size: 14px;
+.bank-pdf-generation-copy {
+  min-width: 0;
 }
 
-.recovery-action-grid-two .recovery-action-copy small {
-  max-width: 430px;
+.bank-pdf-generation-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.bank-pdf-generation-copy small {
+  display: block;
+  overflow: hidden;
+  color: #777777;
   font-size: 9px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* O antigo cartão intermédio de "Imprimir A4" deixa de existir. */
-.recovery-print-preview-card {
-  display: none !important;
+.bank-pdf-generation-card button {
+  min-height: 39px;
+  border: 1px solid var(--primary);
+  border-radius: 10px;
+  background: var(--primary);
+  padding: 0 15px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow:
+    0 8px 18px
+    rgba(255, 32, 45, 0.17);
 }
 
-
-/* =========================================================
-   CORREÇÃO DE IMPRESSÃO — fluxo real F1/F2
-   Evita repetir a mesma página e permite que as tabelas
-   continuem naturalmente pelas páginas seguintes.
-   ========================================================= */
-
-@media print {
-  html,
-  body {
-    width: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-    background: #ffffff !important;
-  }
-
-  /*
-   * A workspace normal é fixed + 100dvh + scroll.
-   * Em impressão isso fazia o navegador repetir a mesma
-   * zona visível em várias folhas.
-   */
-  .processing-workspace {
-    position: static !important;
-    inset: auto !important;
-    z-index: auto !important;
-    width: auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-    overscroll-behavior: auto !important;
-    background: #ffffff !important;
-  }
-
-  .processing-workspace-content {
-    width: 100% !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  /*
-   * Não usamos visibility:hidden para manter centenas de
-   * linhas invisíveis a ocupar páginas. Escondemos
-   * diretamente toda a interface que não pertence ao relatório.
-   */
-  .processing-workspace-topbar,
-  .processing-summary-grid,
-  .processing-toolbar,
-  .processing-file-groups,
-  .recovery-flow-section,
-  .recovery-results-section,
-  .recovery-print-preview-card {
-    display: none !important;
-  }
-
-  .recovery-print-document {
-    position: static !important;
-    inset: auto !important;
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    visibility: visible !important;
-  }
-
-  .recovery-print-document,
-  .recovery-print-document * {
-    visibility: visible !important;
-  }
-
-  .recovery-print-page {
-    position: static !important;
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-
-  .recovery-print-page-unpaid {
-    break-before: page !important;
-    page-break-before: always !important;
-  }
-
-  .recovery-print-table {
-    width: 100% !important;
-    page-break-inside: auto !important;
-    break-inside: auto !important;
-  }
-
-  .recovery-print-table thead {
-    display: table-header-group !important;
-  }
-
-  .recovery-print-table tbody {
-    display: table-row-group !important;
-  }
-
-  .recovery-print-table tr {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-  }
-
-  /*
-   * Não repetir o cabeçalho completo da secção em cada folha.
-   * O navegador apenas repete o cabeçalho das colunas da tabela.
-   */
-  .recovery-print-report-header,
-  .recovery-print-metadata,
-  .recovery-print-section-title {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-  }
+.bank-pdf-generation-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  box-shadow: none;
 }
 
 
 /* =========================================================
-   FIX FINAL DE IMPRESSÃO
-   Remove da paginação a tabela/ecrã da etapa de filtragem.
-   Sem isto, o conteúdo ficava invisível mas continuava a
-   ocupar páginas antes do relatório.
+   FLUXO DE RECUPERAÇÃO — AÇÕES NO TOPO
    ========================================================= */
 
-@media print {
-  .recovery-step-section {
-    display: none !important;
-  }
+.recovery-top-actions {
+  display: grid;
+  grid-template-columns:
+    minmax(250px, 0.72fr)
+    minmax(560px, 1.28fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255, 32, 45, 0.16);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #ffffff 68%,
+      #fff7f8 100%
+    );
+  box-shadow:
+    0 12px 28px
+    rgba(0, 0, 0, 0.045);
+}
 
-  .processing-workspace-content > .processing-summary-grid,
-  .processing-workspace-content > .processing-toolbar,
-  .processing-workspace-content > .processing-file-groups,
-  .processing-workspace-content > .recovery-step-section {
-    display: none !important;
-  }
+.recovery-top-actions-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-  .processing-workspace-content {
-    display: block !important;
-  }
+.recovery-top-actions-copy h2 {
+  margin: 5px 0 4px;
+  font-size: 20px;
+}
 
-  .recovery-print-document {
-    display: block !important;
-    position: static !important;
-    margin: 0 !important;
-    padding: 0 !important;
+.recovery-top-actions-copy p {
+  max-width: 460px;
+  margin: 0;
+  color: #747474;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.recovery-top-actions-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.recovery-top-action-card {
+  position: relative;
+  display: grid;
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 92px;
+  border: 1px solid rgba(255, 32, 45, 0.22);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    border-color 140ms ease;
+}
+
+.recovery-top-action-card:not(:disabled):hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 32, 45, 0.42);
+  box-shadow:
+    0 10px 22px
+    rgba(255, 32, 45, 0.09);
+}
+
+.recovery-top-action-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
+.recovery-top-action-card-pdf {
+  border-color: rgba(20, 20, 20, 0.16);
+}
+
+.recovery-top-action-card-complete {
+  border-color: rgba(25, 135, 84, 0.28);
+}
+
+.recovery-top-action-icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 32, 45, 0.09);
+  color: var(--primary);
+}
+
+.recovery-top-action-card-pdf
+.recovery-top-action-icon {
+  background: rgba(20, 20, 20, 0.07);
+  color: #171717;
+}
+
+.recovery-top-action-text {
+  min-width: 0;
+}
+
+.recovery-top-action-text strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 900;
+  color: #181818;
+}
+
+.recovery-top-action-text small {
+  display: block;
+  color: #6f6f6f;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.recovery-top-action-check {
+  color: #16834d;
+}
+
+@media (max-width: 1050px) {
+  .recovery-top-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .recovery-top-actions-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -7,6 +7,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Response,
     UploadFile,
     status,
@@ -21,8 +22,16 @@ from app.crud.calendar_file import (
 from app.database.session import get_db
 from app.schemas.calendar_file import (
     BankFileProcessingRead,
+    BankHistoryResponse,
+    BankSearchResponse,
     CalendarDaySummary,
     CalendarFileRead,
+)
+from app.services.bank_search_service import (
+    get_bank_history,
+    get_bank_index_status,
+    rebuild_bank_index,
+    search_bank_candidates,
 )
 from app.services.calendar_service import (
     get_calendar_file_contents,
@@ -51,30 +60,6 @@ async def upload_calendar_file(
     related_file_id: int | None = Form(None),
     db: Session = Depends(get_db),
 ):
-    """
-    Carrega um ficheiro bancário para o calendário.
-
-    Categorias suportadas:
-
-    normal
-        Ficheiro normal de cobrança.
-        Pode ser PDF ou XML.
-
-    returned
-        Ficheiro de devoluções bancárias.
-
-    recovery
-        Ficheiro de recuperação.
-        Deve indicar recovery_part 1 ou 2.
-
-    Para Recovery F2, related_file_id deve conter
-    o ID do respetivo Recovery F1.
-
-    Se file_category não for enviado, mantém-se
-    compatibilidade com o frontend antigo e o
-    ficheiro é tratado como normal.
-    """
-
     calendar_file = await save_calendar_file(
         db,
         calendar_date=calendar_date,
@@ -113,6 +98,110 @@ def list_year_summary(
     return get_year_summary(
         db,
         year,
+    )
+
+
+@router.post(
+    "/bank-index/rebuild",
+)
+def rebuild_search_bank_index(
+    months: int = Query(
+        36,
+        description=(
+            "Período a indexar: 3, 6, 12, 24 ou 36 meses."
+        ),
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Reconstrói o índice da Pesquisa Bancária.
+
+    É a operação demorada feita uma vez. Depois disso,
+    as pesquisas passam a consultar os movimentos no D1.
+    """
+
+    return rebuild_bank_index(
+        db,
+        months=months,
+    )
+
+
+@router.get(
+    "/bank-index/status",
+)
+def read_search_bank_index_status(
+    db: Session = Depends(get_db),
+):
+    """
+    Mostra quantos ficheiros e movimentos estão indexados.
+    """
+
+    return get_bank_index_status(
+        db
+    )
+
+
+@router.get(
+    "/bank-search",
+    response_model=BankSearchResponse,
+)
+def search_bank_history_candidates(
+    q: str = Query(
+        ...,
+        min_length=2,
+        description=(
+            "Número de referência ou nome do titular."
+        ),
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Pesquisa número de referência ou nome do titular.
+
+    Os ficheiros novos são indexados automaticamente.
+    Os ficheiros já indexados não são relidos a cada pesquisa.
+    """
+
+    return search_bank_candidates(
+        db,
+        query=q,
+    )
+
+
+@router.get(
+    "/bank-history",
+    response_model=BankHistoryResponse,
+)
+def read_bank_history(
+    q: str = Query(
+        ...,
+        min_length=2,
+        description=(
+            "A mesma pesquisa usada para encontrar o candidato."
+        ),
+    ),
+    candidate_id: str = Query(...),
+    months: int = Query(
+        3,
+        description=(
+            "3, 6, 12, 24 ou 36 meses."
+        ),
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Histórico Bancário documental.
+
+    Não conclui se uma mensalidade está paga ou em dívida.
+    O tipo do evento é inferido pelo conteúdo do ficheiro,
+    mesmo que o ficheiro tenha sido colocado apenas na zona PDF/XML.
+    """
+
+    return get_bank_history(
+        db,
+        query=q,
+        candidate_id=candidate_id,
+        months=months,
     )
 
 

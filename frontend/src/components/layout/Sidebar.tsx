@@ -7,18 +7,23 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ReceiptText,
+  Search,
   Settings,
   Users,
 } from "lucide-react";
 
 import styles from "./Sidebar.module.css";
 
-
 const menuItems = [
   {
     label: "Calendário",
     icon: CalendarDays,
     href: "/",
+  },
+  {
+    label: "Pesquisa Bancária",
+    icon: Search,
+    href: "/pesquisa_bancaria",
   },
   {
     label: "Criar Referência",
@@ -37,10 +42,8 @@ const menuItems = [
   },
 ];
 
-
 export default function Sidebar() {
-  const pathname =
-    usePathname();
+  const pathname = usePathname();
 
   return (
     <aside className={styles.sidebar}>
@@ -60,8 +63,7 @@ export default function Sidebar() {
         aria-label="Menu principal"
       >
         {menuItems.map((item) => {
-          const Icon =
-            item.icon;
+          const Icon = item.icon;
 
           const active =
             item.label === "Calendário"
@@ -74,9 +76,7 @@ export default function Sidebar() {
               key={item.label}
               href={item.href}
               className={`${styles.menuCard} ${
-                active
-                  ? styles.active
-                  : ""
+                active ? styles.active : ""
               }`}
             >
               <span className={styles.mainIcon}>

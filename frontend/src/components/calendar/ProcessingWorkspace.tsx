@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  FileDown,
   FileSpreadsheet,
   FileText,
   Filter,
@@ -69,6 +70,37 @@ type RecoveryResult = ApiBankMovement & {
 };
 
 
+type BankPdfMovement = {
+  collection_reference: string;
+  adc_reference: string;
+  debtor_name: string;
+  debtor_iban: string;
+  amount: number;
+  reason_code: string;
+  reason_description: string;
+};
+
+
+type BankPdfReport = {
+  report_date: string;
+  file_identification: string;
+  file_total_amount: number;
+  file_total_records: number;
+  return_date: string;
+  creditor_reference: string;
+  return_type: string;
+  creditor_name: string;
+  creditor_iban: string;
+  settlement_date: string;
+  lot_identification: string;
+  accepted_count: number;
+  accepted_amount: number;
+  rejected_count: number;
+  rejected_amount: number;
+  movements: BankPdfMovement[];
+};
+
+
 function getFileCategory(
   file: CalendarFile,
 ): string {
@@ -106,6 +138,30 @@ function getFileIcon(
   }
 
   return FileText;
+}
+
+
+function isAcceptedMovement(
+  movement: ApiBankMovement,
+): boolean {
+  return movement.reason_code === "0000";
+}
+
+
+function isImportantRejectedCode(
+  movement: ApiBankMovement,
+): boolean {
+  const code = (
+    movement.reason_code || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  return (
+    code !== "" &&
+    code !== "0000" &&
+    code !== "AM04"
+  );
 }
 
 
@@ -180,6 +236,537 @@ function escapeHtml(
 }
 
 
+function formatBankDate(
+  value: string | null | undefined,
+): string {
+  if (!value) {
+    return "—";
+  }
+
+  const clean = value.slice(0, 10);
+  const parts = clean.split("-");
+
+  if (parts.length !== 3) {
+    return value;
+  }
+
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+}
+
+
+function formatBankNumber(
+  value: number,
+): string {
+  const fixed = value.toFixed(2);
+  const [integerPart, decimalPart] =
+    fixed.split(".");
+
+  const groupedInteger =
+    integerPart.replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      ".",
+    );
+
+  return `${groupedInteger},${decimalPart}`;
+}
+
+
+function formatBankEuro(
+  value: number,
+): string {
+  return `${formatBankNumber(value)} EUR`;
+}
+
+
+function formatBankTableEuro(
+  value: number,
+): string {
+  return `${formatBankNumber(value)} €`;
+}
+
+
+function elementChildrenByLocalName(
+  parent: Element | Document,
+  localName: string,
+): Element[] {
+  return Array.from(
+    parent.getElementsByTagName("*"),
+  ).filter(
+    (element) =>
+      element.localName === localName,
+  );
+}
+
+
+function firstDirectDescendantText(
+  parent: Element | Document,
+  localName: string,
+): string {
+  const element =
+    elementChildrenByLocalName(
+      parent,
+      localName,
+    )[0];
+
+  return element?.textContent?.trim() || "";
+}
+
+
+function firstTextAlongPath(
+  parent: Element,
+  path: string[],
+): string {
+  let current: Element | null = parent;
+
+  for (const localName of path) {
+    if (!current) {
+      return "";
+    }
+
+    current =
+      Array.from(
+        current.children,
+      ).find(
+        (child) =>
+          child.localName === localName,
+      ) || null;
+  }
+
+  return current?.textContent?.trim() || "";
+}
+
+
+function getReturnTypeFromXml(
+  xml: Document,
+): string {
+  const proprietaryCodes =
+    elementChildrenByLocalName(
+      xml,
+      "Prtry",
+    ).map(
+      (element) =>
+        element.textContent
+          ?.trim()
+          .toUpperCase() || "",
+    );
+
+  if (
+    proprietaryCodes.includes("M009") ||
+    proprietaryCodes.includes("L002")
+  ) {
+    return "Retorno - Devoluções/Reembolsos";
+  }
+
+  return "Retorno - Rejeições";
+}
+
+
+function buildBankPdfReport(
+  xmlText: string,
+  processedData: ApiBankFileProcessing,
+): BankPdfReport {
+  const parser = new DOMParser();
+  const xml =
+    parser.parseFromString(
+      xmlText,
+      "application/xml",
+    );
+
+  if (
+    xml.getElementsByTagName(
+      "parsererror",
+    ).length > 0
+  ) {
+    throw new Error(
+      "Não foi possível interpretar o XML para gerar o PDF.",
+    );
+  }
+
+  const groupHeader =
+    elementChildrenByLocalName(
+      xml,
+      "GrpHdr",
+    )[0];
+
+  const originalGroup =
+    elementChildrenByLocalName(
+      xml,
+      "OrgnlGrpInfAndSts",
+    )[0];
+
+  const paymentGroup =
+    elementChildrenByLocalName(
+      xml,
+      "OrgnlPmtInfAndSts",
+    )[0];
+
+  const reportDateRaw =
+    groupHeader
+      ? firstDirectDescendantText(
+          groupHeader,
+          "CreDtTm",
+        )
+      : "";
+
+  const fileIdentification =
+    originalGroup
+      ? firstDirectDescendantText(
+          originalGroup,
+          "OrgnlMsgId",
+        )
+      : "";
+
+  const lotIdentification =
+    paymentGroup
+      ? firstDirectDescendantText(
+          paymentGroup,
+          "OrgnlPmtInfId",
+        )
+      : fileIdentification;
+
+  const fileTotalRecords =
+    Number(
+      originalGroup
+        ? firstDirectDescendantText(
+            originalGroup,
+            "OrgnlNbOfTxs",
+          )
+        : 0,
+    ) || 0;
+
+  const fileTotalAmount =
+    Number(
+      originalGroup
+        ? firstDirectDescendantText(
+            originalGroup,
+            "OrgnlCtrlSum",
+          )
+        : 0,
+    ) || 0;
+
+  const processedReasonMap =
+    new Map<string, string>();
+
+  for (
+    const movement
+    of processedData.movements
+  ) {
+    const key = [
+      movement.original_member_reference || "",
+      String(
+        Number(
+          movement.amount || 0,
+        ).toFixed(2),
+      ),
+      (
+        movement.reason_code || ""
+      ).toUpperCase(),
+    ].join("|");
+
+    if (
+      movement.reason_description &&
+      !processedReasonMap.has(key)
+    ) {
+      processedReasonMap.set(
+        key,
+        movement.reason_description,
+      );
+    }
+  }
+
+  const transactionElements =
+    elementChildrenByLocalName(
+      xml,
+      "TxInfAndSts",
+    );
+
+  const movements: BankPdfMovement[] =
+    transactionElements.map(
+      (transaction) => {
+        const originalTxRef =
+          Array.from(
+            transaction.children,
+          ).find(
+            (child) =>
+              child.localName ===
+              "OrgnlTxRef",
+          );
+
+        const reasonCode =
+          (
+            firstTextAlongPath(
+              transaction,
+              [
+                "StsRsnInf",
+                "Rsn",
+                "Cd",
+              ],
+            ) ||
+            firstTextAlongPath(
+              transaction,
+              [
+                "StsRsnInf",
+                "Rsn",
+                "Prtry",
+              ],
+            )
+          )
+            .trim()
+            .toUpperCase();
+
+        const collectionReference =
+          firstDirectDescendantText(
+            transaction,
+            "OrgnlEndToEndId",
+          );
+
+        const adcReference =
+          originalTxRef
+            ? firstTextAlongPath(
+                originalTxRef,
+                [
+                  "MndtRltdInf",
+                  "MndtId",
+                ],
+              )
+            : "";
+
+        const debtorName =
+          originalTxRef
+            ? firstTextAlongPath(
+                originalTxRef,
+                [
+                  "Dbtr",
+                  "Pty",
+                  "Nm",
+                ],
+              )
+            : "";
+
+        const debtorIban =
+          originalTxRef
+            ? firstTextAlongPath(
+                originalTxRef,
+                [
+                  "DbtrAcct",
+                  "Id",
+                  "IBAN",
+                ],
+              )
+            : "";
+
+        const amount =
+          Number(
+            originalTxRef
+              ? firstTextAlongPath(
+                  originalTxRef,
+                  [
+                    "Amt",
+                    "InstdAmt",
+                  ],
+                )
+              : 0,
+          ) || 0;
+
+        const reasonKey = [
+          adcReference,
+          amount.toFixed(2),
+          reasonCode,
+        ].join("|");
+
+        const processedReasonDescription =
+          processedReasonMap.get(
+            reasonKey,
+          ) || "";
+
+        const reasonDescription =
+          reasonCode === "0000"
+            ? "Normal; lançamento executado; relação de dados válida"
+            : reasonCode === "AM04"
+              ? "Insuficiência de fundos"
+              : (
+                  processedReasonDescription ||
+                  "Rejeição bancária"
+                );
+
+        return {
+          collection_reference:
+            collectionReference,
+          adc_reference:
+            adcReference,
+          debtor_name:
+            debtorName,
+          debtor_iban:
+            debtorIban,
+          amount,
+          reason_code:
+            reasonCode,
+          reason_description:
+            reasonDescription,
+        };
+      },
+    );
+
+  const firstTxRef =
+    transactionElements.length > 0
+      ? Array.from(
+          transactionElements[0]
+            .children,
+        ).find(
+          (child) =>
+            child.localName ===
+            "OrgnlTxRef",
+        )
+      : undefined;
+
+  const creditorReference =
+    firstTxRef
+      ? firstTextAlongPath(
+          firstTxRef,
+          [
+            "CdtrSchmeId",
+            "Id",
+            "PrvtId",
+            "Othr",
+            "Id",
+          ],
+        )
+      : "";
+
+  const creditorName =
+    firstTxRef
+      ? firstTextAlongPath(
+          firstTxRef,
+          [
+            "Cdtr",
+            "Pty",
+            "Nm",
+          ],
+        )
+      : "";
+
+  const creditorIban =
+    firstTxRef
+      ? firstTextAlongPath(
+          firstTxRef,
+          [
+            "CdtrAcct",
+            "Id",
+            "IBAN",
+          ],
+        )
+      : "";
+
+  const settlementDate =
+    firstTxRef
+      ? firstDirectDescendantText(
+          firstTxRef,
+          "ReqdColltnDt",
+        )
+      : "";
+
+  const accepted =
+    movements.filter(
+      (movement) =>
+        movement.reason_code === "0000",
+    );
+
+  const rejected =
+    movements.filter(
+      (movement) =>
+        movement.reason_code !== "0000",
+    );
+
+  return {
+    report_date:
+      formatBankDate(
+        reportDateRaw,
+      ),
+    file_identification:
+      fileIdentification,
+    file_total_amount:
+      fileTotalAmount,
+    file_total_records:
+      fileTotalRecords ||
+      movements.length,
+    return_date:
+      formatBankDate(
+        reportDateRaw,
+      ),
+    creditor_reference:
+      creditorReference,
+    return_type:
+      getReturnTypeFromXml(xml),
+    creditor_name:
+      creditorName,
+    creditor_iban:
+      creditorIban,
+    settlement_date:
+      formatBankDate(
+        settlementDate,
+      ),
+    lot_identification:
+      lotIdentification ||
+      fileIdentification,
+    accepted_count:
+      accepted.length,
+    accepted_amount:
+      accepted.reduce(
+        (sum, movement) =>
+          sum + movement.amount,
+        0,
+      ),
+    rejected_count:
+      rejected.length,
+    rejected_amount:
+      rejected.reduce(
+        (sum, movement) =>
+          sum + movement.amount,
+        0,
+      ),
+    movements,
+  };
+}
+
+
+function paginateBankMovements(
+  movements: BankPdfMovement[],
+): BankPdfMovement[][] {
+  if (movements.length === 0) {
+    return [[]];
+  }
+
+  const pages: BankPdfMovement[][] = [];
+  let index = 0;
+
+  /*
+   * O PDF real do banco usa uma primeira página
+   * com cabeçalho completo e cerca de 12 movimentos.
+   * As páginas seguintes usam praticamente toda a
+   * folha e apresentam cerca de 27 movimentos.
+   */
+  pages.push(
+    movements.slice(
+      index,
+      index + 12,
+    ),
+  );
+  index += 12;
+
+  while (index < movements.length) {
+    pages.push(
+      movements.slice(
+        index,
+        index + 27,
+      ),
+    );
+    index += 27;
+  }
+
+  return pages;
+}
+
+
 function getReturnOrigin(
   movement: RecoveryResult,
 ): {
@@ -189,17 +776,17 @@ function getReturnOrigin(
   if (movement.source_file === "F1") {
     return {
       label:
-        "Rejeitada no Ficheiro 1 (F1)",
+        "Devolução identificada no Ficheiro 1 (F1)",
       description:
-        "A cobrança foi rejeitada no processamento inicial e não chegou a ser cobrada.",
+        "A cobrança já constava como devolvida no Ficheiro 1.",
     };
   }
 
   return {
     label:
-      "Devolvida no Ficheiro 2 (F2)",
+      "Devolução identificada no Ficheiro 2 (F2)",
     description:
-      "A cobrança foi aceite no Ficheiro 1, mas foi posteriormente devolvida/reembolsada no Ficheiro 2.",
+      "A devolução foi registada no Ficheiro 2 após a tentativa de recuperação.",
   };
 }
 
@@ -363,7 +950,16 @@ export default function ProcessingWorkspace({
   );
 
 
+  const [
+    printReady,
+    setPrintReady,
+  ] = useState(false);
 
+
+  const [
+    reportGeneratedAt,
+    setReportGeneratedAt,
+  ] = useState<Date | null>(null);
 
   const generatedBy =
     "Administrador";
@@ -404,11 +1000,15 @@ export default function ProcessingWorkspace({
       setFileStates([]);
       setShowOnlyUnpaid(false);
       setRecoveryResults(null);
+      setPrintReady(false);
+      setReportGeneratedAt(null);
       return;
     }
 
     setShowOnlyUnpaid(false);
     setRecoveryResults(null);
+    setPrintReady(false);
+    setReportGeneratedAt(null);
 
     const initialStates =
       selection.files.map(
@@ -486,25 +1086,95 @@ export default function ProcessingWorkspace({
 
   const totals =
     useMemo(() => {
-      let movements = 0;
-      let amount = 0;
+      const uniqueMovements =
+        new Map<string, ApiBankMovement>();
 
       for (const item of fileStates) {
         if (!item.data) {
           continue;
         }
 
-        movements +=
-          item.data.parsed_transactions;
+        for (
+          const movement
+          of item.data.movements
+        ) {
+          /*
+           * Evita contar duas vezes o mesmo movimento
+           * quando o banco envia o mesmo lote em PDF + XML.
+           * Mantemos os dados originais do movimento.
+           */
+          const key = [
+            movement.original_member_reference || "",
+            movement.name || "",
+            String(movement.amount || ""),
+            movement.reason_code || "",
+            movement.collection_date || "",
+          ].join("|");
 
-        amount += Number(
-          item.data.parsed_total_amount,
-        );
+          if (!uniqueMovements.has(key)) {
+            uniqueMovements.set(
+              key,
+              movement,
+            );
+          }
+        }
       }
 
+      const movements =
+        Array.from(
+          uniqueMovements.values(),
+        );
+
+      const accepted =
+        movements.filter(
+          isAcceptedMovement,
+        );
+
+      const rejected =
+        movements.filter(
+          (movement) =>
+            !isAcceptedMovement(
+              movement,
+            ),
+        );
+
+      const amount =
+        movements.reduce(
+          (total, movement) =>
+            total +
+            Number(
+              movement.amount || 0,
+            ),
+          0,
+        );
+
+      const acceptedAmount =
+        accepted.reduce(
+          (total, movement) =>
+            total +
+            Number(
+              movement.amount || 0,
+            ),
+          0,
+        );
+
+      const rejectedAmount =
+        rejected.reduce(
+          (total, movement) =>
+            total +
+            Number(
+              movement.amount || 0,
+            ),
+          0,
+        );
+
       return {
-        movements,
+        movements: movements.length,
         amount,
+        accepted: accepted.length,
+        acceptedAmount,
+        rejected: rejected.length,
+        rejectedAmount,
       };
     }, [fileStates]);
 
@@ -564,13 +1234,6 @@ export default function ProcessingWorkspace({
       !f2State.error,
     );
 
-  const recoveredRecoveryResults =
-    recoveryResults?.filter(
-      (movement) =>
-        movement.recovery_status ===
-        "RECUPERADA",
-    ) ?? [];
-
   const unpaidRecoveryResults =
     recoveryResults?.filter(
       (movement) =>
@@ -579,11 +1242,734 @@ export default function ProcessingWorkspace({
     ) ?? [];
 
   const recoveredCount =
-    recoveredRecoveryResults.length;
+    recoveryResults?.filter(
+      (movement) =>
+        movement.recovery_status ===
+        "RECUPERADA",
+    ).length ?? 0;
 
   const unpaidCount =
     unpaidRecoveryResults.length;
 
+  const unpaidAmount =
+    unpaidRecoveryResults.reduce(
+      (total, movement) =>
+        total + Number(movement.amount),
+      0,
+    );
+
+
+  async function handleGenerateBankPdf(
+    state: ProcessingFileState,
+  ) {
+    if (
+      !state.data ||
+      state.file.type !== "xml"
+    ) {
+      return;
+    }
+
+    const printWindow =
+      window.open(
+        "",
+        "_blank",
+        "width=1000,height=760",
+      );
+
+    if (!printWindow) {
+      window.alert(
+        "O navegador bloqueou a janela do PDF. Permita pop-ups para o EPIC Payments e tente novamente.",
+      );
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>A preparar PDF bancário...</title>
+          <style>
+            body {
+              margin: 0;
+              display: grid;
+              min-height: 100vh;
+              place-items: center;
+              background: #f4f4f4;
+              font-family: Arial, Helvetica, sans-serif;
+              color: #111;
+            }
+            .loading {
+              padding: 24px 30px;
+              border: 1px solid #ddd;
+              border-radius: 10px;
+              background: white;
+              font-size: 14px;
+              font-weight: 700;
+              box-shadow: 0 12px 30px rgba(0,0,0,.08);
+            }
+          </style>
+        </head>
+        <body>
+          <div class="loading">
+            A preparar o PDF no formato bancário...
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    try {
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL ??
+        "http://localhost:8000";
+
+      const response =
+        await fetch(
+          `${apiUrl}/files/${state.file.id}/download`,
+          {
+            method: "GET",
+            cache: "no-store",
+          },
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          "Não foi possível obter o XML original.",
+        );
+      }
+
+      const xmlText =
+        await response.text();
+
+      const report =
+        buildBankPdfReport(
+          xmlText,
+          state.data,
+        );
+
+      const pages =
+        paginateBankMovements(
+          report.movements,
+        );
+
+      const totalPages =
+        pages.length;
+
+      const tableHeader = `
+        <thead>
+          <tr>
+            <th class="col-ref">
+              Referência da<br />Cobrança
+            </th>
+            <th class="col-adc">
+              Referência da<br />ADC
+            </th>
+            <th class="col-name">
+              Nome do Devedor
+            </th>
+            <th class="col-iban">
+              IBAN do Devedor
+            </th>
+            <th class="col-amount">
+              Montante
+            </th>
+            <th class="col-code">
+              Código de retorno
+            </th>
+          </tr>
+        </thead>
+      `;
+
+      const renderRows = (
+        rows: BankPdfMovement[],
+      ) =>
+        rows.map(
+          (movement) => `
+            <tr>
+              <td class="center">
+                ${escapeHtml(
+                  movement.collection_reference,
+                )}
+              </td>
+              <td>
+                ${escapeHtml(
+                  movement.adc_reference,
+                )}
+              </td>
+              <td>
+                ${escapeHtml(
+                  movement.debtor_name,
+                )}
+              </td>
+              <td class="iban">
+                ${escapeHtml(
+                  movement.debtor_iban,
+                )}
+              </td>
+              <td class="amount">
+                ${escapeHtml(
+                  formatBankTableEuro(
+                    movement.amount,
+                  ),
+                )}
+              </td>
+              <td class="return-code">
+                ${escapeHtml(
+                  movement.reason_code,
+                )}
+                -
+                ${escapeHtml(
+                  movement.reason_description,
+                )}
+              </td>
+            </tr>
+          `,
+        ).join("");
+
+      const renderPage = (
+        rows: BankPdfMovement[],
+        pageNumber: number,
+      ) => {
+        const firstPage =
+          pageNumber === 1;
+
+        return `
+          <section class="bank-page">
+            ${
+              firstPage
+                ? `
+                  <div class="report-date">
+                    Data de Emissão do Relatório:&nbsp;
+                    ${escapeHtml(
+                      report.report_date,
+                    )}
+                  </div>
+
+                  <div class="epic-logo-wrap">
+                    <img
+                      src="${window.location.origin}/branding/logo-epic-payments-dark.png"
+                      alt="EPIC Payments"
+                    />
+                  </div>
+
+                  <h1>
+                    Detalhe do Retorno do Ficheiro de Cobranças
+                  </h1>
+
+                  <div class="first-info">
+                    <div>
+                      Identificação do Ficheiro:<strong>${escapeHtml(
+                        report.file_identification,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Nº Total de Registos de Ficheiro:<strong>${report.file_total_records}</strong>
+                    </div>
+                    <div>
+                      Montante Total do Ficheiro:<strong>${escapeHtml(
+                        formatBankEuro(
+                          report.file_total_amount,
+                        ),
+                      )}</strong>
+                    </div>
+                    <div>
+                      Data de Emissão do Retorno:<strong>${escapeHtml(
+                        report.return_date,
+                      )}</strong>
+                    </div>
+                  </div>
+
+                  <div class="bank-rule"></div>
+
+                  <div class="second-info">
+                    <div>
+                      Tipo de Retorno:
+                      <strong>${escapeHtml(
+                        report.return_type,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Referência da Entidade Credora:
+                      <strong>${escapeHtml(
+                        report.creditor_reference,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Nome do Credor:
+                      <strong>${escapeHtml(
+                        report.creditor_name,
+                      )}</strong>
+                    </div>
+                    <div>
+                      IBAN do Credor:
+                      <strong>${escapeHtml(
+                        report.creditor_iban,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Identificação do Lote:
+                      <strong>${escapeHtml(
+                        report.lot_identification,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Data de Liquidação:
+                      <strong>${escapeHtml(
+                        report.settlement_date,
+                      )}</strong>
+                    </div>
+                    <div>
+                      Nº Total de Registos:
+                      <strong>${report.movements.length}</strong>
+                    </div>
+                    <div>
+                      Montante Total do Lote:
+                      <strong>${escapeHtml(
+                        formatBankEuro(
+                          report.file_total_amount,
+                        ),
+                      )}</strong>
+                    </div>
+                    <div>
+                      Cobranças Aceites*:
+                      <strong>${report.accepted_count}</strong>
+                    </div>
+                    <div>
+                      Montante de Cobranças Aceites:
+                      <strong>${escapeHtml(
+                        formatBankEuro(
+                          report.accepted_amount,
+                        ),
+                      )}</strong>
+                    </div>
+                    <div>
+                      Total de Cobranças Rejeitadas:
+                      <strong>${report.rejected_count}</strong>
+                    </div>
+                    <div>
+                      Montante de Cobranças Rejeitadas:
+                      <strong>${escapeHtml(
+                        formatBankEuro(
+                          report.rejected_amount,
+                        ),
+                      )}</strong>
+                    </div>
+                  </div>
+
+                  <div class="bank-note">
+                    *Podem ocorrer devoluções/reembolsos de cobranças nas 8 semanas seguintes à data de liquidação.
+                  </div>
+                `
+                : ""
+            }
+
+            <table
+              class="${
+                firstPage
+                  ? "bank-table first-page-table"
+                  : "bank-table"
+              }"
+            >
+              ${tableHeader}
+              <tbody>
+                ${renderRows(rows)}
+              </tbody>
+            </table>
+
+            <div class="page-number">
+              Pág. ${pageNumber} de ${totalPages}
+            </div>
+          </section>
+        `;
+      };
+
+      const pagesHtml =
+        pages.map(
+          (rows, index) =>
+            renderPage(
+              rows,
+              index + 1,
+            ),
+        ).join("");
+
+      const html = `
+        <!doctype html>
+        <html lang="pt">
+          <head>
+            <meta charset="utf-8" />
+            <title>
+              Detalhe do Retorno - ${escapeHtml(
+                report.file_identification,
+              )}
+            </title>
+
+            <style>
+              * {
+                box-sizing: border-box;
+              }
+
+              @page {
+                size: A4 portrait;
+                margin: 0;
+              }
+
+              html,
+              body {
+                margin: 0;
+                padding: 0;
+                background: #d9d9d9;
+                color: #000;
+                font-family: Arial, Helvetica, sans-serif;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+
+              .toolbar {
+                position: sticky;
+                top: 0;
+                z-index: 50;
+                display: flex;
+                justify-content: center;
+                gap: 10px;
+                padding: 12px;
+                border-bottom: 1px solid #c5c5c5;
+                background: rgba(245,245,245,.97);
+              }
+
+              .toolbar button {
+                min-height: 38px;
+                border: 1px solid #222;
+                border-radius: 6px;
+                background: #111;
+                padding: 0 17px;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 800;
+                cursor: pointer;
+              }
+
+              .document {
+                padding: 16px 0 24px;
+              }
+
+              .bank-page {
+                position: relative;
+                width: 210mm;
+                height: 297mm;
+                margin: 0 auto 14px;
+                overflow: hidden;
+                background: #fff;
+                padding: 0;
+                box-shadow:
+                  0 3px 18px
+                  rgba(0,0,0,.16);
+                page-break-after: always;
+                break-after: page;
+              }
+
+              .bank-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
+              }
+
+              /*
+               * Medidas afinadas contra o PDF real do banco.
+               * A única diferença pretendida é o logótipo EPIC Payments.
+               */
+              /*
+               * Cabeçalho alinhado pelo PDF original do banco.
+               * O conteúdo bancário mantém a posição original;
+               * o logótipo EPIC é acrescentado apenas na margem
+               * superior direita, sem empurrar o restante layout.
+               */
+              .report-date {
+                position: absolute;
+                top: 3.1mm;
+                right: 47mm;
+                margin: 0;
+                text-align: right;
+                font-size: 6.85pt;
+                line-height: 1;
+                font-weight: 400;
+                white-space: nowrap;
+              }
+
+              .epic-logo-wrap {
+                position: absolute;
+                top: 3.1mm;
+                right: 8.5mm;
+                width: 34mm;
+                height: 12mm;
+                display: flex;
+                align-items: flex-start;
+                justify-content: flex-end;
+                margin: 0;
+                pointer-events: none;
+              }
+
+              .epic-logo-wrap img {
+                width: 34mm;
+                height: auto;
+                max-height: 12mm;
+                object-fit: contain;
+                object-position: right top;
+              }
+
+              h1 {
+                position: absolute;
+                top: 12.8mm;
+                left: 0;
+                right: 0;
+                margin: 0;
+                text-align: center;
+                font-size: 15.8pt;
+                line-height: 1.04;
+                font-weight: 400;
+              }
+
+              .first-info {
+                position: absolute;
+                top: 27.0mm;
+                left: 0;
+                right: 0;
+                margin: 0;
+                text-align: center;
+                font-size: 7.65pt;
+                line-height: 1.34;
+                font-weight: 400;
+              }
+
+              .first-info strong,
+              .second-info strong {
+                font-weight: 400;
+              }
+
+              .bank-rule {
+                position: absolute;
+                top: 53.2mm;
+                left: 8.9mm;
+                width: 192mm;
+                height: 0;
+                margin: 0;
+                border-top:
+                  0.22mm solid
+                  #202020;
+              }
+
+              .second-info {
+                position: absolute;
+                top: 60.3mm;
+                left: 0;
+                right: 0;
+                margin: 0;
+                text-align: center;
+                font-size: 7.85pt;
+                line-height: 1.50;
+                font-weight: 400;
+              }
+
+              .bank-note {
+                position: absolute;
+                top: 124.9mm;
+                left: 8.8mm;
+                right: 2mm;
+                margin: 0;
+                text-align: left;
+                font-size: 7.15pt;
+                line-height: 1.08;
+                font-weight: 400;
+                white-space: nowrap;
+              }
+
+              .bank-table {
+                position: absolute;
+                top: 7.0mm;
+                left: 7.0mm;
+                width: 201mm;
+                table-layout: fixed;
+                border-collapse: collapse;
+                font-size: 6.55pt;
+                line-height: 1.06;
+              }
+
+              .first-page-table {
+                top: 136.0mm;
+              }
+
+              .bank-table th,
+              .bank-table td {
+                border:
+                  0.20mm solid
+                  #202020;
+              }
+
+              .bank-table th {
+                height: 10.58mm;
+                background: #b9d8ea;
+                padding: 0.65mm 0.8mm;
+                text-align: center;
+                vertical-align: middle;
+                font-size: 6.65pt;
+                line-height: 1.04;
+                font-weight: 400;
+              }
+
+              .bank-table td {
+                height: 9.43mm;
+                padding: 0.52mm 1.15mm;
+                vertical-align: top;
+                font-size: 6.45pt;
+                line-height: 1.04;
+                font-weight: 400;
+                overflow: hidden;
+              }
+
+              .bank-table .col-ref {
+                width: 14.00%;
+              }
+
+              .bank-table .col-adc {
+                width: 12.32%;
+              }
+
+              .bank-table .col-name {
+                width: 19.26%;
+              }
+
+              .bank-table .col-iban {
+                width: 24.63%;
+              }
+
+              .bank-table .col-amount {
+                width: 8.74%;
+              }
+
+              .bank-table .col-code {
+                width: 21.05%;
+              }
+
+              .bank-table .center {
+                text-align: center;
+              }
+
+              .bank-table .iban {
+                font-size: 6.15pt;
+                line-height: 1.04;
+                white-space: nowrap;
+              }
+
+              .bank-table .amount {
+                text-align: right;
+                white-space: nowrap;
+              }
+
+              .bank-table .return-code {
+                padding-left: 1.2mm;
+                padding-right: 0.9mm;
+                font-size: 6.20pt;
+                line-height: 1.03;
+                font-weight: 400;
+              }
+
+              .page-number {
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: 15.8mm;
+                text-align: center;
+                font-size: 7.35pt;
+                line-height: 1;
+                font-weight: 400;
+              }
+
+              @media print {
+                html,
+                body {
+                  background: #fff;
+                }
+
+                .toolbar {
+                  display: none !important;
+                }
+
+                .document {
+                  padding: 0;
+                }
+
+                .bank-page {
+                  margin: 0;
+                  box-shadow: none;
+                }
+              }
+            </style>
+          </head>
+
+          <body>
+            <div class="toolbar">
+              <button
+                type="button"
+                onclick="window.print()"
+              >
+                Guardar / Imprimir PDF
+              </button>
+            </div>
+
+            <main class="document">
+              ${pagesHtml}
+            </main>
+          </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      printWindow.focus();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível gerar o PDF.";
+
+      printWindow.document.open();
+      printWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Erro ao gerar PDF</title>
+            <style>
+              body {
+                margin: 0;
+                display: grid;
+                min-height: 100vh;
+                place-items: center;
+                background: #f5f5f5;
+                font-family: Arial, Helvetica, sans-serif;
+              }
+              .error {
+                max-width: 620px;
+                border: 1px solid #e0aeb2;
+                border-radius: 10px;
+                background: #fff;
+                padding: 24px;
+                color: #b4232f;
+                font-weight: 700;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="error">
+              ${escapeHtml(message)}
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+  }
 
 
   function handleRecoveryFilter() {
@@ -601,61 +1987,134 @@ export default function ProcessingWorkspace({
       );
 
     setRecoveryResults(results);
+    setPrintReady(false);
+    setReportGeneratedAt(null);
+  }
 
-    window.setTimeout(() => {
-      document
-        .getElementById(
-          "recovery-filter-result",
-        )
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    }, 50);
+
+  function getRecoveryReportBaseName() {
+    const f1Name =
+      f1State?.file.name || "Recuperacao";
+
+    const cleanName =
+      f1Name
+        .replace(/\.xml\.pdf$/i, "")
+        .replace(/\.pdf$/i, "")
+        .replace(/\.xml$/i, "")
+        .replace(/[^\p{L}\p{N}]+/gu, "_")
+        .replace(/^_+|_+$/g, "");
+
+    const year =
+      String(
+        selection.date || "",
+      ).slice(0, 4);
+
+    const dateMatch =
+      cleanName.match(/^(\d{2})(\d{2})/);
+
+    let documentId = cleanName;
+
+    if (
+      dateMatch &&
+      year.length === 4 &&
+      !cleanName.startsWith(
+        `${dateMatch[1]}${dateMatch[2]}${year}`,
+      )
+    ) {
+      documentId =
+        cleanName.replace(
+          /^(\d{2})(\d{2})/,
+          `${dateMatch[1]}${dateMatch[2]}${year}`,
+        );
+    }
+
+    return (
+      `Recuperacao_${documentId}_Resultado_Final`
+    );
   }
 
 
   function handlePreparePrint() {
     if (
-      !selection ||
-      !recoveryResults
+      !f1State?.data ||
+      !f2State?.data
     ) {
       return;
     }
 
+    const results =
+      recoveryResults ||
+      buildRecoveryResults(
+        f1State.data,
+        f2State.data,
+      );
+
+    setRecoveryResults(results);
+
     const generatedAt =
       new Date();
+
+    setReportGeneratedAt(
+      generatedAt,
+    );
+    setPrintReady(true);
+
+    const recovered =
+      results.filter(
+        (movement) =>
+          movement.recovery_status ===
+          "RECUPERADA",
+      );
+
+    const unpaid =
+      results.filter(
+        (movement) =>
+          movement.recovery_status ===
+          "NAO_PAGA",
+      );
 
     const printWindow =
       window.open(
         "",
         "_blank",
-        "width=1100,height=820",
+        "width=1050,height=780",
       );
 
     if (!printWindow) {
       window.alert(
-        "O navegador bloqueou a janela de impressão. Permita pop-ups para o EPIC Payments e tente novamente.",
+        "O navegador bloqueou a janela do relatório. Permita pop-ups para o EPIC Payments e tente novamente.",
       );
-
       return;
     }
-
-    printWindow.opener =
-      null;
-
-    const logoUrl =
-      `${window.location.origin}/branding/logo-epic-payments-dark.png`;
 
     const fileNames =
       selection.files
         .map(
-          (file) =>
-            file.name,
+          (file) => file.name,
         )
         .join(" + ");
 
-    const chunkItems = <T,>(
+    const reportName =
+      getRecoveryReportBaseName();
+
+    const escape = (
+      value:
+        | string
+        | number
+        | null
+        | undefined,
+    ) =>
+      String(value ?? "—")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+    const pageSizeRecovered = 18;
+    const pageSizeUnpaid = 11;
+
+    const chunk = <T,>(
       items: T[],
       size: number,
     ): T[][] => {
@@ -674,812 +2133,672 @@ export default function ProcessingWorkspace({
         );
       }
 
-      return chunks;
+      return chunks.length > 0
+        ? chunks
+        : [[]];
     };
 
-    const renderMemberCell = (
-      movement: RecoveryResult,
-    ) => {
-      const memberNumber =
-        movement.member_number ||
-        "—";
-
-      const bankMemberReference =
-        movement.original_member_reference ||
-        "";
-
-      const showBankReference =
-        Boolean(
-          bankMemberReference &&
-          bankMemberReference !==
-            memberNumber,
-        );
-
-      return `
-        <div class="member-cell">
-          <strong>${escapeHtml(memberNumber)}</strong>
-          ${
-            showBankReference
-              ? `<span class="bank-member-reference">Banco: ${escapeHtml(bankMemberReference)}</span>`
-              : ""
-          }
-        </div>
-      `;
-    };
-
-    const renderRecoveredRows = (
-      movements: RecoveryResult[],
-    ) =>
-      movements
-        .map(
-          (movement) => `
-            <tr>
-              <td>${escapeHtml(movement.bank_reference || "—")}</td>
-              <td>${renderMemberCell(movement)}</td>
-              <td class="name-cell">${escapeHtml(movement.name || "—")}</td>
-              <td class="amount-cell">${escapeHtml(formatCurrency(movement.amount))}</td>
-              <td><span class="code code-ok">${escapeHtml(movement.final_reason_code)}</span></td>
-              <td><span class="result-ok">✓ Cobrado</span></td>
-            </tr>
-          `,
-        )
-        .join("");
-
-    const renderUnpaidRows = (
-      movements: RecoveryResult[],
-    ) =>
-      movements
-        .map(
-          (movement) => {
-            const origin =
-              getReturnOrigin(
-                movement,
-              );
-
-            return `
-              <tr>
-                <td>${escapeHtml(movement.bank_reference || "—")}</td>
-                <td>${renderMemberCell(movement)}</td>
-                <td class="name-cell">${escapeHtml(movement.name || "—")}</td>
-                <td class="amount-cell">${escapeHtml(formatCurrency(movement.amount))}</td>
-                <td>
-                  <span class="code code-bad">${escapeHtml(movement.final_reason_code)}</span>
-                  <span class="reason">${escapeHtml(movement.final_reason_description)}</span>
-                </td>
-                <td>
-                  <span class="origin-badge">${escapeHtml(origin.label)}</span>
-                  <span class="origin-description">${escapeHtml(origin.description)}</span>
-                </td>
-              </tr>
-            `;
-          },
-        )
-        .join("");
-
-    /*
-     * A paginação é feita pelo próprio relatório em blocos A4.
-     * Assim conseguimos apresentar "1-7", "2-7", etc. no rodapé,
-     * sem depender dos cabeçalhos/rodapés do navegador.
-     */
     const recoveredPages =
-      chunkItems(
-        recoveredRecoveryResults,
-        18,
+      chunk(
+        recovered,
+        pageSizeRecovered,
       );
 
     const unpaidPages =
-      chunkItems(
-        unpaidRecoveryResults,
-        13,
+      chunk(
+        unpaid,
+        pageSizeUnpaid,
       );
 
-    if (
-      recoveredPages.length === 0
-    ) {
-      recoveredPages.push([]);
-    }
-
-    if (
-      unpaidPages.length === 0
-    ) {
-      unpaidPages.push([]);
-    }
+    const allPages = [
+      ...recoveredPages.map(
+        (rows, index) => ({
+          type: "recovered" as const,
+          rows,
+          continuation:
+            index > 0,
+        }),
+      ),
+      ...unpaidPages.map(
+        (rows, index) => ({
+          type: "unpaid" as const,
+          rows,
+          continuation:
+            index > 0,
+        }),
+      ),
+    ];
 
     const totalPages =
-      recoveredPages.length +
-      unpaidPages.length;
-
-    const totalAttempts =
-      recoveredCount +
-      unpaidCount;
+      allPages.length;
 
     const renderHeader = (
+      title: string,
       subtitle: string,
+      compact = false,
     ) => `
-      <header class="report-header">
-        <img class="logo" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
+      <header class="report-header ${
+        compact
+          ? "report-header-compact"
+          : ""
+      }">
+        <img
+          src="${window.location.origin}/branding/logo-epic-payments-dark.png"
+          alt="EPIC Payments"
+        />
 
-        <div class="report-title">
-          <h1>Relatório de Recuperação</h1>
-          <span>${escapeHtml(subtitle)}</span>
-        </div>
-      </header>
-    `;
-
-    const renderContinuationHeader = (
-      subtitle: string,
-    ) => `
-      <header class="report-header report-header-compact">
-        <img class="logo logo-compact" src="${escapeHtml(logoUrl)}" alt="EPIC Payments" />
-
-        <div class="report-title report-title-compact">
-          <h1>Relatório de Recuperação</h1>
-          <span>${escapeHtml(subtitle)}</span>
+        <div>
+          <h1>${escape(title)}</h1>
+          <p>${escape(subtitle)}</p>
         </div>
       </header>
     `;
 
     const renderMetadata = () => `
-      <div class="metadata">
-        <div class="meta-card">
-          <span class="label">Data de criação</span>
-          <strong>${escapeHtml(formatDateTime(generatedAt))}</strong>
+      <div class="metadata-grid">
+        <div>
+          <span>Data de criação</span>
+          <strong>${escape(
+            formatDateTime(
+              generatedAt,
+            ),
+          )}</strong>
         </div>
 
-        <div class="meta-card">
-          <span class="label">Gerado por</span>
-          <strong>${escapeHtml(generatedBy)}</strong>
+        <div>
+          <span>Gerado por</span>
+          <strong>${escape(
+            generatedBy,
+          )}</strong>
         </div>
 
-        <div class="meta-card meta-files">
-          <span class="label">Ficheiros processados</span>
-          <strong>${escapeHtml(fileNames)}</strong>
+        <div class="metadata-files">
+          <span>Ficheiros processados</span>
+          <strong>${escape(
+            fileNames,
+          )}</strong>
         </div>
 
-        <div class="meta-card count-card count-total">
-          <strong>${totalAttempts}</strong>
-          <span class="label">tentativas</span>
+        <div>
+          <span>Recuperadas</span>
+          <strong>${recovered.length}</strong>
         </div>
 
-        <div class="meta-card count-card count-ok">
-          <strong>${recoveredCount}</strong>
-          <span class="label">recuperadas</span>
-        </div>
-
-        <div class="meta-card count-card count-bad">
-          <strong>${unpaidCount}</strong>
-          <span class="label">não recuperadas</span>
+        <div>
+          <span>Não recuperadas</span>
+          <strong>${unpaid.length}</strong>
         </div>
       </div>
     `;
 
-    const recoveredPagesHtml =
-      recoveredPages
-        .map(
-          (movements, pageIndex) => {
-            const pageNumber =
-              pageIndex + 1;
+    const renderRecoveredRows = (
+      rows: RecoveryResult[],
+    ) =>
+      rows.map(
+        (movement) => `
+          <tr>
+            <td>${escape(
+              movement.bank_reference ||
+              "—",
+            )}</td>
+            <td>${escape(
+              movement.member_number ||
+              "—",
+            )}</td>
+            <td>${escape(
+              movement.name ||
+              "—",
+            )}</td>
+            <td class="money">${escape(
+              formatCurrency(
+                movement.amount,
+              ),
+            )}</td>
+            <td>${escape(
+              movement.final_reason_code,
+            )}</td>
+            <td>RECUPERADA</td>
+          </tr>
+        `,
+      ).join("");
 
-            return `
-              <section class="print-page">
-                ${
-                  pageIndex === 0
-                    ? `${renderHeader(
-                        "Resultado final da conciliação F1 + F2",
-                      )}${renderMetadata()}`
-                    : renderContinuationHeader(
-                        "Cobranças recuperadas — continuação",
-                      )
-                }
+    const renderUnpaidRows = (
+      rows: RecoveryResult[],
+    ) =>
+      rows.map(
+        (movement) => {
+          const origin =
+            getReturnOrigin(
+              movement,
+            );
 
-                <div class="section-title section-title-ok">
-                  <div class="section-title-main">
-                    <strong>Cobranças recuperadas</strong>
-                    <span>${recoveredCount} cobranças</span>
-                  </div>
-
-                  <small>
-                    Cobranças aceites no Ficheiro 1 (código 0000) que não surgiram posteriormente como devolvidas/reembolsadas no Ficheiro 2.
-                  </small>
-                </div>
-
-                <table class="recovered-table">
-                  <thead>
-                    <tr>
-                      <th>Ref.</th>
-                      <th>Nº Sócio</th>
-                      <th>Nome</th>
-                      <th>Valor</th>
-                      <th>Código</th>
-                      <th>Resultado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${renderRecoveredRows(movements)}
-                  </tbody>
-                </table>
-
-                <footer class="page-footer">
-                  <span>EPIC Payments · Relatório de Recuperação</span>
-                  <strong>${pageNumber}-${totalPages}</strong>
-                </footer>
-              </section>
-            `;
-          },
-        )
-        .join("");
-
-    const unpaidPagesHtml =
-      unpaidPages
-        .map(
-          (movements, pageIndex) => {
-            const pageNumber =
-              recoveredPages.length +
-              pageIndex +
-              1;
-
-            return `
-              <section class="print-page">
-                ${renderContinuationHeader(
-                  pageIndex === 0
-                    ? "Cobranças não recuperadas"
-                    : "Cobranças não recuperadas — continuação",
+          return `
+            <tr>
+              <td>${escape(
+                movement.bank_reference ||
+                "—",
+              )}</td>
+              <td>${escape(
+                movement.member_number ||
+                "—",
+              )}</td>
+              <td>${escape(
+                movement.name ||
+                "—",
+              )}</td>
+              <td class="money">${escape(
+                formatCurrency(
+                  movement.amount,
+                ),
+              )}</td>
+              <td>
+                <strong>${escape(
+                  movement.final_reason_code,
+                )}</strong>
+                <span class="small-line">
+                  ${escape(
+                    movement.final_reason_description,
+                  )}
+                </span>
+              </td>
+              <td>
+                ${escape(
+                  origin.label,
                 )}
+                <span class="small-line">
+                  ${escape(
+                    origin.description,
+                  )}
+                </span>
+              </td>
+            </tr>
+          `;
+        },
+      ).join("");
 
-                <div class="section-title section-title-bad">
-                  <div class="section-title-main">
-                    <strong>Cobranças não recuperadas</strong>
-                    <span>${unpaidCount} cobranças</span>
-                  </div>
+    const pagesHtml =
+      allPages.map(
+        (
+          page,
+          pageIndex,
+        ) => {
+          const isRecovered =
+            page.type ===
+            "recovered";
 
-                  <small>
-                    Inclui cobranças rejeitadas no Ficheiro 1 e cobranças inicialmente aceites no F1 que surgiram depois como devolvidas/reembolsadas no F2.
-                  </small>
+          const title =
+            isRecovered
+              ? "Relatório de Recuperação"
+              : "Relatório de Recuperação";
+
+          const subtitle =
+            isRecovered
+              ? page.continuation
+                ? "Cobranças recuperadas — continuação"
+                : "Resultado final da conciliação F1 + F2"
+              : page.continuation
+                ? "Cobranças não recuperadas — continuação"
+                : "Cobranças não recuperadas";
+
+          const sectionTitle =
+            isRecovered
+              ? "Cobranças recuperadas"
+              : "Cobranças não recuperadas";
+
+          const sectionCount =
+            isRecovered
+              ? recovered.length
+              : unpaid.length;
+
+          const tableHead =
+            isRecovered
+              ? `
+                <tr>
+                  <th>Ref.</th>
+                  <th>Nº Sócio</th>
+                  <th>Nome</th>
+                  <th>Valor</th>
+                  <th>Código</th>
+                  <th>Resultado</th>
+                </tr>
+              `
+              : `
+                <tr>
+                  <th>Ref.</th>
+                  <th>Nº Sócio</th>
+                  <th>Nome</th>
+                  <th>Valor</th>
+                  <th>Código / Motivo</th>
+                  <th>Origem</th>
+                </tr>
+              `;
+
+          const tableBody =
+            isRecovered
+              ? renderRecoveredRows(
+                  page.rows,
+                )
+              : renderUnpaidRows(
+                  page.rows,
+                );
+
+          return `
+            <section class="report-page">
+              ${renderHeader(
+                title,
+                subtitle,
+                page.continuation,
+              )}
+
+              ${
+                pageIndex === 0
+                  ? renderMetadata()
+                  : ""
+              }
+
+              <div class="section-heading">
+                <div>
+                  <strong>
+                    ${escape(
+                      sectionTitle,
+                    )}
+                  </strong>
+                  <span>
+                    ${sectionCount}
+                    cobrança${
+                      sectionCount === 1
+                        ? ""
+                        : "s"
+                    }
+                  </span>
                 </div>
 
-                <table class="unpaid-table">
-                  <thead>
-                    <tr>
-                      <th>Ref.</th>
-                      <th>Nº Sócio</th>
-                      <th>Nome</th>
-                      <th>Valor</th>
-                      <th>Código / Motivo</th>
-                      <th>Origem do não pagamento</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${renderUnpaidRows(movements)}
-                  </tbody>
-                </table>
+                ${
+                  !page.continuation
+                    ? `
+                      <small>
+                        ${
+                          isRecovered
+                            ? "Referências com código 0000 no F1 que não surgiram devolvidas no F2."
+                            : "Inclui rejeições do F1 e referências inicialmente aceites no F1 que surgiram devolvidas no F2."
+                        }
+                      </small>
+                    `
+                    : ""
+                }
+              </div>
 
-                <footer class="page-footer">
-                  <span>EPIC Payments · Relatório de Recuperação</span>
-                  <strong>${pageNumber}-${totalPages}</strong>
-                </footer>
-              </section>
-            `;
-          },
-        )
-        .join("");
+              <table>
+                <thead>
+                  ${tableHead}
+                </thead>
+                <tbody>
+                  ${tableBody}
+                </tbody>
+              </table>
 
-    const documentHtml = `
+              <footer>
+                <span>
+                  EPIC Payments · Documento interno
+                </span>
+                <span>
+                  Página ${pageIndex + 1} de ${totalPages}
+                </span>
+              </footer>
+            </section>
+          `;
+        },
+      ).join("");
+
+    const html = `
       <!doctype html>
       <html lang="pt">
         <head>
           <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>EPIC Payments - Relatório de Recuperação</title>
+          <title>${escape(
+            reportName,
+          )}</title>
 
           <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 10mm 12mm 10mm;
-            }
-
             * {
               box-sizing: border-box;
+            }
+
+            @page {
+              size: A4 portrait;
+              margin: 0;
             }
 
             html,
             body {
               margin: 0;
               padding: 0;
-              background: #ffffff;
-              color: #151515;
-              font-family: Arial, Helvetica, sans-serif;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
+              background: #dddddd;
+              font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+              color: #111111;
+              -webkit-print-color-adjust:
+                exact;
+              print-color-adjust:
+                exact;
             }
 
-            .print-page {
+            .toolbar {
+              position: sticky;
+              top: 0;
+              z-index: 20;
+              display: flex;
+              justify-content: center;
+              padding: 12px;
+              background: #f4f4f4;
+              border-bottom:
+                1px solid #cccccc;
+            }
+
+            .toolbar button {
+              height: 40px;
+              padding: 0 18px;
+              border: 0;
+              border-radius: 8px;
+              background: #111111;
+              color: #ffffff;
+              font-weight: 800;
+              cursor: pointer;
+            }
+
+            .document {
+              padding:
+                16px 0
+                26px;
+            }
+
+            .report-page {
               position: relative;
-              width: 100%;
-              height: 275mm;
+              width: 210mm;
+              height: 297mm;
+              margin:
+                0 auto
+                14px;
               overflow: hidden;
-              padding-bottom: 15mm;
-              break-after: page;
-              page-break-after: always;
+              background: #ffffff;
+              padding:
+                12mm
+                10mm
+                19mm;
+              page-break-after:
+                always;
+              break-after:
+                page;
+              box-shadow:
+                0 5px 22px
+                rgba(0,0,0,.14);
             }
 
-            .print-page:last-child {
-              break-after: auto;
+            .report-page:last-child {
               page-break-after: auto;
+              break-after: auto;
             }
 
             .report-header {
               display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 8mm;
-              border-bottom: 1.2pt solid #ef2733;
+              align-items: flex-start;
+              justify-content:
+                space-between;
+              gap: 12mm;
               padding-bottom: 5mm;
-              margin-bottom: 5mm;
+              border-bottom:
+                .45mm solid
+                #111111;
             }
 
-            .logo {
-              width: 43mm;
-              max-height: 19mm;
+            .report-header img {
+              width: 34mm;
+              height: auto;
               object-fit: contain;
-              object-position: left center;
             }
 
-            .report-title {
+            .report-header > div {
+              flex: 1;
               text-align: right;
             }
 
-            .report-title h1 {
+            .report-header h1 {
               margin: 0;
-              font-size: 17pt;
-              font-weight: 900;
-              letter-spacing: -0.02em;
+              font-size: 20pt;
+              line-height: 1.05;
               text-transform: uppercase;
             }
 
-            .report-title span {
-              display: block;
-              margin-top: 1.5mm;
-              color: #777777;
-              font-size: 7.5pt;
+            .report-header p {
+              margin:
+                2.3mm 0 0;
+              font-size: 9pt;
               font-weight: 700;
             }
 
-
             .report-header-compact {
-              padding-bottom: 2mm;
-              margin-bottom: 2.5mm;
+              padding-bottom: 3.5mm;
             }
 
-            .logo-compact {
+            .report-header-compact img {
               width: 27mm;
-              max-height: 10mm;
             }
 
-            .report-title-compact h1 {
-              font-size: 12.5pt;
+            .report-header-compact h1 {
+              font-size: 16pt;
             }
 
-            .report-title-compact span {
-              margin-top: 1mm;
-              font-size: 6.8pt;
-            }
-
-            .metadata {
+            .metadata-grid {
               display: grid;
-              grid-template-columns: 0.92fr 0.78fr 1.6fr 0.68fr 0.68fr 0.82fr;
-              gap: 2.2mm;
-              margin-bottom: 5mm;
+              grid-template-columns:
+                .95fr
+                .8fr
+                1.65fr
+                .7fr
+                .8fr;
+              gap: 2.5mm;
+              margin-top: 5mm;
             }
 
-            .meta-card {
-              min-height: 18mm;
-              border: 0.7pt solid #dddddd;
-              border-radius: 3.4mm;
-              background:
-                linear-gradient(
-                  180deg,
-                  #ffffff 0%,
-                  #f7f7f7 100%
-                );
-              padding: 3.2mm 3.3mm;
-              box-shadow:
-                0 1.4mm 4mm
-                rgba(0, 0, 0, 0.055);
+            .metadata-grid > div {
+              min-height: 17mm;
+              padding:
+                3mm
+                3.2mm;
+              border:
+                .25mm solid
+                #cccccc;
+              border-radius:
+                2.2mm;
             }
 
-            .meta-card .label {
+            .metadata-grid span {
               display: block;
-              margin-bottom: 1.4mm;
-              color: #777777;
-              font-size: 6.2pt;
-              font-weight: 800;
-              text-transform: uppercase;
-            }
-
-            .meta-card strong {
-              display: block;
-              color: #161616;
-              font-size: 7.8pt;
-              font-weight: 850;
-              line-height: 1.3;
-            }
-
-            .meta-files strong {
-              overflow-wrap: anywhere;
+              margin-bottom:
+                1.4mm;
               font-size: 6.8pt;
+              font-weight: 800;
+              text-transform:
+                uppercase;
             }
 
-            .count-card {
+            .metadata-grid strong {
+              display: block;
+              font-size: 8.3pt;
+              line-height: 1.25;
+              overflow-wrap:
+                anywhere;
+            }
+
+            .section-heading {
               display: flex;
-              flex-direction: column;
-              justify-content: center;
-              text-align: center;
-            }
-
-            .count-card strong {
-              font-size: 17pt;
-              line-height: 1;
-            }
-
-            .count-card .label {
-              margin: 1.4mm 0 0;
-              font-size: 5.8pt;
-            }
-
-            .count-total {
-              border-color: rgba(35, 35, 35, 0.20);
-              background:
-                linear-gradient(
-                  180deg,
-                  #ffffff 0%,
-                  #eeeeee 100%
-                );
-            }
-
-            .count-total strong {
-              color: #191919;
-            }
-
-            .count-total .label {
-              color: #5f5f5f;
-            }
-
-            .count-ok {
-              border-color: rgba(22, 126, 65, 0.28);
-              background: rgba(22, 126, 65, 0.045);
-            }
-
-            .count-ok strong,
-            .count-ok .label {
-              color: #167e41;
-            }
-
-            .count-bad {
-              border-color: rgba(211, 25, 38, 0.28);
-              background: rgba(211, 25, 38, 0.045);
-            }
-
-            .count-bad strong,
-            .count-bad .label {
-              color: #d31926;
-            }
-
-            .section-title {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
+              align-items: flex-end;
+              justify-content:
+                space-between;
               gap: 6mm;
-              border-radius: 2.5mm 2.5mm 0 0;
-              padding: 3.2mm 3.8mm;
-              color: #ffffff;
+              margin:
+                6mm 0
+                3mm;
             }
 
-            .section-title-ok {
-              background: #167e41;
-            }
-
-            .section-title-bad {
-              background: #d31926;
-            }
-
-            .section-title-main {
+            .section-heading div {
               display: flex;
               align-items: baseline;
               gap: 3mm;
             }
 
-            .section-title-main strong {
-              font-size: 11pt;
-              font-weight: 900;
-              text-transform: uppercase;
+            .section-heading strong {
+              font-size: 12pt;
+              text-transform:
+                uppercase;
             }
 
-            .section-title-main span {
+            .section-heading span,
+            .section-heading small {
               font-size: 7pt;
-              font-weight: 800;
+              line-height: 1.25;
             }
 
-            .section-title small {
-              max-width: 92mm;
-              font-size: 6.3pt;
-              font-weight: 650;
-              line-height: 1.35;
+            .section-heading small {
+              max-width: 80mm;
               text-align: right;
             }
 
             table {
               width: 100%;
-              border-collapse: collapse;
+              border-collapse:
+                collapse;
               table-layout: fixed;
-              font-size: 7pt;
+              font-size: 7.2pt;
             }
 
-            thead {
-              display: table-header-group;
-            }
-
-            tr {
-              break-inside: avoid;
-              page-break-inside: avoid;
-              orphans: 1;
-              widows: 1;
-            }
-
-            tbody tr {
-              break-inside: avoid !important;
-              page-break-inside: avoid !important;
+            th,
+            td {
+              border:
+                .22mm solid
+                #c8c8c8;
+              padding:
+                1.9mm
+                2.2mm;
+              vertical-align: top;
             }
 
             th {
-              border-bottom: 0.7pt solid #d6d6d6;
-              background: #f3f3f3;
-              padding: 2.2mm 2mm;
-              color: #555555;
-              font-size: 6.2pt;
-              font-weight: 900;
+              background: #f2f2f2;
               text-align: left;
-              text-transform: uppercase;
+              font-size: 6.7pt;
+              text-transform:
+                uppercase;
             }
 
-            td {
-              border-bottom: 0.45pt solid #e5e5e5;
-              padding: 2.15mm 2mm;
-              vertical-align: middle;
-              line-height: 1.22;
-              overflow-wrap: anywhere;
+            th:nth-child(1),
+            td:nth-child(1) {
+              width: 8%;
             }
 
-            .recovered-table tbody tr:nth-child(even) {
-              background: rgba(22, 126, 65, 0.027);
+            th:nth-child(2),
+            td:nth-child(2) {
+              width: 13%;
             }
 
-            .unpaid-table tbody tr:nth-child(even) {
-              background: rgba(211, 25, 38, 0.027);
+            th:nth-child(3),
+            td:nth-child(3) {
+              width: 27%;
             }
 
-            .amount-cell {
-              font-weight: 800;
+            th:nth-child(4),
+            td:nth-child(4) {
+              width: 12%;
+            }
+
+            th:nth-child(5),
+            td:nth-child(5) {
+              width: 17%;
+            }
+
+            th:nth-child(6),
+            td:nth-child(6) {
+              width: 23%;
+            }
+
+            td.money {
+              font-weight: 700;
               white-space: nowrap;
             }
 
-            .name-cell {
-              font-weight: 700;
-            }
-
-            .member-cell {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 0.45mm;
-            }
-
-            .member-cell strong {
-              font-size: 7pt;
-              font-weight: 850;
-            }
-
-            .bank-member-reference {
+            .small-line {
               display: block;
-              color: #b06a00;
-              font-size: 5.8pt;
-              font-weight: 800;
-              line-height: 1.15;
-            }
-
-            .recovered-table th:nth-child(1),
-            .recovered-table td:nth-child(1) { width: 10%; }
-            .recovered-table th:nth-child(2),
-            .recovered-table td:nth-child(2) { width: 13%; }
-            .recovered-table th:nth-child(3),
-            .recovered-table td:nth-child(3) { width: 28%; }
-            .recovered-table th:nth-child(4),
-            .recovered-table td:nth-child(4) { width: 13%; }
-            .recovered-table th:nth-child(5),
-            .recovered-table td:nth-child(5) { width: 13%; }
-            .recovered-table th:nth-child(6),
-            .recovered-table td:nth-child(6) { width: 23%; }
-
-            .unpaid-table th:nth-child(1),
-            .unpaid-table td:nth-child(1) { width: 8%; }
-            .unpaid-table th:nth-child(2),
-            .unpaid-table td:nth-child(2) { width: 11%; }
-            .unpaid-table th:nth-child(3),
-            .unpaid-table td:nth-child(3) { width: 20%; }
-            .unpaid-table th:nth-child(4),
-            .unpaid-table td:nth-child(4) { width: 10%; }
-            .unpaid-table th:nth-child(5),
-            .unpaid-table td:nth-child(5) { width: 23%; }
-            .unpaid-table th:nth-child(6),
-            .unpaid-table td:nth-child(6) { width: 28%; }
-
-            .code {
-              font-weight: 900;
-            }
-
-            .code-ok {
-              display: inline-block;
-              border: 0.6pt solid rgba(22, 126, 65, 0.32);
-              border-radius: 8mm;
-              background: rgba(22, 126, 65, 0.06);
-              padding: 1mm 2.2mm;
-              color: #167e41;
-              font-size: 6.4pt;
-            }
-
-            .code-bad {
-              display: block;
-              margin-bottom: 0.7mm;
-              color: #d31926;
-              font-size: 6.7pt;
-            }
-
-            .result-ok {
-              color: #167e41;
-              font-size: 6.8pt;
-              font-weight: 900;
-              text-transform: uppercase;
-            }
-
-            .reason {
-              display: block;
-              color: #454545;
-              font-size: 6.1pt;
-              line-height: 1.3;
-            }
-
-            .origin-badge {
-              display: inline-block;
-              margin-bottom: 1mm;
-              border: 0.6pt solid rgba(211, 25, 38, 0.28);
-              border-radius: 8mm;
-              background: rgba(211, 25, 38, 0.05);
-              padding: 0.9mm 1.8mm;
-              color: #c81824;
-              font-size: 5.7pt;
-              font-weight: 900;
-              line-height: 1.2;
-              text-transform: uppercase;
-            }
-
-            .origin-description {
-              display: block;
-              color: #555555;
-              font-size: 5.9pt;
-              line-height: 1.3;
-            }
-
-
-            .unpaid-table td {
-              line-height: 1.38;
-            }
-
-            .unpaid-table .reason,
-            .unpaid-table .origin-description {
-              line-height: 1.35;
-            }
-
-            .recovered-table,
-            .unpaid-table {
-              margin-bottom: 8mm;
-            }
-
-
-            /* Compactação para aproveitar melhor a folha A4 */
-            .unpaid-table th,
-            .recovered-table th {
-              padding-top: 2.1mm;
-              padding-bottom: 2.1mm;
-            }
-
-            .unpaid-table td {
-              padding-top: 2.45mm;
-              padding-bottom: 2.45mm;
-              line-height: 1.24;
-            }
-
-            .recovered-table td {
-              padding-top: 2.25mm;
-              padding-bottom: 2.25mm;
-              line-height: 1.20;
-            }
-
-            .section-title {
-              margin-bottom: 2.5mm;
-            }
-
-            .page-footer {
-              position: absolute;
-              right: 0;
-              bottom: 2.5mm;
-              left: 0;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              border-top: 0.6pt solid #dddddd;
-              padding-top: 2.2mm;
-              color: #777777;
+              margin-top: 1mm;
+              color: #4f4f4f;
               font-size: 6.2pt;
-              font-weight: 700;
+              line-height: 1.12;
             }
 
-            .page-footer strong {
-              color: #202020;
-              font-size: 7pt;
-              font-weight: 900;
+            footer {
+              position: absolute;
+              left: 10mm;
+              right: 10mm;
+              bottom: 7mm;
+              display: flex;
+              justify-content:
+                space-between;
+              padding-top: 2.2mm;
+              border-top:
+                .22mm solid
+                #bbbbbb;
+              font-size: 6.7pt;
+              color: #555555;
+            }
+
+            @media print {
+              html,
+              body {
+                background: #ffffff;
+              }
+
+              .toolbar {
+                display: none;
+              }
+
+              .document {
+                padding: 0;
+              }
+
+              .report-page {
+                margin: 0;
+                box-shadow: none;
+              }
             }
           </style>
         </head>
 
         <body>
-          ${recoveredPagesHtml}
-          ${unpaidPagesHtml}
+          <div class="toolbar">
+            <button
+              type="button"
+              onclick="window.print()"
+            >
+              Guardar / Imprimir PDF
+            </button>
+          </div>
+
+          <main class="document">
+            ${pagesHtml}
+          </main>
         </body>
       </html>
     `;
 
     printWindow.document.open();
     printWindow.document.write(
-      documentHtml,
+      html,
     );
     printWindow.document.close();
-
-    const images =
-      Array.from(
-        printWindow.document.images,
-      );
-
-    const imagePromises =
-      images.map(
-        (image) => {
-          if (image.complete) {
-            return Promise.resolve();
-          }
-
-          return new Promise<void>(
-            (resolve) => {
-              image.onload =
-                () => resolve();
-              image.onerror =
-                () => resolve();
-            },
-          );
-        },
-      );
-
-    void Promise.all(
-      imagePromises,
-    ).then(
-      () => {
-        window.setTimeout(
-          () => {
-            printWindow.focus();
-            printWindow.print();
-          },
-          120,
-        );
-      },
-    );
+    printWindow.focus();
   }
+
 
 
   return (
@@ -1525,8 +2844,99 @@ export default function ProcessingWorkspace({
 
 
       <main className="processing-workspace-content">
+        {isRecoverySelection ? (
+          <section className="recovery-top-actions">
+            <div className="recovery-top-actions-copy">
+              <span className="section-label">
+                Recuperação
+              </span>
+
+              <h2>
+                Conciliação F1 + F2
+              </h2>
+
+              <p>
+                Pode consultar a conciliação no ecrã ou gerar diretamente o relatório final.
+              </p>
+            </div>
+
+            <div className="recovery-top-actions-grid">
+              <button
+                type="button"
+                className={[
+                  "recovery-top-action-card",
+                  recoveryResults
+                    ? "recovery-top-action-card-complete"
+                    : "",
+                ].join(" ")}
+                disabled={
+                  !recoveryPairReady
+                }
+                onClick={
+                  handleRecoveryFilter
+                }
+              >
+                <span className="recovery-top-action-icon">
+                  <SearchCheck
+                    size={23}
+                  />
+                </span>
+
+                <span className="recovery-top-action-text">
+                  <strong>
+                    Conciliar F1 + F2
+                  </strong>
+
+                  <small>
+                    Ler os dois ficheiros e apresentar o resultado final da conciliação.
+                  </small>
+                </span>
+
+                {recoveryResults ? (
+                  <CheckCircle2
+                    className="recovery-top-action-check"
+                    size={18}
+                  />
+                ) : null}
+              </button>
+
+              <button
+                type="button"
+                className={[
+                  "recovery-top-action-card",
+                  "recovery-top-action-card-pdf",
+                  printReady
+                    ? "recovery-top-action-card-complete"
+                    : "",
+                ].join(" ")}
+                disabled={
+                  !recoveryPairReady
+                }
+                onClick={
+                  handlePreparePrint
+                }
+              >
+                <span className="recovery-top-action-icon">
+                  <Printer
+                    size={23}
+                  />
+                </span>
+
+                <span className="recovery-top-action-text">
+                  <strong>
+                    Gerar PDF
+                  </strong>
+
+                  <small>
+                    Conciliar automaticamente F1 + F2 e preparar o relatório final para guardar ou imprimir.
+                  </small>
+                </span>
+              </button>
+            </div>
+          </section>
+        ) : null}
         <section className="processing-summary-grid">
-          <article className="processing-summary-card">
+          <article className="processing-summary-card processing-summary-card-files">
             <span>
               Ficheiros selecionados
             </span>
@@ -1534,33 +2944,65 @@ export default function ProcessingWorkspace({
             <strong>
               {selection.files.length}
             </strong>
+
+            <div className="processing-selected-file-types">
+              {pdfCount > 0 ? (
+                <span className="processing-file-count-badge processing-file-count-pdf">
+                  PDF {pdfCount}
+                </span>
+              ) : null}
+
+              {xmlCount > 0 ? (
+                <span className="processing-file-count-badge processing-file-count-xml">
+                  XML {xmlCount}
+                </span>
+              ) : null}
+
+              {recoveryFiles.length > 0 ? (
+                <span className="processing-file-count-badge processing-file-count-recovery">
+                  REC {recoveryFiles.length}
+                </span>
+              ) : null}
+            </div>
           </article>
 
-          <article className="processing-summary-card">
+          <article className="processing-summary-card processing-summary-card-accepted">
             <span>
-              {isRecoverySelection
-                ? "Recuperação"
-                : "PDF"}
+              Total de aceites
             </span>
 
             <strong>
-              {isRecoverySelection
-                ? recoveryFiles.length
-                : pdfCount}
+              {totals.accepted}
             </strong>
+
+            <small>
+              {hasLoadedMovements
+                ? formatCurrency(
+                    totals.acceptedAmount,
+                  )
+                : "A aguardar leitura"}
+            </small>
           </article>
 
-          <article className="processing-summary-card">
+          <article className="processing-summary-card processing-summary-card-rejected">
             <span>
-              XML
+              Total de rejeitados
             </span>
 
             <strong>
-              {xmlCount}
+              {totals.rejected}
             </strong>
+
+            <small>
+              {hasLoadedMovements
+                ? formatCurrency(
+                    totals.rejectedAmount,
+                  )
+                : "A aguardar leitura"}
+            </small>
           </article>
 
-          <article className="processing-summary-card">
+          <article className="processing-summary-card processing-summary-card-movements">
             <span>
               Movimentos lidos
             </span>
@@ -1735,9 +3177,6 @@ export default function ProcessingWorkspace({
                         <span>Nome</span>
                         <span>Valor</span>
                         <span>Motivo</span>
-                        <span>Telemóvel</span>
-                        <span>Email</span>
-                        <span>Idade</span>
                       </div>
                     )}
 
@@ -1862,6 +3301,21 @@ export default function ProcessingWorkspace({
                                           accepted
                                         }
                                       />
+
+                                      {isImportantRejectedCode(
+                                        movement,
+                                      ) ? (
+                                        <span
+                                          className="processing-important-code-alert"
+                                          title={`Código ${movement.reason_code}: ${movement.reason_description || "rejeição que requer verificação"}`}
+                                          aria-label={`Alerta para código ${movement.reason_code}`}
+                                        >
+                                          <AlertTriangle
+                                            size={17}
+                                            strokeWidth={2.5}
+                                          />
+                                        </span>
+                                      ) : null}
                                     </div>
                                   </div>
                                 );
@@ -1920,22 +3374,21 @@ export default function ProcessingWorkspace({
                                         accepted
                                       }
                                     />
-                                  </div>
 
-                                  <div>
-                                    {movement.phone ||
-                                      "—"}
-                                  </div>
-
-                                  <div>
-                                    {movement.email ||
-                                      "—"}
-                                  </div>
-
-                                  <div>
-                                    {movement.age != null
-                                      ? `${movement.age} anos`
-                                      : "—"}
+                                      {isImportantRejectedCode(
+                                        movement,
+                                      ) ? (
+                                        <span
+                                          className="processing-important-code-alert"
+                                          title={`Código ${movement.reason_code}: ${movement.reason_description || "rejeição que requer verificação"}`}
+                                          aria-label={`Alerta para código ${movement.reason_code}`}
+                                        >
+                                          <AlertTriangle
+                                            size={17}
+                                            strokeWidth={2.5}
+                                          />
+                                        </span>
+                                      ) : null}
                                   </div>
                                 </div>
                               );
@@ -1951,97 +3404,75 @@ export default function ProcessingWorkspace({
         </div>
 
 
+        {!isRecoverySelection ? (
+          <section className="bank-pdf-generation-section">
+            <div className="bank-pdf-generation-heading">
+              <span className="section-label">
+                Documento bancário
+              </span>
+
+              <h2>
+                Gerar PDF a partir do XML
+              </h2>
+
+              <p>
+                Recria o relatório no formato do ficheiro PDF enviado pelo banco, utilizando os dados originais do XML processado.
+              </p>
+            </div>
+
+            <div className="bank-pdf-generation-grid">
+              {fileStates
+                .filter(
+                  (state) =>
+                    state.file.type ===
+                      "xml" &&
+                    !isRecoveryFile(
+                      state.file,
+                    ),
+                )
+                .map((state) => (
+                  <article
+                    key={`bank-pdf-${state.file.id}`}
+                    className="bank-pdf-generation-card"
+                  >
+                    <span className="bank-pdf-generation-icon">
+                      <FileDown size={24} />
+                    </span>
+
+                    <div className="bank-pdf-generation-copy">
+                      <strong>
+                        Relatório bancário
+                      </strong>
+
+                      <small>
+                        {state.file.name}
+                      </small>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={
+                        state.loading ||
+                        Boolean(state.error) ||
+                        !state.data
+                      }
+                      onClick={() =>
+                        handleGenerateBankPdf(
+                          state,
+                        )
+                      }
+                    >
+                      Gerar PDF
+                    </button>
+                  </article>
+                ))}
+            </div>
+          </section>
+        ) : null}
+
+
         {isRecoverySelection ? (
           <>
-            <section className="recovery-step-section">
-              <div className="recovery-step-heading">
-                <span className="section-label">
-                  Fluxo de recuperação
-                </span>
-
-                <h2>
-                  Tratamento F1 + F2
-                </h2>
-
-                <p>
-                  As duas etapas abaixo são executadas pela ordem indicada.
-                </p>
-              </div>
-
-              <div className="recovery-action-grid recovery-action-grid-two">
-                <button
-                  type="button"
-                  className={[
-                    "recovery-action-card",
-                    recoveryResults
-                      ? "recovery-action-card-complete"
-                      : "",
-                  ].join(" ")}
-                  disabled={
-                    !recoveryPairReady
-                  }
-                  onClick={
-                    handleRecoveryFilter
-                  }
-                >
-
-                  <span className="recovery-action-icon">
-                    <SearchCheck
-                      size={24}
-                    />
-                  </span>
-
-                  <span className="recovery-action-copy">
-                    <strong>
-                      Realizar filtragem
-                    </strong>
-
-                    <small>
-                      Conciliar F1 e F2 pela Referência da Cobrança e determinar pago / não pago.
-                    </small>
-                  </span>
-
-                  {recoveryResults ? (
-                    <CheckCircle2
-                      className="recovery-action-check"
-                      size={19}
-                    />
-                  ) : null}
-                </button>
-
-
-                <button
-                  type="button"
-                  className="recovery-action-card"
-                  disabled={
-                    !recoveryResults
-                  }
-                  onClick={
-                    handlePreparePrint
-                  }
-                >
-
-                  <span className="recovery-action-icon">
-                    <Printer
-                      size={24}
-                    />
-                  </span>
-
-                  <span className="recovery-action-copy">
-                    <strong>
-                      Imprimir
-                    </strong>
-
-                    <small>
-                      Abrir diretamente a impressão com os dados resultantes da filtragem F1 + F2.
-                    </small>
-                  </span>
-
-                </button>
-              </div>
-            </section>
-
-
             {recoveryResults ? (
               <section
                 id="recovery-filter-result"
@@ -2050,7 +3481,7 @@ export default function ProcessingWorkspace({
                 <header className="recovery-result-header">
                   <div>
                     <span className="section-label">
-                      Resultado da etapa 01
+                      Resultado da conciliação
                     </span>
 
                     <h2>
@@ -2173,7 +3604,6 @@ export default function ProcessingWorkspace({
                 </div>
               </section>
             ) : null}
-
 
 
 

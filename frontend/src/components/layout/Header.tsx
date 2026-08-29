@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 
-
 const pageInfo: Record<
   string,
   {
@@ -41,30 +40,35 @@ const pageInfo: Record<
   },
 };
 
-
 export default function Header() {
-  const pathname =
-    usePathname();
+  const pathname = usePathname();
 
   const currentPage =
     pageInfo[pathname] ??
     pageInfo["/"];
 
+  const hidePageHeading =
+    pathname === "/pesquisa_bancaria";
+
   return (
     <header className="topbar">
-      <div className="topbar-heading">
-        <span className="page-kicker">
-          EPIC Payments
-        </span>
+      {!hidePageHeading ? (
+        <div className="topbar-heading">
+          <span className="page-kicker">
+            EPIC Payments
+          </span>
 
-        <h1 className="topbar-title">
-          {currentPage.title}
-        </h1>
+          <h1 className="topbar-title">
+            {currentPage.title}
+          </h1>
 
-        <p className="topbar-subtitle">
-          {currentPage.subtitle}
-        </p>
-      </div>
+          <p className="topbar-subtitle">
+            {currentPage.subtitle}
+          </p>
+        </div>
+      ) : (
+        <div />
+      )}
 
       <div className="topbar-user">
         <div

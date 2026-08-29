@@ -36,14 +36,9 @@ def _parse_datetime(
 def _row_to_calendar_file(
     row: dict,
 ) -> CalendarFile:
-    calendar_date_value = row.get(
-        "calendar_date"
-    )
+    calendar_date_value = row.get("calendar_date")
 
-    if isinstance(
-        calendar_date_value,
-        date,
-    ):
+    if isinstance(calendar_date_value, date):
         calendar_date = calendar_date_value
     else:
         calendar_date = date.fromisoformat(
@@ -51,8 +46,7 @@ def _row_to_calendar_file(
         )
 
     file_category = str(
-        row.get("file_category")
-        or "normal"
+        row.get("file_category") or "normal"
     )
 
     recovery_part = (
@@ -70,15 +64,9 @@ def _row_to_calendar_file(
     calendar_file = CalendarFile(
         id=int(row["id"]),
         calendar_date=calendar_date,
-        original_filename=str(
-            row["original_filename"]
-        ),
-        stored_filename=str(
-            row["stored_filename"]
-        ),
-        file_type=str(
-            row["file_type"]
-        ),
+        original_filename=str(row["original_filename"]),
+        stored_filename=str(row["stored_filename"]),
+        file_type=str(row["file_type"]),
         file_category=file_category,
         recovery_part=recovery_part,
         related_file_id=related_file_id,
@@ -92,9 +80,7 @@ def _row_to_calendar_file(
             if row.get("file_size") is not None
             else None
         ),
-        file_path=str(
-            row["file_path"]
-        ),
+        file_path=str(row["file_path"]),
         uploaded_by_id=(
             int(row["uploaded_by_id"])
             if row.get("uploaded_by_id") is not None
@@ -194,9 +180,7 @@ def create_calendar_file(
             "mas não pôde ser relido."
         )
 
-    return _row_to_calendar_file(
-        rows[0]
-    )
+    return _row_to_calendar_file(rows[0])
 
 
 def get_calendar_file_by_id(
@@ -231,9 +215,7 @@ def get_calendar_file_by_id(
     if not rows:
         return None
 
-    return _row_to_calendar_file(
-        rows[0]
-    )
+    return _row_to_calendar_file(rows[0])
 
 
 def get_files_by_date(
@@ -263,6 +245,52 @@ def get_files_by_date(
         ORDER BY uploaded_at ASC, id ASC
         """,
         [calendar_date.isoformat()],
+    )
+
+    return [
+        _row_to_calendar_file(row)
+        for row in rows
+    ]
+
+
+def get_files_between_dates(
+    db: Session,
+    *,
+    start_date: date,
+    end_date: date,
+) -> list[CalendarFile]:
+    """
+    Lista PDF/XML bancários entre duas datas.
+    Usado pela Pesquisa Bancária.
+    """
+    del db
+
+    rows = get_d1_rows(
+        """
+        SELECT
+            id,
+            calendar_date,
+            original_filename,
+            stored_filename,
+            file_type,
+            mime_type,
+            file_size,
+            file_path,
+            uploaded_at,
+            uploaded_by_id,
+            file_category,
+            recovery_part,
+            related_file_id
+        FROM calendar_files
+        WHERE calendar_date >= ?
+          AND calendar_date <= ?
+          AND file_type IN ('pdf', 'xml')
+        ORDER BY calendar_date DESC, uploaded_at DESC, id DESC
+        """,
+        [
+            start_date.isoformat(),
+            end_date.isoformat(),
+        ],
     )
 
     return [
@@ -319,15 +347,13 @@ def get_file_counts_by_year(
             COUNT(id) AS total_files,
             SUM(
                 CASE
-                    WHEN file_type = 'pdf'
-                    THEN 1
+                    WHEN file_type = 'pdf' THEN 1
                     ELSE 0
                 END
             ) AS pdf_count,
             SUM(
                 CASE
-                    WHEN file_type = 'xml'
-                    THEN 1
+                    WHEN file_type = 'xml' THEN 1
                     ELSE 0
                 END
             ) AS xml_count
@@ -341,20 +367,15 @@ def get_file_counts_by_year(
 
     return [
         {
-            "calendar_date": str(
-                row["calendar_date"]
-            ),
+            "calendar_date": str(row["calendar_date"]),
             "total_files": int(
-                row.get("total_files")
-                or 0
+                row.get("total_files") or 0
             ),
             "pdf_count": int(
-                row.get("pdf_count")
-                or 0
+                row.get("pdf_count") or 0
             ),
             "xml_count": int(
-                row.get("xml_count")
-                or 0
+                row.get("xml_count") or 0
             ),
         }
         for row in rows
@@ -374,15 +395,13 @@ def get_calendar_summary_by_year(
             COUNT(cf.id) AS total_files,
             SUM(
                 CASE
-                    WHEN cf.file_type = 'pdf'
-                    THEN 1
+                    WHEN cf.file_type = 'pdf' THEN 1
                     ELSE 0
                 END
             ) AS pdf_count,
             SUM(
                 CASE
-                    WHEN cf.file_type = 'xml'
-                    THEN 1
+                    WHEN cf.file_type = 'xml' THEN 1
                     ELSE 0
                 END
             ) AS xml_count,
@@ -401,28 +420,23 @@ def get_calendar_summary_by_year(
 
     return [
         {
-            "calendar_date": str(
-                row["calendar_date"]
-            ),
+            "calendar_date": str(row["calendar_date"]),
             "total_files": int(
-                row.get("total_files")
-                or 0
+                row.get("total_files") or 0
             ),
             "pdf_count": int(
-                row.get("pdf_count")
-                or 0
+                row.get("pdf_count") or 0
             ),
             "xml_count": int(
-                row.get("xml_count")
-                or 0
+                row.get("xml_count") or 0
             ),
             "report_count": int(
-                row.get("report_count")
-                or 0
+                row.get("report_count") or 0
             ),
         }
         for row in rows
     ]
+
 
 def get_year_summary(
     db: Session,
@@ -477,40 +491,24 @@ def get_year_summary(
 
     return [
         {
-            "calendar_date":
-                date.fromisoformat(
-                    str(row["calendar_date"])
-                ),
-
-            "total_files":
-                int(
-                    row.get("total_files")
-                    or 0
-                ),
-
-            "pdf_count":
-                int(
-                    row.get("pdf_count")
-                    or 0
-                ),
-
-            "xml_count":
-                int(
-                    row.get("xml_count")
-                    or 0
-                ),
-
-            "recovery_count":
-                int(
-                    row.get("recovery_count")
-                    or 0
-                ),
-
-            "report_count":
-                int(
-                    row.get("report_count")
-                    or 0
-                ),
+            "calendar_date": date.fromisoformat(
+                str(row["calendar_date"])
+            ),
+            "total_files": int(
+                row.get("total_files") or 0
+            ),
+            "pdf_count": int(
+                row.get("pdf_count") or 0
+            ),
+            "xml_count": int(
+                row.get("xml_count") or 0
+            ),
+            "recovery_count": int(
+                row.get("recovery_count") or 0
+            ),
+            "report_count": int(
+                row.get("report_count") or 0
+            ),
         }
         for row in rows
     ]
@@ -535,8 +533,7 @@ def count_files_by_date(
         return 0
 
     return int(
-        rows[0].get("total")
-        or 0
+        rows[0].get("total") or 0
     )
 
 

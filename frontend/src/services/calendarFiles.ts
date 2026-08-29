@@ -4,6 +4,8 @@ export type ApiBankMovement = {
   member_number: string;
   name: string;
 
+  iban: string | null;
+
   cedis_name: string | null;
   phone: string | null;
   email: string | null;

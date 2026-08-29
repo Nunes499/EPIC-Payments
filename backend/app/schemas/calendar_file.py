@@ -25,19 +25,12 @@ class CalendarFileRead(BaseModel):
     # 2 = Ficheiro 2
     recovery_part: int | None = None
 
-    # Relação entre ficheiros.
-    #
-    # Exemplos:
-    # Recovery F2 -> ID do Recovery F1
-    # Returned -> poderá posteriormente apontar
-    # para o ficheiro normal relacionado.
     related_file_id: int | None = None
 
     mime_type: str | None = None
     file_size: int | None = None
 
     file_path: str
-
     uploaded_at: datetime
 
     model_config = {
@@ -64,6 +57,9 @@ class BankMovementRead(BaseModel):
 
     name: str
 
+    # Conta bancária utilizada no movimento
+    iban: str | None = None
+
     # Dados encontrados na Base CEDIS
     cedis_name: str | None = None
 
@@ -80,20 +76,9 @@ class BankMovementRead(BaseModel):
     amount: Decimal
 
     reason_code: str
-
-    # Descrição do motivo bancário.
-    #
-    # Exemplos:
-    # AM04 -> Insuficiência de fundos.
-    # RJ11 -> Autorização está inativa...
-    #
-    # Para códigos novos:
-    # "Novo tipo de código — verifique a descrição
-    # no formato PDF."
     reason_description: str
 
     collection_date: date | None = None
-
     bank_reference: str | None = None
 
 
@@ -103,18 +88,14 @@ class BankFileProcessingRead(BaseModel):
     filename: str
     file_type: str
 
-    # Base CEDIS utilizada no processamento
     cedis_file_id: int | None = None
     cedis_filename: str | None = None
 
-    # Correspondências com a Base CEDIS
     cedis_matches: int = 0
     cedis_unmatched: int = 0
 
-    # Quantidade de menores encontrados
     minor_members: int = 0
 
-    # Informação bancária do ficheiro XML
     message_id: str | None = None
     original_message_id: str | None = None
 
@@ -125,3 +106,75 @@ class BankFileProcessingRead(BaseModel):
     parsed_total_amount: Decimal
 
     movements: list[BankMovementRead]
+
+
+class BankSearchCandidateRead(BaseModel):
+    candidate_id: str
+
+    searched_reference: str | None = None
+
+    bank_reference_code: str
+    holder_name: str
+    iban: str | None = None
+
+    match_type: str
+    match_score: int
+
+    movement_count: int = 0
+    last_movement_date: date | None = None
+
+
+class BankSearchResponse(BaseModel):
+    query: str
+    candidates: list[BankSearchCandidateRead]
+
+
+class BankHistoryDocumentRead(BaseModel):
+    file_id: int
+    filename: str
+
+    file_type: str
+    file_category: str
+
+    download_url: str
+
+
+class BankHistoryEventRead(BaseModel):
+    event_id: str
+
+    event_date: date
+    event_type: str
+
+    bank_reference_code: str
+    holder_name: str
+    iban: str | None = None
+
+    amount: Decimal
+
+    reason_code: str
+    reason_description: str
+
+    collection_reference: str | None = None
+
+    message_id: str | None = None
+    original_message_id: str | None = None
+
+    recovery_part: int | None = None
+    related_file_id: int | None = None
+
+    documents: list[BankHistoryDocumentRead]
+
+
+class BankHistoryResponse(BaseModel):
+    candidate_id: str
+
+    bank_reference_code: str
+    holder_name: str
+    iban: str | None = None
+
+    months: int
+
+    start_date: date
+    end_date: date
+
+    events: list[BankHistoryEventRead]
