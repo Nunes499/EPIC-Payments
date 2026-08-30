@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AlertTriangle,
@@ -10,7 +10,6 @@ import {
   Filter,
   Layers3,
   Loader2,
-  MessageSquareText,
   Printer,
   RefreshCw,
   SearchCheck,
@@ -1210,46 +1209,6 @@ export default function ProcessingWorkspace({
 
   const hasLoadedMovements =
     totals.movements > 0;
-
-  const communicationSourceState =
-    fileStates.find(
-      (state) =>
-        state.file.type === "xml" &&
-        !isRecoveryFile(state.file) &&
-        Boolean(state.data) &&
-        !state.loading &&
-        !state.error,
-    ) ??
-    fileStates.find(
-      (state) =>
-        !isRecoveryFile(state.file) &&
-        Boolean(state.data) &&
-        !state.loading &&
-        !state.error,
-    );
-
-  const communicationUnpaidCount =
-    communicationSourceState?.data?.movements.filter(
-      (movement) =>
-        movement.reason_code !== "0000",
-    ).length ?? 0;
-
-  function handleOpenCommunication() {
-    if (!communicationSourceState) {
-      return;
-    }
-
-    const params =
-      new URLSearchParams({
-        fileId: String(
-          communicationSourceState.file.id,
-        ),
-        date: selection.date,
-      });
-
-    window.location.href =
-      `/comunicacao?${params.toString()}`;
-  }
 
   const f1State =
     fileStates.find(
@@ -3085,86 +3044,25 @@ export default function ProcessingWorkspace({
           </div>
 
           {!isRecoverySelection ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                flexWrap: "wrap",
-              }}
+            <button
+              type="button"
+              className="processing-filter-button"
+              disabled={!hasLoadedMovements}
+              aria-pressed={
+                showOnlyUnpaid
+              }
+              onClick={() =>
+                setShowOnlyUnpaid(
+                  (current) =>
+                    !current,
+                )
+              }
             >
-              <button
-                type="button"
-                className="processing-filter-button"
-                disabled={!hasLoadedMovements}
-                aria-pressed={
-                  showOnlyUnpaid
-                }
-                onClick={() =>
-                  setShowOnlyUnpaid(
-                    (current) =>
-                      !current,
-                  )
-                }
-              >
-                <Filter size={17} />
-                {showOnlyUnpaid
-                  ? "Mostrar todos"
-                  : "Filtrar sócios"}
-              </button>
-
-              <button
-                type="button"
-                className="processing-filter-button"
-                disabled={
-                  !communicationSourceState ||
-                  communicationUnpaidCount === 0
-                }
-                onClick={
-                  handleOpenCommunication
-                }
-                title={
-                  communicationUnpaidCount > 0
-                    ? `Abrir Comunicação com ${communicationUnpaidCount} processo(s) não cobrado(s)`
-                    : "Não existem mensalidades não cobradas para comunicar."
-                }
-                style={{
-                  borderColor: "#8f0008",
-                  background:
-                    "linear-gradient(110deg, #720007 0%, #a6000b 55%, #c80c16 100%)",
-                  color: "#ffffff",
-                  boxShadow:
-                    "0 5px 14px rgba(135, 0, 8, .16)",
-                }}
-              >
-                <MessageSquareText
-                  size={17}
-                />
-                Comunicação
-
-                {communicationUnpaidCount > 0 ? (
-                  <span
-                    style={{
-                      minWidth: "20px",
-                      height: "20px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: "999px",
-                      padding: "0 6px",
-                      background:
-                        "rgba(255,255,255,.18)",
-                      fontSize: "10px",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {
-                      communicationUnpaidCount
-                    }
-                  </span>
-                ) : null}
-              </button>
-            </div>
+              <Filter size={17} />
+              {showOnlyUnpaid
+                ? "Mostrar todos"
+                : "Filtrar sócios"}
+            </button>
           ) : null}
         </section>
 
@@ -3715,4 +3613,3 @@ export default function ProcessingWorkspace({
     </div>
   );
 }
-

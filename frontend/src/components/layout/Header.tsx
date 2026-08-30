@@ -1,8 +1,19 @@
 "use client";
 
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+
+import {
+  getMyPhotoObjectUrl,
+  revokePhotoObjectUrl,
+} from "@/services/auth";
 
 
 const pageInfo: Record<
@@ -45,7 +56,7 @@ const pageInfo: Record<
   "/perfil": {
     title: "Perfil",
     subtitle:
-      "Gestão dos seus dados e password.",
+      "Gestão da sua fotografia e password.",
   },
 };
 
@@ -58,6 +69,11 @@ export default function Header() {
     logout,
   } = useAuth();
 
+  const [
+    photoUrl,
+    setPhotoUrl,
+  ] = useState("");
+
 
   const currentPage =
     pageInfo[pathname] ??
@@ -65,7 +81,8 @@ export default function Header() {
 
 
   const hidePageHeading =
-    pathname === "/pesquisa_bancaria";
+    pathname ===
+    "/pesquisa_bancaria";
 
 
   const roleLabel =
@@ -79,6 +96,57 @@ export default function Header() {
       ?.trim()
       .charAt(0)
       .toUpperCase() || "?";
+
+
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+
+    async function loadPhoto() {
+      if (!user?.has_photo) {
+        setPhotoUrl("");
+        return;
+      }
+
+      try {
+        const url =
+          await getMyPhotoObjectUrl();
+
+        if (!active) {
+          if (url) {
+            revokePhotoObjectUrl(
+              url,
+            );
+          }
+
+          return;
+        }
+
+        objectUrl = url;
+        setPhotoUrl(url);
+      } catch {
+        if (active) {
+          setPhotoUrl("");
+        }
+      }
+    }
+
+    void loadPhoto();
+
+    return () => {
+      active = false;
+
+      if (objectUrl) {
+        revokePhotoObjectUrl(
+          objectUrl,
+        );
+      }
+    };
+  }, [
+    user?.id,
+    user?.has_photo,
+    user?.updated_at,
+  ]);
 
 
   return (
@@ -102,28 +170,61 @@ export default function Header() {
       )}
 
       <div className="topbar-user">
-        <div
-          className="user-avatar"
-          aria-label={
-            user
-              ? `Utilizador ${user.name}`
-              : "Utilizador"
-          }
-          title={roleLabel}
+        <Link
+          href="/perfil"
+          aria-label="Abrir o meu perfil"
+          title="Abrir perfil"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            textDecoration: "none",
+            color: "inherit",
+            cursor: "pointer",
+          }}
         >
-          {initial}
-        </div>
+          <div
+            className="user-avatar"
+            aria-label={
+              user
+                ? `Utilizador ${user.name}`
+                : "Utilizador"
+            }
+            style={{
+              overflow: "hidden",
+            }}
+          >
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={
+                  user
+                    ? `Fotografia de ${user.name}`
+                    : "Fotografia de perfil"
+                }
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            ) : (
+              initial
+            )}
+          </div>
 
-        <div className="user-info">
-          <strong>
-            {user?.name ??
-              "Utilizador"}
-          </strong>
+          <div className="user-info">
+            <strong>
+              {user?.name ??
+                "Utilizador"}
+            </strong>
 
-          <span>
-            {roleLabel}
-          </span>
-        </div>
+            <span>
+              {roleLabel}
+            </span>
+          </div>
+        </Link>
 
         <button
           type="button"

@@ -30,7 +30,7 @@ export default function Sidebar() {
     user?.role === "admin";
 
 
-  const menuItems = [
+  const commonItems = [
     {
       label: "Calendário",
       icon: CalendarDays,
@@ -46,27 +46,42 @@ export default function Sidebar() {
       icon: ReceiptText,
       href: "#",
     },
+  ];
 
+
+  const adminItems = [
+    {
+      label: "Utilizadores",
+      icon: Users,
+      href: "/utilizadores",
+    },
+    {
+      label: "Definições",
+      icon: Settings,
+      href: "/settings",
+    },
+    {
+      label: "Perfil",
+      icon: UserRound,
+      href: "/perfil",
+    },
+  ];
+
+
+  const collaboratorItems = [
+    {
+      label: "Perfil",
+      icon: UserRound,
+      href: "/perfil",
+    },
+  ];
+
+
+  const menuItems = [
+    ...commonItems,
     ...(isAdmin
-      ? [
-          {
-            label: "Utilizadores",
-            icon: Users,
-            href: "/utilizadores",
-          },
-          {
-            label: "Definições",
-            icon: Settings,
-            href: "/settings",
-          },
-        ]
-      : [
-          {
-            label: "Perfil",
-            icon: UserRound,
-            href: "/perfil",
-          },
-        ]),
+      ? adminItems
+      : collaboratorItems),
   ];
 
 
@@ -101,22 +116,34 @@ export default function Sidebar() {
               key={item.label}
               href={item.href}
               className={`${styles.menuCard} ${
-                active ? styles.active : ""
+                active
+                  ? styles.active
+                  : ""
               }`}
             >
-              <span className={styles.mainIcon}>
+              <span
+                className={
+                  styles.mainIcon
+                }
+              >
                 <Icon
                   size={39}
                   strokeWidth={1.8}
                 />
               </span>
 
-              <span className={styles.menuLabel}>
+              <span
+                className={
+                  styles.menuLabel
+                }
+              >
                 {item.label}
               </span>
 
               <span
-                className={styles.ghostIcon}
+                className={
+                  styles.ghostIcon
+                }
                 aria-hidden="true"
               >
                 <Icon
@@ -130,14 +157,22 @@ export default function Sidebar() {
       </nav>
 
       <div className={styles.footer}>
-        <div className={styles.footerAvatar}>
+        <div
+          className={
+            styles.footerAvatar
+          }
+        >
           {user?.name
             ?.trim()
             .charAt(0)
             .toUpperCase() || "E"}
         </div>
 
-        <div className={styles.footerText}>
+        <div
+          className={
+            styles.footerText
+          }
+        >
           <span>
             SISTEMA INTERNO
           </span>
