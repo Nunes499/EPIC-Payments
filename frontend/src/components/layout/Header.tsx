@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/components/auth/AuthProvider";
+
+
 const pageInfo: Record<
   string,
   {
@@ -38,17 +41,45 @@ const pageInfo: Record<
     subtitle:
       "Gestão dos utilizadores e acessos ao sistema.",
   },
+
+  "/perfil": {
+    title: "Perfil",
+    subtitle:
+      "Gestão dos seus dados e password.",
+  },
 };
+
 
 export default function Header() {
   const pathname = usePathname();
+
+  const {
+    user,
+    logout,
+  } = useAuth();
+
 
   const currentPage =
     pageInfo[pathname] ??
     pageInfo["/"];
 
+
   const hidePageHeading =
     pathname === "/pesquisa_bancaria";
+
+
+  const roleLabel =
+    user?.role === "admin"
+      ? "Administrador"
+      : "Colaborador";
+
+
+  const initial =
+    user?.name
+      ?.trim()
+      .charAt(0)
+      .toUpperCase() || "?";
+
 
   return (
     <header className="topbar">
@@ -73,24 +104,31 @@ export default function Header() {
       <div className="topbar-user">
         <div
           className="user-avatar"
-          aria-hidden="true"
+          aria-label={
+            user
+              ? `Utilizador ${user.name}`
+              : "Utilizador"
+          }
+          title={roleLabel}
         >
-          A
+          {initial}
         </div>
 
         <div className="user-info">
           <strong>
-            Administrador
+            {user?.name ??
+              "Utilizador"}
           </strong>
 
           <span>
-            admin
+            {roleLabel}
           </span>
         </div>
 
         <button
           type="button"
           className="logout-button"
+          onClick={logout}
         >
           Terminar sessão
         </button>

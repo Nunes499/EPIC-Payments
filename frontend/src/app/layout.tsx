@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import ProtectedLayout from "@/components/auth/ProtectedLayout";
+
 import "../components/calendar/calendar.css";
 import "./globals.css";
 
+
 export const metadata: Metadata = {
   title: "EPIC Payments",
-  description: "Gestão de ficheiros bancários e cobranças do EPIC Fitness",
+  description:
+    "Gestão de ficheiros bancários e cobranças do EPIC Fitness",
 };
+
 
 export default function RootLayout({
   children,
@@ -15,7 +21,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <ProtectedLayout>
+            {children}
+          </ProtectedLayout>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

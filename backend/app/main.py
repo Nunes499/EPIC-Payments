@@ -9,6 +9,7 @@ from app.api import (
     calendar_router,
     cedis_router,
     files_router,
+    users_router,
 )
 from app.core.config import settings
 from app.database.session import SessionLocal
@@ -69,6 +70,7 @@ app.include_router(auth_router)
 app.include_router(calendar_router)
 app.include_router(files_router)
 app.include_router(cedis_router)
+app.include_router(users_router)
 
 
 @app.get("/")

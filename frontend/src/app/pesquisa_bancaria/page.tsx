@@ -1868,11 +1868,19 @@ export default function PesquisaBancariaPage() {
                                     padding:
                                       "12px 14px",
                                     background:
-                                      "#f8f8f9",
+                                      event.reason_code === "0000"
+                                        ? "#eaf8ee"
+                                        : "#fff0f1",
+                                    border:
+                                      event.reason_code === "0000"
+                                        ? "1px solid #bfe1c9"
+                                        : "1px solid #f2c4c7",
                                     borderRadius:
                                       "11px",
                                     color:
-                                      "#5e646e",
+                                      event.reason_code === "0000"
+                                        ? "#24723d"
+                                        : "#c90d18",
                                     fontSize:
                                       "12px",
                                     lineHeight: 1.5,

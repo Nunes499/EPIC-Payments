@@ -9,41 +9,66 @@ import {
   ReceiptText,
   Search,
   Settings,
+  UserRound,
   Users,
 } from "lucide-react";
 
+import { useAuth } from "@/components/auth/AuthProvider";
+
 import styles from "./Sidebar.module.css";
 
-const menuItems = [
-  {
-    label: "Calendário",
-    icon: CalendarDays,
-    href: "/",
-  },
-  {
-    label: "Pesquisa Bancária",
-    icon: Search,
-    href: "/pesquisa_bancaria",
-  },
-  {
-    label: "Criar Referência",
-    icon: ReceiptText,
-    href: "#",
-  },
-  {
-    label: "Utilizadores",
-    icon: Users,
-    href: "#",
-  },
-  {
-    label: "Definições",
-    icon: Settings,
-    href: "/settings",
-  },
-];
 
 export default function Sidebar() {
   const pathname = usePathname();
+
+  const {
+    user,
+  } = useAuth();
+
+
+  const isAdmin =
+    user?.role === "admin";
+
+
+  const menuItems = [
+    {
+      label: "Calendário",
+      icon: CalendarDays,
+      href: "/",
+    },
+    {
+      label: "Pesquisa Bancária",
+      icon: Search,
+      href: "/pesquisa_bancaria",
+    },
+    {
+      label: "Criar Referência",
+      icon: ReceiptText,
+      href: "#",
+    },
+
+    ...(isAdmin
+      ? [
+          {
+            label: "Utilizadores",
+            icon: Users,
+            href: "/utilizadores",
+          },
+          {
+            label: "Definições",
+            icon: Settings,
+            href: "/settings",
+          },
+        ]
+      : [
+          {
+            label: "Perfil",
+            icon: UserRound,
+            href: "/perfil",
+          },
+        ]),
+  ];
+
 
   return (
     <aside className={styles.sidebar}>
@@ -106,7 +131,10 @@ export default function Sidebar() {
 
       <div className={styles.footer}>
         <div className={styles.footerAvatar}>
-          N
+          {user?.name
+            ?.trim()
+            .charAt(0)
+            .toUpperCase() || "E"}
         </div>
 
         <div className={styles.footerText}>

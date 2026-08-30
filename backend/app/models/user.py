@@ -9,7 +9,11 @@ from app.database.session import Base
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
 
     name: Mapped[str] = mapped_column(
         String(120),
@@ -38,13 +42,18 @@ class User(Base):
     role: Mapped[str] = mapped_column(
         String(30),
         nullable=False,
-        default="reception",
+        default="collaborator",
     )
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=True,
+    )
+
+    photo_object_key: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -59,4 +68,3 @@ class User(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    
