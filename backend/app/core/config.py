@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
+    easypay_account_id: str = ""
+    easypay_api_key: str = ""
+    easypay_api_url: str = "https://api.prod.easypay.pt/2.0"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

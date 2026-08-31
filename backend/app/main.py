@@ -8,6 +8,7 @@ from app.api import (
     auth_router,
     calendar_router,
     cedis_router,
+    communication_router,
     files_router,
     users_router,
 )
@@ -71,6 +72,7 @@ app.include_router(calendar_router)
 app.include_router(files_router)
 app.include_router(cedis_router)
 app.include_router(users_router)
+app.include_router(communication_router)
 
 
 @app.get("/")
