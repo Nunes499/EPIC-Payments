@@ -1,11 +1,14 @@
 "use client";
 
 import CedisSettings from "@/components/settings/CedisSettings";
+import CloudflareSystem from "@/components/settings/CloudflareSystem";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
 
+
 export default function SettingsPage() {
   const { user, loading } = useAuth();
+
 
   if (loading) {
     return (
@@ -17,11 +20,13 @@ export default function SettingsPage() {
     );
   }
 
+
   if (!user || user.role !== "admin") {
     return (
       <AppLayout>
         <div style={{ padding: "32px" }}>
           <h2>Acesso reservado</h2>
+
           <p>
             Esta área está disponível apenas
             para Administradores.
@@ -31,9 +36,12 @@ export default function SettingsPage() {
     );
   }
 
+
   return (
     <AppLayout>
       <CedisSettings />
+
+      <CloudflareSystem />
     </AppLayout>
   );
 }

@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     cloudflare_account_id: str = ""
     cloudflare_d1_database_id: str = ""
     cloudflare_d1_api_token: str = ""
+    cloudflare_monitoring_api_token: str = ""
 
     easypay_account_id: str = ""
     easypay_api_key: str = ""

@@ -10,6 +10,7 @@ from app.api import (
     cedis_router,
     communication_router,
     files_router,
+    system_router,
     users_router,
 )
 from app.core.config import settings
@@ -73,6 +74,7 @@ app.include_router(files_router)
 app.include_router(cedis_router)
 app.include_router(users_router)
 app.include_router(communication_router)
+app.include_router(system_router)
 
 
 @app.get("/")
