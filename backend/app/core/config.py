@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     easypay_api_key: str = ""
     easypay_api_url: str = "https://api.prod.easypay.pt/2.0"
 
+    smsup_api_key: str = ""
+    smsup_api_url: str = "https://api.gateway360.com/api/3.0/sms/send"
+    smsup_sender: str = "EpicFitness"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

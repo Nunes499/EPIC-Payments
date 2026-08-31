@@ -28,6 +28,7 @@ import {
 
 import {
   createMultibancoReference,
+  sendCommunicationSms,
 } from "@/services/communication";
 
 
@@ -64,6 +65,9 @@ type CommunicationRow = {
   referenceError: string;
 
   smsStatus: SmsStatus;
+  smsId: string;
+  sendingSms: boolean;
+  smsError: string;
   reason: string;
 
   isMinor: boolean;
@@ -242,6 +246,9 @@ function movementToRow(
     referenceError: "",
 
     smsStatus: "pending",
+    smsId: "",
+    sendingSms: false,
+    smsError: "",
     reason: "",
 
     isMinor:
@@ -435,6 +442,15 @@ export default function ComunicacaoPage() {
                   savedRow.smsStatus ||
                   "pending",
 
+                smsId:
+                  savedRow.smsId || "",
+
+                sendingSms:
+                  false,
+
+                smsError:
+                  "",
+
                 reason:
                   savedRow.reason || "",
 
@@ -512,6 +528,8 @@ export default function ComunicacaoPage() {
               ...row,
               creatingReference: false,
               referenceError: "",
+              sendingSms: false,
+              smsError: "",
             }),
           ),
         ),
@@ -683,6 +701,111 @@ export default function ComunicacaoPage() {
             createError instanceof Error
               ? createError.message
               : "Não foi possível criar a referência.",
+        },
+      );
+    }
+  }
+
+
+  async function handleSendSms(
+    row: CommunicationRow,
+  ) {
+    if (
+      row.sendingSms ||
+      row.smsStatus === "sent"
+    ) {
+      return;
+    }
+
+    if (
+      !row.entity.trim() ||
+      !row.reference.trim()
+    ) {
+      updateRow(
+        row.id,
+        {
+          smsStatus: "failed",
+          smsError:
+            "Crie primeiro a referência Multibanco.",
+        },
+      );
+
+      return;
+    }
+
+    const amount =
+      normalizeAmountForApi(
+        row.amount,
+      );
+
+    if (amount === null) {
+      updateRow(
+        row.id,
+        {
+          smsStatus: "failed",
+          smsError:
+            "O valor não é válido.",
+        },
+      );
+
+      return;
+    }
+
+    if (!row.phone.trim()) {
+      updateRow(
+        row.id,
+        {
+          smsStatus: "failed",
+          smsError:
+            "Indique o número de telemóvel.",
+        },
+      );
+
+      return;
+    }
+
+    updateRow(
+      row.id,
+      {
+        sendingSms: true,
+        smsError: "",
+        smsStatus: "pending",
+      },
+    );
+
+    try {
+      const result =
+        await sendCommunicationSms({
+          phone:
+            row.phone.trim(),
+          entity:
+            row.entity.trim(),
+          reference:
+            row.reference.trim(),
+          value:
+            amount,
+        });
+
+      updateRow(
+        row.id,
+        {
+          sendingSms: false,
+          smsStatus: "sent",
+          smsId:
+            result.sms_id,
+          smsError: "",
+        },
+      );
+    } catch (sendError) {
+      updateRow(
+        row.id,
+        {
+          sendingSms: false,
+          smsStatus: "failed",
+          smsError:
+            sendError instanceof Error
+              ? sendError.message
+              : "Não foi possível enviar o SMS.",
         },
       );
     }
@@ -1275,15 +1398,69 @@ export default function ComunicacaoPage() {
 
                                 <button
                                   type="button"
+                                  onClick={() =>
+                                    void handleSendSms(
+                                      row,
+                                    )
+                                  }
                                   style={{
                                     ...sendButtonStyle,
-                                    ...disabledButtonStyle,
+                                    ...(
+                                      row.sendingSms ||
+                                      row.smsStatus === "sent" ||
+                                      !referenceCreated
+                                        ? disabledButtonStyle
+                                        : {}
+                                    ),
+                                    ...(
+                                      row.smsStatus === "sent"
+                                        ? sentSmsButtonStyle
+                                        : {}
+                                    ),
                                   }}
-                                  disabled
-                                  title="A ligação à SMSUP será ativada depois de validarmos esta fase."
+                                  disabled={
+                                    row.sendingSms ||
+                                    row.smsStatus === "sent" ||
+                                    !referenceCreated
+                                  }
+                                  title={
+                                    !referenceCreated
+                                      ? "Crie primeiro a referência Multibanco."
+                                      : row.smsStatus === "sent"
+                                        ? "SMS enviado com sucesso."
+                                        : "Enviar SMS individual para este sócio."
+                                  }
                                 >
-                                  Enviar SMS
+                                  {row.sendingSms ? (
+                                    <>
+                                      <Loader2
+                                        size={13}
+                                        className="processing-spinner"
+                                      />
+                                      A enviar...
+                                    </>
+                                  ) : row.smsStatus === "sent" ? (
+                                    <>
+                                      <CheckCircle2 size={13} />
+                                      SMS enviado
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Send size={13} />
+                                      Enviar SMS
+                                    </>
+                                  )}
                                 </button>
+
+                                {row.smsError ? (
+                                  <span
+                                    style={smsErrorStyle}
+                                    title={row.smsError}
+                                  >
+                                    <CircleAlert size={12} />
+                                    {row.smsError}
+                                  </span>
+                                ) : null}
 
                                 {row.referenceError ? (
                                   <span
@@ -1850,6 +2027,24 @@ const sendButtonStyle: CSSProperties = {
   background:
     "linear-gradient(100deg, #760008, #b40913)",
   color: "#fff",
+};
+
+const sentSmsButtonStyle: CSSProperties = {
+  opacity: 1,
+  border: "1px solid #9bc4a8",
+  background:
+    "linear-gradient(180deg, #f3fbf5, #e7f5eb)",
+  color: "#176b37",
+};
+
+const smsErrorStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "3px",
+  color: "#a00008",
+  fontSize: "7px",
+  fontWeight: 700,
+  lineHeight: 1.2,
 };
 
 const referenceErrorStyle: CSSProperties = {
