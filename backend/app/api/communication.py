@@ -1,10 +1,18 @@
+from datetime import date
 from decimal import Decimal
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
+from app.database.session import get_db
 from app.models import User
+from app.schemas.calendar_file import CalendarFileRead
+from app.services.communication_report_service import (
+    create_communication_report,
+)
 from app.services.easypay_service import (
     EasypayError,
     create_multibanco_reference,
@@ -72,6 +80,32 @@ class SmsRead(BaseModel):
     message: str
 
 
+class CommunicationReportRow(BaseModel):
+    member_number: str = ""
+    name: str = ""
+    phone: str = ""
+    value: Decimal = Field(
+        gt=0,
+        decimal_places=2,
+    )
+    entity: str = ""
+    reference: str = ""
+    sms_status: Literal[
+        "pending",
+        "sent",
+        "failed",
+    ]
+    reason: str = ""
+
+
+class CommunicationReportCreate(BaseModel):
+    calendar_date: date
+    source_file_id: int | None = None
+    source_filename: str = ""
+    cedis_filename: str = ""
+    rows: list[CommunicationReportRow]
+
+
 @router.post(
     "/multibanco-reference",
     response_model=MultibancoReferenceRead,
@@ -111,5 +145,35 @@ def send_sms(
     except SmsupError as exc:
         raise HTTPException(
             status_code=502,
+            detail=str(exc),
+        ) from exc
+
+
+@router.post(
+    "/report",
+    response_model=CalendarFileRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def attach_report(
+    payload: CommunicationReportCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return create_communication_report(
+            db,
+            calendar_date=payload.calendar_date,
+            source_file_id=payload.source_file_id,
+            source_filename=payload.source_filename.strip(),
+            cedis_filename=payload.cedis_filename.strip(),
+            rows=[
+                row.model_dump()
+                for row in payload.rows
+            ],
+            uploaded_by_id=current_user.id,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc

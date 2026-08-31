@@ -1,33 +1,19 @@
 from __future__ import annotations
 
 from io import BytesIO
-import os
 
 import boto3
 from botocore.client import Config
 from botocore.exceptions import BotoCoreError, ClientError
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 
-R2_BUCKET_NAME = os.getenv(
-    "R2_BUCKET_NAME",
-    "",
-).strip()
 
-R2_ENDPOINT_URL = os.getenv(
-    "R2_ENDPOINT_URL",
-    "",
-).strip()
-
-R2_ACCESS_KEY_ID = os.getenv(
-    "R2_ACCESS_KEY_ID",
-    "",
-).strip()
-
-R2_SECRET_ACCESS_KEY = os.getenv(
-    "R2_SECRET_ACCESS_KEY",
-    "",
-).strip()
+R2_BUCKET_NAME = settings.r2_bucket_name.strip()
+R2_ENDPOINT_URL = settings.r2_endpoint_url.strip()
+R2_ACCESS_KEY_ID = settings.r2_access_key_id.strip()
+R2_SECRET_ACCESS_KEY = settings.r2_secret_access_key.strip()
 
 
 def validate_r2_configuration() -> None:

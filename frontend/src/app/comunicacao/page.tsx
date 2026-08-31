@@ -14,6 +14,7 @@ import {
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -27,6 +28,7 @@ import {
 } from "@/services/calendarFiles";
 
 import {
+  attachCommunicationReport,
   createMultibancoReference,
   sendCommunicationSms,
 } from "@/services/communication";
@@ -195,6 +197,34 @@ function normalizePhoneForDisplay(
 }
 
 
+
+function escapeHtml(
+  value: string | number | null | undefined,
+): string {
+  return String(
+    value ?? "",
+  )
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+
+function formatReportTimestamp(): string {
+  return new Intl.DateTimeFormat(
+    "pt-PT",
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+  ).format(
+    new Date(),
+  );
+}
+
+
 function movementToRow(
   movement: ApiBankMovement,
   fileId: number,
@@ -313,6 +343,22 @@ export default function ComunicacaoPage() {
     setCommunicationLoaded,
   ] = useState(false);
 
+
+  const [
+    attachingReport,
+    setAttachingReport,
+  ] = useState(false);
+
+  const [
+    attachedReportName,
+    setAttachedReportName,
+  ] = useState("");
+
+  const reportWindowRef =
+    useRef<Window | null>(
+      null,
+    );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -362,6 +408,24 @@ export default function ComunicacaoPage() {
 
         const storageKey =
           `epic-communication:${fileId}`;
+
+        const reportStorageKey =
+          `epic-communication-report:${fileId}`;
+
+        try {
+          const savedReportName =
+            window.localStorage.getItem(
+              reportStorageKey,
+            );
+
+          if (savedReportName) {
+            setAttachedReportName(
+              savedReportName,
+            );
+          }
+        } catch {
+          // A Comunicação continua a funcionar sem armazenamento local.
+        }
 
         let savedRows:
           CommunicationRow[] | null =
@@ -543,6 +607,34 @@ export default function ComunicacaoPage() {
     fileId,
     communicationLoaded,
   ]);
+
+
+  useEffect(() => {
+    function handleReportMessage(
+      event: MessageEvent,
+    ) {
+      if (
+        event.data?.type !==
+        "EPIC_ATTACH_COMMUNICATION_REPORT"
+      ) {
+        return;
+      }
+
+      void handleAttachReport();
+    }
+
+    window.addEventListener(
+      "message",
+      handleReportMessage,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "message",
+        handleReportMessage,
+      );
+    };
+  });
 
 
   const sentCount =
@@ -812,6 +904,655 @@ export default function ComunicacaoPage() {
   }
 
 
+
+  async function handleAttachReport() {
+    if (
+      !reportReady ||
+      !calendarDate ||
+      attachingReport
+    ) {
+      return;
+    }
+
+    setAttachingReport(
+      true,
+    );
+
+    setAttachedReportName(
+      "",
+    );
+
+    reportWindowRef.current?.postMessage(
+      {
+        type:
+          "EPIC_REPORT_ATTACHING",
+      },
+      "*",
+    );
+
+    try {
+      const result =
+        await attachCommunicationReport({
+          calendar_date:
+            calendarDate,
+
+          source_file_id:
+            fileId,
+
+          source_filename:
+            filename,
+
+          cedis_filename:
+            cedisFilename,
+
+          rows:
+            rows.map(
+              (row) => ({
+                member_number:
+                  row.memberNumber,
+
+                name:
+                  row.name,
+
+                phone:
+                  row.phone,
+
+                value:
+                  normalizeAmountForApi(
+                    row.amount,
+                  ) ?? 0,
+
+                entity:
+                  row.entity,
+
+                reference:
+                  row.reference,
+
+                sms_status:
+                  row.smsStatus,
+
+                reason:
+                  row.reason,
+              }),
+            ),
+        });
+
+      setAttachedReportName(
+        result.original_filename,
+      );
+
+      try {
+        window.localStorage.setItem(
+          `epic-communication-report:${fileId}`,
+          result.original_filename,
+        );
+      } catch {
+        // O relatório já foi criado no servidor.
+      }
+
+      reportWindowRef.current?.postMessage(
+        {
+          type:
+            "EPIC_REPORT_ATTACHED",
+
+          filename:
+            result.original_filename,
+        },
+        "*",
+      );
+
+      window.opener?.postMessage(
+        {
+          type:
+            "EPIC_CALENDAR_REPORT_ATTACHED",
+
+          date:
+            calendarDate,
+        },
+        "*",
+      );
+    } catch (attachError) {
+      const message =
+        attachError instanceof Error
+          ? attachError.message
+          : "Não foi possível anexar o relatório.";
+
+      reportWindowRef.current?.postMessage(
+        {
+          type:
+            "EPIC_REPORT_ATTACH_ERROR",
+
+          message,
+        },
+        "*",
+      );
+
+      window.alert(
+        message,
+      );
+    } finally {
+      setAttachingReport(
+        false,
+      );
+    }
+  }
+
+
+  function handleGenerateReport() {
+    if (
+      !reportReady ||
+      attachedReportName
+    ) {
+      return;
+    }
+
+    const reportWindow =
+      window.open(
+        "",
+        `epicCommunicationReport${fileId ?? ""}`,
+        "popup=yes,width=1200,height=820,resizable=yes,scrollbars=yes",
+      );
+
+    reportWindowRef.current =
+      reportWindow;
+
+    if (!reportWindow) {
+      window.alert(
+        "O navegador bloqueou a janela do relatório. Permita pop-ups para o EPIC Payments.",
+      );
+
+      return;
+    }
+
+    const generatedAt =
+      formatReportTimestamp();
+
+    const reportRows =
+      rows.map(
+        (row) => {
+          const smsSent =
+            row.smsStatus === "sent";
+
+          const statusLabel =
+            smsSent
+              ? "Enviado"
+              : "Não enviado";
+
+          const reasonText =
+            smsSent
+              ? (
+                  row.reason.trim() ||
+                  "—"
+                )
+              : row.reason.trim();
+
+          return `
+            <tr>
+              <td>${escapeHtml(row.memberNumber)}</td>
+              <td>${escapeHtml(row.name)}</td>
+              <td>${escapeHtml(row.phone || "—")}</td>
+              <td class="money">${escapeHtml(formatAmountInput(row.amount))} €</td>
+              <td>${escapeHtml(row.entity || "—")}</td>
+              <td>${escapeHtml(row.reference || "—")}</td>
+              <td>
+                <span class="status ${smsSent ? "sent" : "not-sent"}">
+                  ${statusLabel}
+                </span>
+              </td>
+              <td>${escapeHtml(reasonText || "—")}</td>
+            </tr>
+          `;
+        },
+      )
+      .join("");
+
+    const html = `
+      <!doctype html>
+      <html lang="pt">
+        <head>
+          <meta charset="utf-8" />
+          <title>Relatório de Comunicação - ${escapeHtml(formatDate(calendarDate))}</title>
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+
+            body {
+              margin: 0;
+              padding: 34px;
+              color: #171717;
+              background: #f4f4f4;
+              font-family: Arial, Helvetica, sans-serif;
+            }
+
+            .toolbar {
+              max-width: 1180px;
+              margin: 0 auto 16px;
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+            }
+
+            .toolbar-button {
+              min-height: 42px;
+              border-radius: 9px;
+              padding: 10px 17px;
+              font-size: 13px;
+              font-weight: 800;
+              cursor: pointer;
+            }
+
+            .print-button {
+              border: 0;
+              color: #fff;
+              background: #97000a;
+            }
+
+            .attach-button {
+              border: 0;
+              color: #fff;
+              background: #97000a;
+              box-shadow:
+                0 5px 14px rgba(151, 0, 10, .16);
+            }
+
+            .attach-button:hover:not(:disabled) {
+              background: #b0000c;
+              transform: translateY(-1px);
+            }
+
+            .attach-button:disabled {
+              opacity: .68;
+              cursor: not-allowed;
+            }
+
+            .attach-button.created {
+              opacity: 1;
+              color: #7c0a12;
+              background: #f7dfe1;
+              border: 1px solid #e6a8ad;
+              box-shadow: none;
+            }
+
+            .report-success {
+              display: none;
+              max-width: 1180px;
+              margin: 0 auto 16px;
+              padding: 14px 16px;
+              border: 1px solid #b9dfc4;
+              border-radius: 10px;
+              color: #176b37;
+              background: #eef9f1;
+              font-size: 13px;
+              font-weight: 700;
+              line-height: 1.45;
+            }
+
+            .report-success strong {
+              display: block;
+              margin-bottom: 3px;
+              font-size: 14px;
+            }
+
+            .report {
+              max-width: 1180px;
+              margin: 0 auto;
+              padding: 34px;
+              background: #fff;
+              border: 1px solid #dedede;
+              border-radius: 14px;
+              box-shadow: 0 8px 28px rgba(0, 0, 0, .06);
+            }
+
+            .header {
+              display: flex;
+              justify-content: space-between;
+              gap: 24px;
+              padding-bottom: 22px;
+              margin-bottom: 22px;
+              border-bottom: 3px solid #9d0009;
+            }
+
+            .brand {
+              color: #9d0009;
+              font-size: 11px;
+              font-weight: 900;
+              letter-spacing: 1.6px;
+            }
+
+            h1 {
+              margin: 6px 0 4px;
+              font-size: 28px;
+            }
+
+            .subtitle,
+            .meta {
+              color: #777;
+              font-size: 12px;
+              line-height: 1.55;
+            }
+
+            .meta {
+              text-align: right;
+            }
+
+            .summary {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 12px;
+              margin-bottom: 22px;
+            }
+
+            .summary-card {
+              padding: 14px 16px;
+              border: 1px solid #e2e2e2;
+              border-radius: 10px;
+              background: #fafafa;
+            }
+
+            .summary-label {
+              display: block;
+              margin-bottom: 5px;
+              color: #777;
+              font-size: 9px;
+              font-weight: 900;
+              letter-spacing: .8px;
+              text-transform: uppercase;
+            }
+
+            .summary-value {
+              font-size: 22px;
+              font-weight: 900;
+            }
+
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              table-layout: fixed;
+            }
+
+            th {
+              padding: 10px 7px;
+              color: #555;
+              background: #efefef;
+              border-bottom: 1px solid #d9d9d9;
+              font-size: 9px;
+              text-align: left;
+              text-transform: uppercase;
+            }
+
+            td {
+              padding: 10px 7px;
+              border-bottom: 1px solid #ededed;
+              font-size: 10px;
+              vertical-align: top;
+              overflow-wrap: anywhere;
+            }
+
+            .money {
+              font-weight: 800;
+              white-space: nowrap;
+            }
+
+            .status {
+              display: inline-block;
+              padding: 4px 7px;
+              border-radius: 999px;
+              font-size: 9px;
+              font-weight: 900;
+              white-space: nowrap;
+            }
+
+            .sent {
+              color: #176b37;
+              background: #e7f5eb;
+            }
+
+            .not-sent {
+              color: #a00008;
+              background: #fff0f1;
+            }
+
+            .footer {
+              margin-top: 24px;
+              padding-top: 14px;
+              border-top: 1px solid #e1e1e1;
+              color: #888;
+              font-size: 9px;
+              text-align: center;
+            }
+
+            @media print {
+              @page {
+                size: A4 landscape;
+                margin: 10mm;
+              }
+
+              body {
+                padding: 0;
+                background: #fff;
+              }
+
+              .toolbar {
+                display: none;
+              }
+
+              .report {
+                max-width: none;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+              }
+
+              thead {
+                display: table-header-group;
+              }
+
+              tr {
+                break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+
+        <body>
+          <div class="toolbar">
+            <button
+              class="toolbar-button print-button"
+              onclick="window.print()"
+            >
+              Imprimir / Guardar PDF
+            </button>
+
+            <button
+              id="attach-report-button"
+              class="toolbar-button attach-button"
+              onclick="
+                if (this.disabled) return;
+                this.disabled = true;
+                this.style.cursor = 'wait';
+                this.textContent = 'A guardar relatório...';
+                window.opener?.postMessage(
+                  { type: 'EPIC_ATTACH_COMMUNICATION_REPORT' },
+                  '*'
+                );
+              "
+            >
+              Guardar relatório
+            </button>
+          </div>
+
+          <div
+            id="report-success"
+            class="report-success"
+          >
+            <strong>Relatório guardado com sucesso.</strong>
+            O relatório foi anexado ao dia
+            ${escapeHtml(formatDate(calendarDate))}
+            no Calendário. Pode fechar esta janela e verificar o relatório
+            junto ao respetivo dia.
+          </div>
+
+          <main class="report">
+            <section class="header">
+              <div>
+                <div class="brand">EPIC PAYMENTS</div>
+                <h1>Relatório de Comunicação</h1>
+                <div class="subtitle">
+                  Mensalidades não cobradas e respetivo estado de comunicação.
+                </div>
+              </div>
+
+              <div class="meta">
+                <strong>Processamento:</strong>
+                ${escapeHtml(formatDate(calendarDate))}
+                <br />
+                <strong>Ficheiro:</strong>
+                ${escapeHtml(filename || "Ficheiro bancário")}
+                <br />
+                <strong>CEDIS:</strong>
+                ${escapeHtml(cedisFilename || "—")}
+                <br />
+                <strong>Gerado em:</strong>
+                ${escapeHtml(generatedAt)}
+              </div>
+            </section>
+
+            <section class="summary">
+              <div class="summary-card">
+                <span class="summary-label">Processos</span>
+                <span class="summary-value">${rows.length}</span>
+              </div>
+
+              <div class="summary-card">
+                <span class="summary-label">SMS enviados</span>
+                <span class="summary-value">${sentCount}</span>
+              </div>
+
+              <div class="summary-card">
+                <span class="summary-label">Não enviados / justificados</span>
+                <span class="summary-value">${rows.length - sentCount}</span>
+              </div>
+            </section>
+
+            <table>
+              <colgroup>
+                <col style="width: 8%" />
+                <col style="width: 17%" />
+                <col style="width: 11%" />
+                <col style="width: 8%" />
+                <col style="width: 8%" />
+                <col style="width: 12%" />
+                <col style="width: 10%" />
+                <col style="width: 26%" />
+              </colgroup>
+
+              <thead>
+                <tr>
+                  <th>Nº Sócio</th>
+                  <th>Nome</th>
+                  <th>Telemóvel</th>
+                  <th>Valor</th>
+                  <th>Entidade</th>
+                  <th>Referência</th>
+                  <th>SMS</th>
+                  <th>Motivo</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                ${reportRows}
+              </tbody>
+            </table>
+
+            <div class="footer">
+              EPIC Payments · Relatório de Comunicação
+            </div>
+          </main>
+
+          <script>
+            window.addEventListener(
+              "message",
+              function (event) {
+                const button =
+                  document.getElementById(
+                    "attach-report-button"
+                  );
+
+                if (!button) {
+                  return;
+                }
+
+                if (
+                  event.data?.type ===
+                  "EPIC_REPORT_ATTACHING"
+                ) {
+                  button.disabled = true;
+                  button.style.cursor = "wait";
+                  button.textContent =
+                    "A guardar relatório...";
+                }
+
+                if (
+                  event.data?.type ===
+                  "EPIC_REPORT_ATTACHED"
+                ) {
+                  button.disabled = true;
+                  button.style.cursor = "default";
+                  button.classList.add(
+                    "created"
+                  );
+                  button.textContent =
+                    "Relatório guardado";
+
+                  button.title =
+                    event.data?.filename || "";
+
+                  const success =
+                    document.getElementById(
+                      "report-success"
+                    );
+
+                  if (success) {
+                    success.style.display =
+                      "block";
+                  }
+                }
+
+                if (
+                  event.data?.type ===
+                  "EPIC_REPORT_ATTACH_ERROR"
+                ) {
+                  button.disabled = false;
+                  button.style.cursor = "pointer";
+                  button.classList.remove(
+                    "created"
+                  );
+                  button.textContent =
+                    "Guardar relatório";
+
+                  window.alert(
+                    event.data?.message ||
+                    "Não foi possível guardar o relatório."
+                  );
+                }
+              }
+            );
+          </script>
+        </body>
+      </html>
+    `;
+
+    reportWindow.document.open();
+    reportWindow.document.write(
+      html,
+    );
+    reportWindow.document.close();
+    reportWindow.focus();
+  }
+
+
   return (
     <AppLayout>
       <main style={pageStyle}>
@@ -942,15 +1683,45 @@ export default function ComunicacaoPage() {
               />
 
               <div
+                role="button"
+                tabIndex={
+                  reportReady &&
+                  !attachedReportName
+                    ? 0
+                    : -1
+                }
+                aria-disabled={
+                  !reportReady ||
+                  Boolean(
+                    attachedReportName,
+                  )
+                }
                 title={
                   reportReady
                     ? "Gerar relatório da comunicação"
                     : `Faltam justificar ${missingReasonCount} processo(s).`
                 }
+                onClick={
+                  handleGenerateReport
+                }
+                onKeyDown={(event) => {
+                  if (
+                    reportReady &&
+                    !attachedReportName &&
+                    (
+                      event.key === "Enter" ||
+                      event.key === " "
+                    )
+                  ) {
+                    event.preventDefault();
+                    handleGenerateReport();
+                  }
+                }}
                 style={{
                   ...reportCardStyle,
                   ...(
-                    reportReady
+                    reportReady &&
+                    !attachedReportName
                       ? {}
                       : disabledReportCardStyle
                   ),
@@ -966,13 +1737,17 @@ export default function ComunicacaoPage() {
                   </span>
 
                   <strong style={reportTitleStyle}>
-                    Gerar relatório
+                    {attachedReportName
+                      ? "Relatório guardado"
+                      : "Guardar relatório"}
                   </strong>
 
                   <span style={reportDetailStyle}>
-                    {reportReady
-                      ? "Pronto para gerar"
-                      : `Faltam ${missingReasonCount} justificações`}
+                    {attachedReportName
+                      ? `Guardado: ${attachedReportName}`
+                      : reportReady
+                        ? "Clique para abrir e guardar o relatório"
+                        : `Faltam ${missingReasonCount} justificações`}
                   </span>
                 </div>
               </div>

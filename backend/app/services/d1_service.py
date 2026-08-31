@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-import os
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from fastapi import HTTPException, status
+
+from app.core.config import settings
 
 
 CLOUDFLARE_API_BASE = (
@@ -14,15 +15,16 @@ CLOUDFLARE_API_BASE = (
 )
 
 
-def _get_required_env(
+def _get_required_setting(
+    value: str,
     name: str,
 ) -> str:
-    value = (
-        os.getenv(name)
+    normalized = (
+        value
         or ""
     ).strip()
 
-    if not value:
+    if not normalized:
         raise HTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -32,16 +34,18 @@ def _get_required_env(
             ),
         )
 
-    return value
+    return normalized
 
 
 def _get_query_url() -> str:
-    account_id = _get_required_env(
-        "CLOUDFLARE_ACCOUNT_ID"
+    account_id = _get_required_setting(
+        settings.cloudflare_account_id,
+        "CLOUDFLARE_ACCOUNT_ID",
     )
 
-    database_id = _get_required_env(
-        "CLOUDFLARE_D1_DATABASE_ID"
+    database_id = _get_required_setting(
+        settings.cloudflare_d1_database_id,
+        "CLOUDFLARE_D1_DATABASE_ID",
     )
 
     return (
@@ -140,8 +144,9 @@ def execute_d1_query(
     Executa SQL parametrizado no Cloudflare D1.
     """
 
-    token = _get_required_env(
-        "CLOUDFLARE_D1_API_TOKEN"
+    token = _get_required_setting(
+        settings.cloudflare_d1_api_token,
+        "CLOUDFLARE_D1_API_TOKEN",
     )
 
     body = {

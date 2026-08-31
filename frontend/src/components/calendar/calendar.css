@@ -2407,3 +2407,32 @@ button:hover {
   font-size: 8.5px !important;
   line-height: 1.35 !important;
 }
+
+
+/* =========================================================
+   RELATÓRIOS DE COMUNICAÇÃO - AZUL CLARO
+   ========================================================= */
+
+.day-badge-report {
+  background: #e7f4ff !important;
+  color: #176caa !important;
+}
+
+.drawer-file-group-marker-report {
+  background: #5baee6 !important;
+}
+
+.drawer-file-card-report {
+  border-color: #b9dff7 !important;
+  background: #f4faff !important;
+}
+
+.drawer-file-card-report:hover {
+  border-color: #78bfe9 !important;
+  background: #ebf7ff !important;
+}
+
+.drawer-file-icon-report {
+  background: #dff2ff !important;
+  color: #176caa !important;
+}

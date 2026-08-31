@@ -341,6 +341,68 @@ export default function AnnualCalendar({
     );
   }, [year]);
 
+    useEffect(() => {
+    function handleCalendarReportAttached(
+      event: MessageEvent,
+    ) {
+      if (
+        event.data?.type !==
+        "EPIC_CALENDAR_REPORT_ATTACHED"
+      ) {
+        return;
+      }
+
+      const date =
+        String(
+          event.data?.date || "",
+        );
+
+      if (!date) {
+        return;
+      }
+
+      const reportYear =
+        Number(
+          date.slice(
+            0,
+            4,
+          ),
+        );
+
+      if (
+        Number.isFinite(
+          reportYear,
+        )
+      ) {
+        void loadYearData(
+          reportYear,
+        );
+      }
+
+      if (
+        selectedDate ===
+        date
+      ) {
+        void loadFilesForDate(
+          date,
+        );
+      }
+    }
+
+    window.addEventListener(
+      "message",
+      handleCalendarReportAttached,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "message",
+        handleCalendarReportAttached,
+      );
+    };
+  }, [
+    selectedDate,
+  ]);
 
   async function loadFilesForDate(
     date: string,

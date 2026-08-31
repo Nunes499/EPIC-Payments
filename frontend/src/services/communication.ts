@@ -34,6 +34,43 @@ export type CommunicationSmsResponse = {
   message: string;
 };
 
+export type CommunicationReportRow = {
+  member_number: string;
+  name: string;
+  phone: string;
+  value: number;
+  entity: string;
+  reference: string;
+  sms_status:
+    | "pending"
+    | "sent"
+    | "failed";
+  reason: string;
+};
+
+export type CommunicationReportRequest = {
+  calendar_date: string;
+  source_file_id: number | null;
+  source_filename: string;
+  cedis_filename: string;
+  rows: CommunicationReportRow[];
+};
+
+export type CommunicationReportResponse = {
+  id: number;
+  calendar_date: string;
+  original_filename: string;
+  stored_filename: string;
+  file_type: "report";
+  file_category: string;
+  recovery_part: null;
+  related_file_id: number | null;
+  mime_type: string | null;
+  file_size: number | null;
+  file_path: string;
+  uploaded_at: string;
+};
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -54,9 +91,7 @@ async function getErrorMessage(
   return fallback;
 }
 
-export async function createMultibancoReference(
-  payload: MultibancoReferenceRequest,
-): Promise<MultibancoReferenceResponse> {
+function requireToken(): string {
   const token = getToken();
 
   if (!token) {
@@ -64,6 +99,14 @@ export async function createMultibancoReference(
       "Sessão não encontrada. Inicie sessão novamente.",
     );
   }
+
+  return token;
+}
+
+export async function createMultibancoReference(
+  payload: MultibancoReferenceRequest,
+): Promise<MultibancoReferenceResponse> {
+  const token = requireToken();
 
   const response = await fetch(
     `${API_URL}/communication/multibanco-reference`,
@@ -92,13 +135,7 @@ export async function createMultibancoReference(
 export async function sendCommunicationSms(
   payload: CommunicationSmsRequest,
 ): Promise<CommunicationSmsResponse> {
-  const token = getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
+  const token = requireToken();
 
   const response = await fetch(
     `${API_URL}/communication/sms`,
@@ -117,6 +154,35 @@ export async function sendCommunicationSms(
       await getErrorMessage(
         response,
         "Não foi possível enviar o SMS.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+export async function attachCommunicationReport(
+  payload: CommunicationReportRequest,
+): Promise<CommunicationReportResponse> {
+  const token = requireToken();
+
+  const response = await fetch(
+    `${API_URL}/communication/report`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível anexar o relatório ao calendário.",
       ),
     );
   }
