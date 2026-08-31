@@ -1,14 +1,15 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.database.session import get_db
-from app.models import User
+from app.models import SmsHistory, User
 from app.schemas.calendar_file import CalendarFileRead
 from app.services.communication_report_service import (
     create_communication_report,
@@ -71,6 +72,25 @@ class SmsCreate(BaseModel):
         gt=0,
         decimal_places=2,
     )
+    message_type: Literal[
+        "informative",
+        "returned",
+    ] = "returned"
+
+    source: Literal[
+        "communication",
+        "create_reference",
+    ] = "communication"
+
+    member_number: str = Field(
+        default="",
+        max_length=50,
+    )
+
+    member_name: str = Field(
+        default="",
+        max_length=200,
+    )
 
 
 class SmsRead(BaseModel):
@@ -78,6 +98,23 @@ class SmsRead(BaseModel):
     sms_id: str
     phone: str
     message: str
+
+
+class SmsHistoryRead(BaseModel):
+    id: int
+    source: str
+    member_number: str
+    member_name: str
+    phone: str
+    entity: str
+    reference: str
+    value: float
+    message_type: str
+    message: str
+    sms_id: str
+    sent_by_id: int | None
+    sent_by_name: str
+    sent_at: datetime
 
 
 class CommunicationReportRow(BaseModel):
@@ -134,19 +171,103 @@ def create_reference(
 def send_sms(
     payload: SmsCreate,
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     try:
-        return send_payment_sms(
+        result = send_payment_sms(
             phone=payload.phone.strip(),
             entity=payload.entity.strip(),
             reference=payload.reference.strip(),
             value=payload.value,
+            message_type=payload.message_type,
         )
+
+        history = SmsHistory(
+            source=payload.source,
+            member_number=payload.member_number.strip(),
+            member_name=payload.member_name.strip(),
+            phone=result["phone"],
+            entity=payload.entity.strip(),
+            reference=payload.reference.strip(),
+            value=payload.value,
+            message_type=payload.message_type,
+            message=result["message"],
+            sms_id=result["sms_id"],
+            sent_by_id=current_user.id,
+            sent_by_name=current_user.name,
+        )
+
+        db.add(history)
+        db.commit()
+
+        return result
     except SmsupError as exc:
+        db.rollback()
+
         raise HTTPException(
             status_code=502,
             detail=str(exc),
         ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+
+@router.get(
+    "/sms-history",
+    response_model=list[SmsHistoryRead],
+)
+def get_sms_history(
+    source: Literal[
+        "communication",
+        "create_reference",
+    ] = "create_reference",
+    limit: int = 10,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    safe_limit = max(
+        1,
+        min(
+            limit,
+            50,
+        ),
+    )
+
+    items = db.scalars(
+        select(SmsHistory)
+        .where(
+            SmsHistory.source
+            == source
+        )
+        .order_by(
+            SmsHistory.sent_at.desc(),
+            SmsHistory.id.desc(),
+        )
+        .limit(
+            safe_limit
+        )
+    ).all()
+
+    return [
+        SmsHistoryRead(
+            id=item.id,
+            source=item.source,
+            member_number=item.member_number,
+            member_name=item.member_name,
+            phone=item.phone,
+            entity=item.entity,
+            reference=item.reference,
+            value=float(item.value),
+            message_type=item.message_type,
+            message=item.message,
+            sms_id=item.sms_id,
+            sent_by_id=item.sent_by_id,
+            sent_by_name=item.sent_by_name,
+            sent_at=item.sent_at,
+        )
+        for item in items
+    ]
 
 
 @router.post(

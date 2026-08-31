@@ -44,7 +44,7 @@ export default function Sidebar() {
     {
       label: "Criar Referência",
       icon: ReceiptText,
-      href: "#",
+      href: "/criar_referencia",
     },
   ];
 
@@ -108,8 +108,7 @@ export default function Sidebar() {
           const active =
             item.label === "Calendário"
               ? pathname === "/"
-              : pathname === item.href &&
-                item.href !== "#";
+              : pathname === item.href;
 
           return (
             <Link

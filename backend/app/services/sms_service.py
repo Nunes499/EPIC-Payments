@@ -1,8 +1,15 @@
 from decimal import Decimal, InvalidOperation
+from typing import Literal
 
 import requests
 
 from app.core.config import settings
+
+
+SmsMessageType = Literal[
+    "informative",
+    "returned",
+]
 
 
 class SmsupError(RuntimeError):
@@ -81,7 +88,18 @@ def build_payment_sms(
     entity: str,
     reference: str,
     value: Decimal,
+    message_type: SmsMessageType = "returned",
 ) -> str:
+    if message_type == "informative":
+        return (
+            "Estimado cliente,\n"
+            "Seguem os dados para pagamento:\n"
+            f"Ent:{entity.strip()}\n"
+            f"Ref:{_format_reference(reference)}\n"
+            f"Valor: {_format_value(value)}\n"
+            "EPIC FITNESS"
+        )
+
     return (
         "Estimado cliente,\n"
         "Nao foi possivel processar a sua cobranca por debito direto.\n"
@@ -99,6 +117,7 @@ def send_payment_sms(
     entity: str,
     reference: str,
     value: Decimal,
+    message_type: SmsMessageType = "returned",
 ) -> dict:
     api_key = settings.smsup_api_key.strip()
 
@@ -115,6 +134,7 @@ def send_payment_sms(
         entity=entity,
         reference=reference,
         value=value,
+        message_type=message_type,
     )
 
     payload = {
