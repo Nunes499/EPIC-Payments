@@ -301,6 +301,11 @@ export default function ComunicacaoPage() {
     setCedisFilename,
   ] = useState("");
 
+  const [
+    communicationLoaded,
+    setCommunicationLoaded,
+  ] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -339,15 +344,121 @@ export default function ComunicacaoPage() {
               "0000",
           );
 
-        setRows(
+        const baseRows =
           unpaid.map(
             (movement) =>
               movementToRow(
                 movement,
                 fileId,
               ),
-          ),
+          );
+
+        const storageKey =
+          `epic-communication:${fileId}`;
+
+        let savedRows:
+          CommunicationRow[] | null =
+            null;
+
+        try {
+          const saved =
+            window.localStorage.getItem(
+              storageKey,
+            );
+
+          if (saved) {
+            savedRows =
+              JSON.parse(saved);
+          }
+        } catch {
+          savedRows = null;
+        }
+
+        const savedById =
+          new Map(
+            (savedRows || []).map(
+              (row) => [
+                row.id,
+                row,
+              ],
+            ),
+          );
+
+        const restoredRows =
+          baseRows.map(
+            (baseRow) => {
+              const savedRow =
+                savedById.get(
+                  baseRow.id,
+                );
+
+              if (!savedRow) {
+                return baseRow;
+              }
+
+              return {
+                ...baseRow,
+
+                memberNumber:
+                  savedRow.memberNumber ??
+                  baseRow.memberNumber,
+
+                name:
+                  savedRow.name ??
+                  baseRow.name,
+
+                age:
+                  savedRow.age ??
+                  baseRow.age,
+
+                phone:
+                  savedRow.phone ??
+                  baseRow.phone,
+
+                amount:
+                  savedRow.amount ??
+                  baseRow.amount,
+
+                entity:
+                  savedRow.entity || "",
+
+                reference:
+                  savedRow.reference || "",
+
+                referenceExpiresAt:
+                  savedRow.referenceExpiresAt || "",
+
+                easypayId:
+                  savedRow.easypayId || "",
+
+                smsStatus:
+                  savedRow.smsStatus ||
+                  "pending",
+
+                reason:
+                  savedRow.reason || "",
+
+                isMinor:
+                  savedRow.isMinor ??
+                  baseRow.isMinor,
+
+                cedisMatch:
+                  baseRow.cedisMatch,
+
+                creatingReference:
+                  false,
+
+                referenceError:
+                  "",
+              };
+            },
+          );
+
+        setRows(
+          restoredRows,
         );
+
+        setCommunicationLoaded(true);
 
         setFilename(
           data.filename,
@@ -379,6 +490,41 @@ export default function ComunicacaoPage() {
       cancelled = true;
     };
   }, [fileId]);
+
+
+  useEffect(() => {
+    if (
+      !communicationLoaded ||
+      !fileId
+    ) {
+      return;
+    }
+
+    const storageKey =
+      `epic-communication:${fileId}`;
+
+    try {
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(
+          rows.map(
+            (row) => ({
+              ...row,
+              creatingReference: false,
+              referenceError: "",
+            }),
+          ),
+        ),
+      );
+    } catch {
+      // Se o browser impedir armazenamento local,
+      // a Comunicação continua a funcionar normalmente.
+    }
+  }, [
+    rows,
+    fileId,
+    communicationLoaded,
+  ]);
 
 
   const sentCount =
