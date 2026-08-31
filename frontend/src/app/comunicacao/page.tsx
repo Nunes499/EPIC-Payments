@@ -13,11 +13,17 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import {
+  useRouter,
+  useSearchParams,
+} from "next/navigation";
+
 import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
+  type ReactNode,
 } from "react";
 
 import AppLayout from "@/components/layout/AppLayout";
@@ -26,6 +32,10 @@ import {
   processCalendarFile,
   type ApiBankMovement,
 } from "@/services/calendarFiles";
+
+import {
+  createMultibancoReference,
+} from "@/services/communication";
 
 
 type SmsStatus =
@@ -36,7 +46,6 @@ type SmsStatus =
 
 type CommunicationRow = {
   id: string;
-
   sequence: number;
 
   memberNumber: string;
@@ -51,14 +60,17 @@ type CommunicationRow = {
 
   bankReasonCode: string;
   bankReasonDescription: string;
-
   bankReference: string;
 
   entity: string;
   reference: string;
+  referenceExpiresAt: string;
+  easypayId: string;
+
+  creatingReference: boolean;
+  referenceError: string;
 
   smsStatus: SmsStatus;
-
   reason: string;
 
   isMinor: boolean;
@@ -68,23 +80,77 @@ type CommunicationRow = {
 };
 
 
-function formatCurrency(
+function normalizeAmountForApi(
+  value: string,
+): number | null {
+  let cleaned = value
+    .trim()
+    .replace(/\s/g, "")
+    .replace(/€/g, "");
+
+  if (!cleaned) {
+    return null;
+  }
+
+  /*
+   * Aceita:
+   * 64.90
+   * 64,90
+   * 1.234,56
+   * 1,234.56
+   */
+  const lastComma =
+    cleaned.lastIndexOf(",");
+
+  const lastDot =
+    cleaned.lastIndexOf(".");
+
+  if (
+    lastComma >= 0 &&
+    lastDot >= 0
+  ) {
+    if (lastComma > lastDot) {
+      cleaned = cleaned
+        .replace(/\./g, "")
+        .replace(",", ".");
+    } else {
+      cleaned =
+        cleaned.replace(/,/g, "");
+    }
+  } else if (lastComma >= 0) {
+    cleaned =
+      cleaned.replace(",", ".");
+  }
+
+  cleaned =
+    cleaned.replace(/[^\d.-]/g, "");
+
+  const numeric = Number(cleaned);
+
+  if (
+    !Number.isFinite(numeric) ||
+    numeric <= 0
+  ) {
+    return null;
+  }
+
+  return Math.round(
+    numeric * 100,
+  ) / 100;
+}
+
+
+function formatAmountInput(
   value: string,
 ): string {
   const numeric =
-    Number(value);
+    normalizeAmountForApi(value);
 
-  if (Number.isNaN(numeric)) {
+  if (numeric === null) {
     return value;
   }
 
-  return new Intl.NumberFormat(
-    "pt-PT",
-    {
-      style: "currency",
-      currency: "EUR",
-    },
-  ).format(numeric);
+  return numeric.toFixed(2);
 }
 
 
@@ -95,14 +161,19 @@ function formatDate(
     return "—";
   }
 
+  const datePart =
+    value.slice(0, 10);
+
   const parts =
-    value.split("-");
+    datePart.split("-");
 
   if (parts.length !== 3) {
     return value;
   }
 
-  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return (
+    `${parts[2]}/${parts[1]}/${parts[0]}`
+  );
 }
 
 
@@ -153,6 +224,11 @@ function movementToRow(
     originalMemberReference:
       movement.original_member_reference || "",
 
+    /*
+     * REGRA:
+     * O nome apresentado vem do ficheiro bancário.
+     * A Base CEDIS não substitui o nome.
+     */
     name:
       movement.name || "",
 
@@ -165,7 +241,9 @@ function movementToRow(
       ),
 
     amount:
-      movement.amount,
+      formatAmountInput(
+        String(movement.amount ?? ""),
+      ),
 
     bankReasonCode:
       movement.reason_code || "",
@@ -178,9 +256,13 @@ function movementToRow(
 
     entity: "",
     reference: "",
+    referenceExpiresAt: "",
+    easypayId: "",
+
+    creatingReference: false,
+    referenceError: "",
 
     smsStatus: "pending",
-
     reason: "",
 
     isMinor:
@@ -252,7 +334,8 @@ export default function ComunicacaoPage() {
         setLoading(false);
 
         setError(
-          "Esta comunicação não está associada a um processamento bancário.",
+          "Esta comunicação não está associada " +
+          "a um processamento bancário.",
         );
 
         return;
@@ -271,13 +354,6 @@ export default function ComunicacaoPage() {
           return;
         }
 
-        /*
-         * REGRA DA COMUNICAÇÃO:
-         *
-         * Código 0000 = cobrança executada.
-         * Tudo o que não seja 0000 entra
-         * na área de Comunicação.
-         */
         const unpaid =
           data.movements.filter(
             (movement) =>
@@ -403,10 +479,121 @@ export default function ComunicacaoPage() {
   }
 
 
+  async function handleCreateReference(
+    row: CommunicationRow,
+  ) {
+    if (
+      row.creatingReference ||
+      row.entity ||
+      row.reference
+    ) {
+      return;
+    }
+
+    const memberNumber =
+      row.memberNumber.trim();
+
+    const memberName =
+      row.name.trim();
+
+    const amount =
+      normalizeAmountForApi(
+        row.amount,
+      );
+
+    if (!memberNumber) {
+      updateRow(
+        row.id,
+        {
+          referenceError:
+            "Indique o nº de sócio antes de criar a referência.",
+        },
+      );
+
+      return;
+    }
+
+    if (amount === null) {
+      updateRow(
+        row.id,
+        {
+          referenceError:
+            "O valor não é válido.",
+        },
+      );
+
+      return;
+    }
+
+    if (amount < 0.5) {
+      updateRow(
+        row.id,
+        {
+          referenceError:
+            "O valor mínimo é 0,50 €.",
+        },
+      );
+
+      return;
+    }
+
+    updateRow(
+      row.id,
+      {
+        creatingReference: true,
+        referenceError: "",
+      },
+    );
+
+    try {
+      const result =
+        await createMultibancoReference({
+          member_number:
+            memberNumber,
+          member_name:
+            memberName,
+          value:
+            amount,
+        });
+
+      updateRow(
+        row.id,
+        {
+          entity:
+            result.entity,
+          reference:
+            result.reference,
+          referenceExpiresAt:
+            result.expires_at,
+          easypayId:
+            result.easypay_id,
+          amount:
+            result.value.toFixed(2),
+          creatingReference:
+            false,
+          referenceError:
+            "",
+        },
+      );
+    } catch (createError) {
+      updateRow(
+        row.id,
+        {
+          creatingReference:
+            false,
+          referenceError:
+            createError instanceof Error
+              ? createError.message
+              : "Não foi possível criar a referência.",
+        },
+      );
+    }
+  }
+
+
   return (
     <AppLayout>
       <main style={pageStyle}>
-
         <section style={headingStyle}>
           <div>
             <button
@@ -436,9 +623,7 @@ export default function ComunicacaoPage() {
           </div>
 
           <div style={processingStyle}>
-            <span
-              style={processingLabelStyle}
-            >
+            <span style={processingLabelStyle}>
               PROCESSAMENTO
             </span>
 
@@ -448,19 +633,13 @@ export default function ComunicacaoPage() {
               )}
             </strong>
 
-            <span
-              style={processingFileStyle}
-            >
+            <span style={processingFileStyle}>
               {filename ||
                 "Ficheiro bancário"}
             </span>
 
             {cedisFilename ? (
-              <span
-                style={
-                  processingCedisStyle
-                }
-              >
+              <span style={processingCedisStyle}>
                 CEDIS: {cedisFilename}
               </span>
             ) : null}
@@ -469,15 +648,13 @@ export default function ComunicacaoPage() {
 
 
         {loading ? (
-          <section
-            style={messageCardStyle}
-          >
+          <section style={messageCardStyle}>
             <Loader2
               size={25}
               className="processing-spinner"
             />
 
-            <div>
+            <div style={messageTextStyle}>
               <strong>
                 A preparar Comunicação
               </strong>
@@ -492,12 +669,10 @@ export default function ComunicacaoPage() {
 
 
         {!loading && error ? (
-          <section
-            style={errorCardStyle}
-          >
+          <section style={errorCardStyle}>
             <CircleAlert size={24} />
 
-            <div>
+            <div style={messageTextStyle}>
               <strong>
                 Não foi possível abrir
                 a Comunicação
@@ -514,14 +689,10 @@ export default function ComunicacaoPage() {
         {!loading &&
         !error ? (
           <>
-            <section
-              style={summaryGridStyle}
-            >
+            <section style={summaryGridStyle}>
               <SummaryCard
                 icon={
-                  <UsersRound
-                    size={23}
-                  />
+                  <UsersRound size={23} />
                 }
                 label="PROCESSOS"
                 value={String(
@@ -532,9 +703,7 @@ export default function ComunicacaoPage() {
 
               <SummaryCard
                 icon={
-                  <Send
-                    size={23}
-                  />
+                  <Send size={23} />
                 }
                 label="SMS ENVIADOS"
                 value={String(
@@ -547,9 +716,7 @@ export default function ComunicacaoPage() {
 
               <SummaryCard
                 icon={
-                  <CircleAlert
-                    size={23}
-                  />
+                  <CircleAlert size={23} />
                 }
                 label="POR JUSTIFICAR"
                 value={String(
@@ -574,7 +741,6 @@ export default function ComunicacaoPage() {
                 }
                 style={{
                   ...reportCardStyle,
-
                   ...(
                     reportReady
                       ? {}
@@ -582,36 +748,20 @@ export default function ComunicacaoPage() {
                   ),
                 }}
               >
-                <div
-                  style={reportIconStyle}
-                >
-                  <FileText
-                    size={25}
-                  />
+                <div style={reportIconStyle}>
+                  <FileText size={25} />
                 </div>
 
                 <div>
-                  <span
-                    style={
-                      reportLabelStyle
-                    }
-                  >
+                  <span style={reportLabelStyle}>
                     RELATÓRIO
                   </span>
 
-                  <strong
-                    style={
-                      reportTitleStyle
-                    }
-                  >
+                  <strong style={reportTitleStyle}>
                     Gerar relatório
                   </strong>
 
-                  <span
-                    style={
-                      reportDetailStyle
-                    }
-                  >
+                  <span style={reportDetailStyle}>
                     {reportReady
                       ? "Pronto para gerar"
                       : `Faltam ${missingReasonCount} justificações`}
@@ -621,77 +771,57 @@ export default function ComunicacaoPage() {
             </section>
 
 
-            <section
-              style={actionsBarStyle}
-            >
+            <section style={actionsBarStyle}>
               <div>
-                <strong
-                  style={
-                    actionsTitleStyle
-                  }
-                >
+                <strong style={actionsTitleStyle}>
                   Processos de comunicação
                 </strong>
 
-                <span
-                  style={
-                    actionsSubtitleStyle
-                  }
-                >
-                  Confirme e ajuste os
-                  dados antes do envio.
+                <span style={actionsSubtitleStyle}>
+                  Confirme e ajuste os dados
+                  antes do envio.
                   {selectedCount > 0
                     ? ` ${selectedCount} selecionado(s).`
                     : ""}
                 </span>
               </div>
 
-              <div
-                style={
-                  actionsButtonsStyle
-                }
-              >
+              <div style={actionsButtonsStyle}>
                 <button
                   type="button"
-                  style={
-                    secondaryButtonStyle
-                  }
+                  style={{
+                    ...secondaryButtonStyle,
+                    ...disabledButtonStyle,
+                  }}
+                  disabled
+                  title="A criação em massa será ativada depois de validarmos a criação individual."
                 >
-                  <WalletCards
-                    size={17}
-                  />
+                  <WalletCards size={17} />
                   Gerar referências selecionadas
                 </button>
 
                 <button
                   type="button"
-                  style={redButtonStyle}
+                  style={{
+                    ...redButtonStyle,
+                    ...disabledButtonStyle,
+                  }}
+                  disabled
+                  title="A ligação à SMSUP será feita depois da EasyPay."
                 >
-                  <MessageSquareText
-                    size={17}
-                  />
+                  <MessageSquareText size={17} />
                   Enviar SMS selecionados
                 </button>
               </div>
             </section>
 
 
-            <section
-              style={tableCardStyle}
-            >
-              <div
-                style={tableScrollStyle}
-              >
-                <table
-                  style={tableStyle}
-                >
+            <section style={tableCardStyle}>
+              <div style={tableScrollStyle}>
+                <table style={tableStyle}>
                   <thead>
                     <tr>
-                      <th
-                        style={
-                          checkboxHeaderStyle
-                        }
-                      >
+                      <th style={checkboxHeaderStyle}>
                         <input
                           type="checkbox"
                           checked={
@@ -763,24 +893,22 @@ export default function ComunicacaoPage() {
                             .trim()
                             .length < 3;
 
+                        const referenceCreated =
+                          Boolean(
+                            row.entity &&
+                            row.reference,
+                          );
+
                         return (
                           <tr
                             key={row.id}
                             style={rowStyle}
                           >
-                            <td
-                              style={
-                                checkboxCellStyle
-                              }
-                            >
+                            <td style={checkboxCellStyle}>
                               <input
                                 type="checkbox"
-                                checked={
-                                  row.selected
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
+                                checked={row.selected}
+                                onChange={(event) =>
                                   updateRow(
                                     row.id,
                                     {
@@ -794,23 +922,11 @@ export default function ComunicacaoPage() {
                               />
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <div
-                                style={
-                                  memberStyle
-                                }
-                              >
+                            <td style={cellStyle}>
+                              <div style={memberStyle}>
                                 <input
-                                  value={
-                                    row.memberNumber
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) =>
+                                  value={row.memberNumber}
+                                  onChange={(event) =>
                                     updateRow(
                                       row.id,
                                       {
@@ -821,25 +937,23 @@ export default function ComunicacaoPage() {
                                       },
                                     )
                                   }
+                                  disabled={
+                                    row.creatingReference ||
+                                    referenceCreated
+                                  }
                                   style={{
                                     ...editableInputStyle,
-                                    width:
-                                      "82px",
-                                    fontWeight:
-                                      800,
+                                    width: "82px",
+                                    fontWeight: 800,
                                   }}
                                 />
 
                                 {!row.cedisMatch ? (
                                   <span
                                     title="Este número de sócio não foi encontrado na Base CEDIS ativa. Confirme os dados antes do envio."
-                                    style={
-                                      warningIconStyle
-                                    }
+                                    style={warningIconStyle}
                                   >
-                                    <AlertTriangle
-                                      size={16}
-                                    />
+                                    <AlertTriangle size={16} />
                                   </span>
                                 ) : null}
                               </div>
@@ -855,18 +969,10 @@ export default function ComunicacaoPage() {
                               ) : null}
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
+                            <td style={cellStyle}>
                               <input
-                                value={
-                                  row.name
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
+                                value={row.name}
+                                onChange={(event) =>
                                   updateRow(
                                     row.id,
                                     {
@@ -877,101 +983,70 @@ export default function ComunicacaoPage() {
                                     },
                                   )
                                 }
+                                disabled={
+                                  row.creatingReference ||
+                                  referenceCreated
+                                }
                                 style={{
                                   ...editableInputStyle,
-                                  minWidth:
-                                    "185px",
-                                  fontWeight:
-                                    750,
+                                  minWidth: "185px",
+                                  fontWeight: 750,
                                 }}
                               />
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <div
-                                style={
-                                  ageStyle
-                                }
-                              >
+                            <td style={cellStyle}>
+                              <div style={ageStyle}>
                                 <input
-                                  value={
-                                    row.age ??
-                                    ""
-                                  }
-                                  onChange={(
-                                    event,
-                                  ) => {
+                                  value={row.age ?? ""}
+                                  onChange={(event) => {
                                     const value =
                                       event
                                         .target
                                         .value;
 
                                     const age =
-                                      value ===
-                                      ""
+                                      value === ""
                                         ? null
-                                        : Number(
-                                            value,
-                                          );
+                                        : Number(value);
 
                                     updateRow(
                                       row.id,
                                       {
                                         age:
-                                          Number.isNaN(
-                                            age,
-                                          )
+                                          Number.isNaN(age)
                                             ? null
                                             : age,
 
                                         isMinor:
                                           age !==
                                             null &&
-                                          age <
-                                            18,
+                                          age < 18,
                                       },
                                     );
                                   }}
                                   style={{
                                     ...editableInputStyle,
-                                    width:
-                                      "48px",
-                                    textAlign:
-                                      "center",
+                                    width: "48px",
+                                    textAlign: "center",
                                   }}
                                 />
 
                                 {row.isMinor ? (
                                   <span
                                     title="Sócio menor de idade. Confirme e altere o número de telemóvel para o contacto adequado antes do envio."
-                                    style={
-                                      minorWarningStyle
-                                    }
+                                    style={minorWarningStyle}
                                   >
-                                    <AlertTriangle
-                                      size={16}
-                                    />
+                                    <AlertTriangle size={16} />
                                   </span>
                                 ) : null}
                               </div>
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
+                            <td style={cellStyle}>
                               <input
-                                value={
-                                  row.phone
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
+                                value={row.phone}
+                                onChange={(event) =>
                                   updateRow(
                                     row.id,
                                     {
@@ -984,140 +1059,119 @@ export default function ComunicacaoPage() {
                                 }
                                 style={{
                                   ...editableInputStyle,
-                                  width:
-                                    "120px",
+                                  width: "120px",
                                 }}
                               />
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <input
-                                value={
-                                  formatCurrency(
-                                    row.amount,
-                                  )
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    {
-                                      amount:
-                                        event
-                                          .target
-                                          .value,
-                                    },
-                                  )
-                                }
-                                style={{
-                                  ...editableInputStyle,
-                                  width:
-                                    "85px",
-                                  fontWeight:
-                                    800,
-                                }}
-                              />
-                            </td>
-
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <input
-                                value={
-                                  row.entity
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    {
-                                      entity:
-                                        event
-                                          .target
-                                          .value,
-                                    },
-                                  )
-                                }
-                                placeholder="—"
-                                style={{
-                                  ...editableInputStyle,
-                                  width:
-                                    "75px",
-                                }}
-                              />
-                            </td>
-
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <input
-                                value={
-                                  row.reference
-                                }
-                                onChange={(
-                                  event,
-                                ) =>
-                                  updateRow(
-                                    row.id,
-                                    {
-                                      reference:
-                                        event
-                                          .target
-                                          .value,
-                                    },
-                                  )
-                                }
-                                placeholder="—"
-                                style={{
-                                  ...editableInputStyle,
-                                  width:
-                                    "120px",
-                                }}
-                              />
-                            </td>
-
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <SmsStatusBadge
-                                status={
-                                  row.smsStatus
-                                }
-                              />
-                            </td>
-
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <div
-                                style={{
-                                  display:
-                                    "grid",
-                                  gap:
-                                    "5px",
-                                }}
-                              >
+                            <td style={cellStyle}>
+                              <div style={amountFieldStyle}>
                                 <input
-                                  value={
-                                    row.reason
+                                  value={row.amount}
+                                  inputMode="decimal"
+                                  onChange={(event) =>
+                                    updateRow(
+                                      row.id,
+                                      {
+                                        amount:
+                                          event
+                                            .target
+                                            .value,
+                                        referenceError:
+                                          "",
+                                      },
+                                    )
                                   }
-                                  onChange={(
-                                    event,
-                                  ) =>
+                                  onBlur={() =>
+                                    updateRow(
+                                      row.id,
+                                      {
+                                        amount:
+                                          formatAmountInput(
+                                            row.amount,
+                                          ),
+                                      },
+                                    )
+                                  }
+                                  disabled={
+                                    row.creatingReference ||
+                                    referenceCreated
+                                  }
+                                  style={{
+                                    ...editableInputStyle,
+                                    width: "73px",
+                                    fontWeight: 800,
+                                    paddingRight: "5px",
+                                  }}
+                                />
+                                <span style={euroStyle}>
+                                  €
+                                </span>
+                              </div>
+                            </td>
+
+                            <td style={cellStyle}>
+                              <input
+                                value={row.entity}
+                                readOnly
+                                placeholder="—"
+                                style={{
+                                  ...editableInputStyle,
+                                  width: "75px",
+                                  background:
+                                    referenceCreated
+                                      ? "#f1faf4"
+                                      : "#f7f7f7",
+                                  fontWeight:
+                                    referenceCreated
+                                      ? 800
+                                      : 400,
+                                }}
+                              />
+                            </td>
+
+                            <td style={cellStyle}>
+                              <div style={referenceCellStyle}>
+                                <input
+                                  value={row.reference}
+                                  readOnly
+                                  placeholder="—"
+                                  style={{
+                                    ...editableInputStyle,
+                                    width: "120px",
+                                    background:
+                                      referenceCreated
+                                        ? "#f1faf4"
+                                        : "#f7f7f7",
+                                    fontWeight:
+                                      referenceCreated
+                                        ? 800
+                                        : 400,
+                                  }}
+                                />
+
+                                {row.referenceExpiresAt ? (
+                                  <span style={expiryStyle}>
+                                    Validade:{" "}
+                                    {formatDate(
+                                      row.referenceExpiresAt,
+                                    )}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+
+                            <td style={cellStyle}>
+                              <SmsStatusBadge
+                                status={row.smsStatus}
+                              />
+                            </td>
+
+                            <td style={cellStyle}>
+                              <div style={reasonFieldStyle}>
+                                <input
+                                  value={row.reason}
+                                  onChange={(event) =>
                                     updateRow(
                                       row.id,
                                       {
@@ -1135,8 +1189,7 @@ export default function ComunicacaoPage() {
                                   }
                                   style={{
                                     ...editableInputStyle,
-                                    minWidth:
-                                      "205px",
+                                    minWidth: "205px",
 
                                     borderColor:
                                       invalidReason
@@ -1151,47 +1204,91 @@ export default function ComunicacaoPage() {
                                 />
 
                                 {invalidReason ? (
-                                  <span
-                                    style={
-                                      requiredTextStyle
-                                    }
-                                  >
-                                    Obrigatório se o
-                                    SMS não for enviado
+                                  <span style={requiredTextStyle}>
+                                    Obrigatório se o SMS
+                                    não for enviado
                                   </span>
                                 ) : null}
                               </div>
                             </td>
 
-                            <td
-                              style={
-                                cellStyle
-                              }
-                            >
-                              <div
-                                style={
-                                  rowActionsStyle
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  style={
-                                    generateButtonStyle
-                                  }
-                                  title="A ligação à EasyPay será feita na próxima etapa."
-                                >
-                                  Criar referência
-                                </button>
+                            <td style={cellStyle}>
+                              <div style={actionCellStyle}>
+                                <div style={rowActionsStyle}>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleCreateReference(
+                                        row,
+                                      )
+                                    }
+                                    disabled={
+                                      row.creatingReference ||
+                                      referenceCreated
+                                    }
+                                    style={{
+                                      ...generateButtonStyle,
+                                      ...(
+                                        row.creatingReference ||
+                                        referenceCreated
+                                          ? disabledButtonStyle
+                                          : {}
+                                      ),
+                                      ...(
+                                        referenceCreated
+                                          ? referenceCreatedButtonStyle
+                                          : {}
+                                      ),
+                                    }}
+                                    title={
+                                      referenceCreated
+                                        ? "Referência Multibanco já criada."
+                                        : "Criar referência Multibanco através da EasyPay."
+                                    }
+                                  >
+                                    {row.creatingReference ? (
+                                      <>
+                                        <Loader2
+                                          size={14}
+                                          className="processing-spinner"
+                                        />
+                                        A criar...
+                                      </>
+                                    ) : referenceCreated ? (
+                                      <>
+                                        <CheckCircle2 size={14} />
+                                        Referência criada
+                                      </>
+                                    ) : (
+                                      <>
+                                        <WalletCards size={14} />
+                                        Criar referência
+                                      </>
+                                    )}
+                                  </button>
 
-                                <button
-                                  type="button"
-                                  style={
-                                    sendButtonStyle
-                                  }
-                                  title="A ligação à SMSUP será feita depois da EasyPay."
-                                >
-                                  Enviar SMS
-                                </button>
+                                  <button
+                                    type="button"
+                                    style={{
+                                      ...sendButtonStyle,
+                                      ...disabledButtonStyle,
+                                    }}
+                                    disabled
+                                    title="A ligação à SMSUP será feita depois da EasyPay."
+                                  >
+                                    Enviar SMS
+                                  </button>
+                                </div>
+
+                                {row.referenceError ? (
+                                  <span
+                                    style={referenceErrorStyle}
+                                    title={row.referenceError}
+                                  >
+                                    <CircleAlert size={12} />
+                                    {row.referenceError}
+                                  </span>
+                                ) : null}
                               </div>
                             </td>
                           </tr>
@@ -1203,14 +1300,8 @@ export default function ComunicacaoPage() {
               </div>
 
               {rows.length === 0 ? (
-                <div
-                  style={
-                    emptyStateStyle
-                  }
-                >
-                  <CheckCircle2
-                    size={28}
-                  />
+                <div style={emptyStateStyle}>
+                  <CheckCircle2 size={28} />
 
                   <strong>
                     Não existem mensalidades
@@ -1225,11 +1316,7 @@ export default function ComunicacaoPage() {
                 </div>
               ) : null}
 
-              <div
-                style={
-                  tableFooterStyle
-                }
-              >
+              <div style={tableFooterStyle}>
                 <span>
                   {rows.length} processos
                   nesta comunicação
@@ -1256,20 +1343,17 @@ function SummaryCard({
   detail,
   warning = false,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string;
   detail: string;
   warning?: boolean;
 }) {
   return (
-    <div
-      style={summaryCardStyle}
-    >
+    <div style={summaryCardStyle}>
       <div
         style={{
           ...summaryIconStyle,
-
           ...(warning
             ? summaryWarningIconStyle
             : {}),
@@ -1279,30 +1363,16 @@ function SummaryCard({
       </div>
 
       <div>
-        <span
-          style={summaryLabelStyle}
-        >
+        <span style={summaryLabelStyle}>
           {label}
         </span>
 
-        <div
-          style={
-            summaryValueLineStyle
-          }
-        >
-          <strong
-            style={
-              summaryValueStyle
-            }
-          >
+        <div style={summaryValueLineStyle}>
+          <strong style={summaryValueStyle}>
             {value}
           </strong>
 
-          <span
-            style={
-              summaryDetailStyle
-            }
-          >
+          <span style={summaryDetailStyle}>
             {detail}
           </span>
         </div>
@@ -1315,12 +1385,10 @@ function SummaryCard({
 function TableHeader({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <th
-      style={tableHeaderStyle}
-    >
+    <th style={tableHeaderStyle}>
       {children}
     </th>
   );
@@ -1334,9 +1402,7 @@ function SmsStatusBadge({
 }) {
   if (status === "sent") {
     return (
-      <span
-        style={sentStatusStyle}
-      >
+      <span style={sentStatusStyle}>
         <CheckCircle2 size={15} />
         Enviado
       </span>
@@ -1345,9 +1411,7 @@ function SmsStatusBadge({
 
   if (status === "failed") {
     return (
-      <span
-        style={failedStatusStyle}
-      >
+      <span style={failedStatusStyle}>
         <CircleAlert size={15} />
         Falhou
       </span>
@@ -1355,9 +1419,7 @@ function SmsStatusBadge({
   }
 
   return (
-    <span
-      style={pendingStatusStyle}
-    >
+    <span style={pendingStatusStyle}>
       Pendente
     </span>
   );
@@ -1368,15 +1430,15 @@ function SmsStatusBadge({
 /* ESTILOS                   */
 /* ========================= */
 
-const pageStyle = {
+const pageStyle: CSSProperties = {
   width: "100%",
   maxWidth: "1700px",
   margin: "0 auto",
   padding: "30px 34px 55px",
-  boxSizing: "border-box" as const,
+  boxSizing: "border-box",
 };
 
-const headingStyle = {
+const headingStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-end",
@@ -1384,7 +1446,7 @@ const headingStyle = {
   marginBottom: "24px",
 };
 
-const backButtonStyle = {
+const backButtonStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "5px",
@@ -1398,7 +1460,7 @@ const backButtonStyle = {
   cursor: "pointer",
 };
 
-const kickerStyle = {
+const kickerStyle: CSSProperties = {
   color: "#9d0009",
   fontSize: "10px",
   fontWeight: 900,
@@ -1406,43 +1468,43 @@ const kickerStyle = {
   marginBottom: "5px",
 };
 
-const titleStyle = {
+const titleStyle: CSSProperties = {
   margin: 0,
   color: "#161616",
   fontSize: "30px",
   fontWeight: 900,
 };
 
-const subtitleStyle = {
+const subtitleStyle: CSSProperties = {
   margin: "7px 0 0",
   color: "#777",
   fontSize: "13px",
 };
 
-const processingStyle = {
+const processingStyle: CSSProperties = {
   display: "grid",
   justifyItems: "end",
   gap: "4px",
 };
 
-const processingLabelStyle = {
+const processingLabelStyle: CSSProperties = {
   color: "#999",
   fontSize: "9px",
   fontWeight: 900,
   letterSpacing: "1.2px",
 };
 
-const processingFileStyle = {
+const processingFileStyle: CSSProperties = {
   color: "#777",
   fontSize: "11px",
 };
 
-const processingCedisStyle = {
+const processingCedisStyle: CSSProperties = {
   color: "#999",
   fontSize: "9px",
 };
 
-const messageCardStyle = {
+const messageCardStyle: CSSProperties = {
   minHeight: "110px",
   display: "flex",
   alignItems: "center",
@@ -1454,14 +1516,19 @@ const messageCardStyle = {
   borderRadius: "14px",
 };
 
-const errorCardStyle = {
+const messageTextStyle: CSSProperties = {
+  display: "grid",
+  gap: "4px",
+};
+
+const errorCardStyle: CSSProperties = {
   ...messageCardStyle,
   color: "#a00008",
   borderColor: "#e2b4b7",
   background: "#fff8f8",
 };
 
-const summaryGridStyle = {
+const summaryGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns:
     "repeat(3, minmax(180px, 1fr)) minmax(260px, 1.25fr)",
@@ -1469,7 +1536,7 @@ const summaryGridStyle = {
   marginBottom: "20px",
 };
 
-const summaryCardStyle = {
+const summaryCardStyle: CSSProperties = {
   minHeight: "92px",
   display: "flex",
   alignItems: "center",
@@ -1483,7 +1550,7 @@ const summaryCardStyle = {
     "0 6px 18px rgba(0,0,0,.045)",
 };
 
-const summaryIconStyle = {
+const summaryIconStyle: CSSProperties = {
   width: "42px",
   height: "42px",
   flexShrink: 0,
@@ -1496,12 +1563,12 @@ const summaryIconStyle = {
     "linear-gradient(145deg, #353535 0%, #777 55%, #414141 100%)",
 };
 
-const summaryWarningIconStyle = {
+const summaryWarningIconStyle: CSSProperties = {
   background:
     "linear-gradient(145deg, #770007, #bd0711)",
 };
 
-const summaryLabelStyle = {
+const summaryLabelStyle: CSSProperties = {
   display: "block",
   marginBottom: "4px",
   color: "#898989",
@@ -1510,25 +1577,25 @@ const summaryLabelStyle = {
   letterSpacing: "1px",
 };
 
-const summaryValueLineStyle = {
+const summaryValueLineStyle: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
   gap: "9px",
-  flexWrap: "wrap" as const,
+  flexWrap: "wrap",
 };
 
-const summaryValueStyle = {
+const summaryValueStyle: CSSProperties = {
   color: "#161616",
   fontSize: "24px",
   lineHeight: 1,
 };
 
-const summaryDetailStyle = {
+const summaryDetailStyle: CSSProperties = {
   color: "#777",
   fontSize: "11px",
 };
 
-const reportCardStyle = {
+const reportCardStyle: CSSProperties = {
   minHeight: "92px",
   display: "flex",
   alignItems: "center",
@@ -1543,13 +1610,13 @@ const reportCardStyle = {
   cursor: "pointer",
 };
 
-const disabledReportCardStyle = {
+const disabledReportCardStyle: CSSProperties = {
   filter: "grayscale(.75)",
   opacity: 0.55,
   cursor: "not-allowed",
 };
 
-const reportIconStyle = {
+const reportIconStyle: CSSProperties = {
   width: "44px",
   height: "44px",
   display: "flex",
@@ -1559,7 +1626,7 @@ const reportIconStyle = {
   background: "rgba(0,0,0,.18)",
 };
 
-const reportLabelStyle = {
+const reportLabelStyle: CSSProperties = {
   display: "block",
   color: "rgba(255,255,255,.68)",
   fontSize: "9px",
@@ -1567,20 +1634,20 @@ const reportLabelStyle = {
   letterSpacing: "1px",
 };
 
-const reportTitleStyle = {
+const reportTitleStyle: CSSProperties = {
   display: "block",
   marginTop: "2px",
   fontSize: "15px",
 };
 
-const reportDetailStyle = {
+const reportDetailStyle: CSSProperties = {
   display: "block",
   marginTop: "3px",
   color: "rgba(255,255,255,.75)",
   fontSize: "10px",
 };
 
-const actionsBarStyle = {
+const actionsBarStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -1592,25 +1659,25 @@ const actionsBarStyle = {
   background: "#fff",
 };
 
-const actionsTitleStyle = {
+const actionsTitleStyle: CSSProperties = {
   display: "block",
   color: "#191919",
   fontSize: "14px",
 };
 
-const actionsSubtitleStyle = {
+const actionsSubtitleStyle: CSSProperties = {
   display: "block",
   marginTop: "3px",
   color: "#888",
   fontSize: "11px",
 };
 
-const actionsButtonsStyle = {
+const actionsButtonsStyle: CSSProperties = {
   display: "flex",
   gap: "9px",
 };
 
-const secondaryButtonStyle = {
+const secondaryButtonStyle: CSSProperties = {
   height: "38px",
   display: "inline-flex",
   alignItems: "center",
@@ -1626,7 +1693,7 @@ const secondaryButtonStyle = {
   cursor: "pointer",
 };
 
-const redButtonStyle = {
+const redButtonStyle: CSSProperties = {
   ...secondaryButtonStyle,
   border: "1px solid #8f0008",
   color: "#fff",
@@ -1634,7 +1701,12 @@ const redButtonStyle = {
     "linear-gradient(100deg, #740007, #a9000b 55%, #ca0d17)",
 };
 
-const tableCardStyle = {
+const disabledButtonStyle: CSSProperties = {
+  opacity: 0.58,
+  cursor: "not-allowed",
+};
+
+const tableCardStyle: CSSProperties = {
   overflow: "hidden",
   border: "1px solid #dedede",
   borderRadius: "14px",
@@ -1643,18 +1715,18 @@ const tableCardStyle = {
     "0 7px 22px rgba(0,0,0,.04)",
 };
 
-const tableScrollStyle = {
+const tableScrollStyle: CSSProperties = {
   width: "100%",
-  overflowX: "auto" as const,
+  overflowX: "auto",
 };
 
-const tableStyle = {
+const tableStyle: CSSProperties = {
   width: "100%",
   minWidth: "1530px",
-  borderCollapse: "collapse" as const,
+  borderCollapse: "collapse",
 };
 
-const tableHeaderStyle = {
+const tableHeaderStyle: CSSProperties = {
   padding: "12px 9px",
   borderBottom: "1px solid #dedede",
   background:
@@ -1662,37 +1734,37 @@ const tableHeaderStyle = {
   color: "#555",
   fontSize: "9px",
   fontWeight: 900,
-  textTransform: "uppercase" as const,
+  textTransform: "uppercase",
   letterSpacing: ".55px",
-  textAlign: "left" as const,
-  whiteSpace: "nowrap" as const,
+  textAlign: "left",
+  whiteSpace: "nowrap",
 };
 
-const checkboxHeaderStyle = {
+const checkboxHeaderStyle: CSSProperties = {
   ...tableHeaderStyle,
   width: "38px",
-  textAlign: "center" as const,
+  textAlign: "center",
 };
 
-const rowStyle = {
+const rowStyle: CSSProperties = {
   borderBottom: "1px solid #eeeeee",
 };
 
-const cellStyle = {
+const cellStyle: CSSProperties = {
   padding: "10px 8px",
-  verticalAlign: "middle" as const,
+  verticalAlign: "middle",
   color: "#222",
   fontSize: "11px",
 };
 
-const checkboxCellStyle = {
+const checkboxCellStyle: CSSProperties = {
   ...cellStyle,
-  textAlign: "center" as const,
+  textAlign: "center",
 };
 
-const editableInputStyle = {
+const editableInputStyle: CSSProperties = {
   height: "34px",
-  boxSizing: "border-box" as const,
+  boxSizing: "border-box",
   padding: "0 8px",
   border: "1px solid #d9d9d9",
   borderRadius: "6px",
@@ -1703,53 +1775,91 @@ const editableInputStyle = {
   outline: "none",
 };
 
-const memberStyle = {
+const memberStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "6px",
 };
 
-const bankCodeStyle = {
+const bankCodeStyle: CSSProperties = {
   marginTop: "4px",
   color: "#a00008",
   fontSize: "8px",
   fontWeight: 800,
   lineHeight: 1.15,
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "nowrap",
 };
 
-const warningIconStyle = {
+const warningIconStyle: CSSProperties = {
   display: "inline-flex",
   color: "#b40710",
   cursor: "help",
 };
 
-const ageStyle = {
+const ageStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: "5px",
 };
 
-const minorWarningStyle = {
+const minorWarningStyle: CSSProperties = {
   display: "inline-flex",
   color: "#c58400",
   cursor: "help",
 };
 
-const requiredTextStyle = {
+const amountFieldStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "3px",
+};
+
+const euroStyle: CSSProperties = {
+  color: "#444",
+  fontWeight: 800,
+  fontSize: "11px",
+};
+
+const referenceCellStyle: CSSProperties = {
+  display: "grid",
+  gap: "4px",
+};
+
+const expiryStyle: CSSProperties = {
+  color: "#4f765d",
+  fontSize: "8px",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+};
+
+const reasonFieldStyle: CSSProperties = {
+  display: "grid",
+  gap: "5px",
+};
+
+const requiredTextStyle: CSSProperties = {
   color: "#a00008",
   fontSize: "8px",
   fontWeight: 700,
 };
 
-const rowActionsStyle = {
+const actionCellStyle: CSSProperties = {
+  display: "grid",
+  gap: "5px",
+};
+
+const rowActionsStyle: CSSProperties = {
   display: "flex",
   gap: "6px",
 };
 
-const generateButtonStyle = {
-  height: "32px",
+const generateButtonStyle: CSSProperties = {
+  minHeight: "32px",
   padding: "0 9px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "5px",
   border: "1px solid #cfcfcf",
   borderRadius: "6px",
   background:
@@ -1757,11 +1867,19 @@ const generateButtonStyle = {
   color: "#333",
   fontSize: "9px",
   fontWeight: 800,
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "nowrap",
   cursor: "pointer",
 };
 
-const sendButtonStyle = {
+const referenceCreatedButtonStyle: CSSProperties = {
+  opacity: 1,
+  border: "1px solid #9bc4a8",
+  background:
+    "linear-gradient(180deg, #f3fbf5, #e7f5eb)",
+  color: "#176b37",
+};
+
+const sendButtonStyle: CSSProperties = {
   ...generateButtonStyle,
   border: "1px solid #870008",
   background:
@@ -1769,7 +1887,18 @@ const sendButtonStyle = {
   color: "#fff",
 };
 
-const sentStatusStyle = {
+const referenceErrorStyle: CSSProperties = {
+  maxWidth: "250px",
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "4px",
+  color: "#a00008",
+  fontSize: "8px",
+  fontWeight: 700,
+  lineHeight: 1.25,
+};
+
+const sentStatusStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "5px",
@@ -1779,31 +1908,31 @@ const sentStatusStyle = {
   color: "#187540",
   fontSize: "9px",
   fontWeight: 900,
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "nowrap",
 };
 
-const failedStatusStyle = {
+const failedStatusStyle: CSSProperties = {
   ...sentStatusStyle,
   background: "#fff0f1",
   color: "#ad0710",
 };
 
-const pendingStatusStyle = {
+const pendingStatusStyle: CSSProperties = {
   ...sentStatusStyle,
   background: "#f1f1f1",
   color: "#666",
 };
 
-const emptyStateStyle = {
+const emptyStateStyle: CSSProperties = {
   display: "grid",
   justifyItems: "center",
   gap: "7px",
   padding: "45px",
   color: "#48715b",
-  textAlign: "center" as const,
+  textAlign: "center",
 };
 
-const tableFooterStyle = {
+const tableFooterStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "20px",
