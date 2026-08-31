@@ -3,20 +3,13 @@
 import {
   AlertTriangle,
   CheckCircle2,
-  ChevronLeft,
   CircleAlert,
   FileText,
   Loader2,
-  MessageSquareText,
   Send,
   UsersRound,
   WalletCards,
 } from "lucide-react";
-
-import {
-  useRouter,
-  useSearchParams,
-} from "next/navigation";
 
 import {
   useEffect,
@@ -75,8 +68,6 @@ type CommunicationRow = {
 
   isMinor: boolean;
   cedisMatch: boolean;
-
-  selected: boolean;
 };
 
 
@@ -92,13 +83,6 @@ function normalizeAmountForApi(
     return null;
   }
 
-  /*
-   * Aceita:
-   * 64.90
-   * 64,90
-   * 1.234,56
-   * 1,234.56
-   */
   const lastComma =
     cleaned.lastIndexOf(",");
 
@@ -224,11 +208,6 @@ function movementToRow(
     originalMemberReference:
       movement.original_member_reference || "",
 
-    /*
-     * REGRA:
-     * O nome apresentado vem do ficheiro bancário.
-     * A Base CEDIS não substitui o nome.
-     */
     name:
       movement.name || "",
 
@@ -270,18 +249,17 @@ function movementToRow(
 
     cedisMatch:
       movement.cedis_match,
-
-    selected: false,
   };
 }
 
 
 export default function ComunicacaoPage() {
-  const router =
-    useRouter();
-
   const searchParams =
-    useSearchParams();
+    new URLSearchParams(
+      typeof window !== "undefined"
+        ? window.location.search
+        : "",
+    );
 
   const fileIdText =
     searchParams.get("fileId");
@@ -434,12 +412,6 @@ export default function ComunicacaoPage() {
     missingReasonCount === 0;
 
 
-  const selectedCount =
-    rows.filter(
-      (row) => row.selected,
-    ).length;
-
-
   function updateRow(
     id: string,
     changes: Partial<CommunicationRow>,
@@ -454,26 +426,6 @@ export default function ComunicacaoPage() {
                   ...changes,
                 }
               : row,
-        ),
-    );
-  }
-
-
-  function toggleAll() {
-    const allSelected =
-      rows.length > 0 &&
-      rows.every(
-        (row) => row.selected,
-      );
-
-    setRows(
-      (current) =>
-        current.map(
-          (row) => ({
-            ...row,
-            selected:
-              !allSelected,
-          }),
         ),
     );
   }
@@ -596,17 +548,6 @@ export default function ComunicacaoPage() {
       <main style={pageStyle}>
         <section style={headingStyle}>
           <div>
-            <button
-              type="button"
-              style={backButtonStyle}
-              onClick={() =>
-                router.push("/")
-              }
-            >
-              <ChevronLeft size={17} />
-              Voltar ao calendário
-            </button>
-
             <div style={kickerStyle}>
               EPIC PAYMENTS
             </div>
@@ -616,9 +557,7 @@ export default function ComunicacaoPage() {
             </h1>
 
             <p style={subtitleStyle}>
-              Gestão das mensalidades não
-              cobradas, referências Multibanco
-              e comunicação aos sócios.
+              Processo controlado, um sócio de cada vez.
             </p>
           </div>
 
@@ -692,7 +631,7 @@ export default function ComunicacaoPage() {
             <section style={summaryGridStyle}>
               <SummaryCard
                 icon={
-                  <UsersRound size={23} />
+                  <UsersRound size={22} />
                 }
                 label="PROCESSOS"
                 value={String(
@@ -703,7 +642,7 @@ export default function ComunicacaoPage() {
 
               <SummaryCard
                 icon={
-                  <Send size={23} />
+                  <Send size={22} />
                 }
                 label="SMS ENVIADOS"
                 value={String(
@@ -716,7 +655,7 @@ export default function ComunicacaoPage() {
 
               <SummaryCard
                 icon={
-                  <CircleAlert size={23} />
+                  <CircleAlert size={22} />
                 }
                 label="POR JUSTIFICAR"
                 value={String(
@@ -737,7 +676,7 @@ export default function ComunicacaoPage() {
                 title={
                   reportReady
                     ? "Gerar relatório da comunicação"
-                    : `Não é possível gerar o relatório. Faltam justificar ${missingReasonCount} processo(s) sem SMS enviado.`
+                    : `Faltam justificar ${missingReasonCount} processo(s).`
                 }
                 style={{
                   ...reportCardStyle,
@@ -749,7 +688,7 @@ export default function ComunicacaoPage() {
                 }}
               >
                 <div style={reportIconStyle}>
-                  <FileText size={25} />
+                  <FileText size={24} />
                 </div>
 
                 <div>
@@ -778,40 +717,8 @@ export default function ComunicacaoPage() {
                 </strong>
 
                 <span style={actionsSubtitleStyle}>
-                  Confirme e ajuste os dados
-                  antes do envio.
-                  {selectedCount > 0
-                    ? ` ${selectedCount} selecionado(s).`
-                    : ""}
+                  Confirme os dados e trate cada sócio individualmente.
                 </span>
-              </div>
-
-              <div style={actionsButtonsStyle}>
-                <button
-                  type="button"
-                  style={{
-                    ...secondaryButtonStyle,
-                    ...disabledButtonStyle,
-                  }}
-                  disabled
-                  title="A criação em massa será ativada depois de validarmos a criação individual."
-                >
-                  <WalletCards size={17} />
-                  Gerar referências selecionadas
-                </button>
-
-                <button
-                  type="button"
-                  style={{
-                    ...redButtonStyle,
-                    ...disabledButtonStyle,
-                  }}
-                  disabled
-                  title="A ligação à SMSUP será feita depois da EasyPay."
-                >
-                  <MessageSquareText size={17} />
-                  Enviar SMS selecionados
-                </button>
               </div>
             </section>
 
@@ -819,25 +726,21 @@ export default function ComunicacaoPage() {
             <section style={tableCardStyle}>
               <div style={tableScrollStyle}>
                 <table style={tableStyle}>
+                  <colgroup>
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "14%" }} />
+                    <col style={{ width: "5%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "14%" }} />
+                    <col style={{ width: "17%" }} />
+                  </colgroup>
+
                   <thead>
                     <tr>
-                      <th style={checkboxHeaderStyle}>
-                        <input
-                          type="checkbox"
-                          checked={
-                            rows.length >
-                              0 &&
-                            rows.every(
-                              (row) =>
-                                row.selected,
-                            )
-                          }
-                          onChange={
-                            toggleAll
-                          }
-                        />
-                      </th>
-
                       <TableHeader>
                         Nº Sócio
                       </TableHeader>
@@ -867,7 +770,7 @@ export default function ComunicacaoPage() {
                       </TableHeader>
 
                       <TableHeader>
-                        Status SMS
+                        Status
                       </TableHeader>
 
                       <TableHeader>
@@ -904,24 +807,6 @@ export default function ComunicacaoPage() {
                             key={row.id}
                             style={rowStyle}
                           >
-                            <td style={checkboxCellStyle}>
-                              <input
-                                type="checkbox"
-                                checked={row.selected}
-                                onChange={(event) =>
-                                  updateRow(
-                                    row.id,
-                                    {
-                                      selected:
-                                        event
-                                          .target
-                                          .checked,
-                                    },
-                                  )
-                                }
-                              />
-                            </td>
-
                             <td style={cellStyle}>
                               <div style={memberStyle}>
                                 <input
@@ -931,9 +816,7 @@ export default function ComunicacaoPage() {
                                       row.id,
                                       {
                                         memberNumber:
-                                          event
-                                            .target
-                                            .value,
+                                          event.target.value,
                                       },
                                     )
                                   }
@@ -943,17 +826,16 @@ export default function ComunicacaoPage() {
                                   }
                                   style={{
                                     ...editableInputStyle,
-                                    width: "82px",
                                     fontWeight: 800,
                                   }}
                                 />
 
                                 {!row.cedisMatch ? (
                                   <span
-                                    title="Este número de sócio não foi encontrado na Base CEDIS ativa. Confirme os dados antes do envio."
+                                    title="Este número de sócio não foi encontrado na Base CEDIS ativa."
                                     style={warningIconStyle}
                                   >
-                                    <AlertTriangle size={16} />
+                                    <AlertTriangle size={14} />
                                   </span>
                                 ) : null}
                               </div>
@@ -961,7 +843,7 @@ export default function ComunicacaoPage() {
                               {row.originalMemberReference ? (
                                 <div
                                   style={bankCodeStyle}
-                                  title="Código de envio original presente no ficheiro bancário."
+                                  title="Código original presente no ficheiro bancário."
                                 >
                                   Banco:{" "}
                                   {row.originalMemberReference}
@@ -977,9 +859,7 @@ export default function ComunicacaoPage() {
                                     row.id,
                                     {
                                       name:
-                                        event
-                                          .target
-                                          .value,
+                                        event.target.value,
                                     },
                                   )
                                 }
@@ -989,7 +869,6 @@ export default function ComunicacaoPage() {
                                 }
                                 style={{
                                   ...editableInputStyle,
-                                  minWidth: "185px",
                                   fontWeight: 750,
                                 }}
                               />
@@ -1001,9 +880,7 @@ export default function ComunicacaoPage() {
                                   value={row.age ?? ""}
                                   onChange={(event) => {
                                     const value =
-                                      event
-                                        .target
-                                        .value;
+                                      event.target.value;
 
                                     const age =
                                       value === ""
@@ -1027,17 +904,16 @@ export default function ComunicacaoPage() {
                                   }}
                                   style={{
                                     ...editableInputStyle,
-                                    width: "48px",
                                     textAlign: "center",
                                   }}
                                 />
 
                                 {row.isMinor ? (
                                   <span
-                                    title="Sócio menor de idade. Confirme e altere o número de telemóvel para o contacto adequado antes do envio."
+                                    title="Sócio menor de idade. Confirme o contacto antes do envio."
                                     style={minorWarningStyle}
                                   >
-                                    <AlertTriangle size={16} />
+                                    <AlertTriangle size={14} />
                                   </span>
                                 ) : null}
                               </div>
@@ -1051,16 +927,11 @@ export default function ComunicacaoPage() {
                                     row.id,
                                     {
                                       phone:
-                                        event
-                                          .target
-                                          .value,
+                                        event.target.value,
                                     },
                                   )
                                 }
-                                style={{
-                                  ...editableInputStyle,
-                                  width: "120px",
-                                }}
+                                style={editableInputStyle}
                               />
                             </td>
 
@@ -1074,9 +945,7 @@ export default function ComunicacaoPage() {
                                       row.id,
                                       {
                                         amount:
-                                          event
-                                            .target
-                                            .value,
+                                          event.target.value,
                                         referenceError:
                                           "",
                                       },
@@ -1099,9 +968,7 @@ export default function ComunicacaoPage() {
                                   }
                                   style={{
                                     ...editableInputStyle,
-                                    width: "73px",
                                     fontWeight: 800,
-                                    paddingRight: "5px",
                                   }}
                                 />
                                 <span style={euroStyle}>
@@ -1117,7 +984,6 @@ export default function ComunicacaoPage() {
                                 placeholder="—"
                                 style={{
                                   ...editableInputStyle,
-                                  width: "75px",
                                   background:
                                     referenceCreated
                                       ? "#f1faf4"
@@ -1138,7 +1004,6 @@ export default function ComunicacaoPage() {
                                   placeholder="—"
                                   style={{
                                     ...editableInputStyle,
-                                    width: "120px",
                                     background:
                                       referenceCreated
                                         ? "#f1faf4"
@@ -1152,7 +1017,7 @@ export default function ComunicacaoPage() {
 
                                 {row.referenceExpiresAt ? (
                                   <span style={expiryStyle}>
-                                    Validade:{" "}
+                                    Val.:{" "}
                                     {formatDate(
                                       row.referenceExpiresAt,
                                     )}
@@ -1176,20 +1041,17 @@ export default function ComunicacaoPage() {
                                       row.id,
                                       {
                                         reason:
-                                          event
-                                            .target
-                                            .value,
+                                          event.target.value,
                                       },
                                     )
                                   }
                                   placeholder={
                                     reasonRequired
-                                      ? "Introduzir motivo..."
+                                      ? "Motivo..."
                                       : "Opcional"
                                   }
                                   style={{
                                     ...editableInputStyle,
-                                    minWidth: "205px",
 
                                     borderColor:
                                       invalidReason
@@ -1205,8 +1067,7 @@ export default function ComunicacaoPage() {
 
                                 {invalidReason ? (
                                   <span style={requiredTextStyle}>
-                                    Obrigatório se o SMS
-                                    não for enviado
+                                    Obrigatório se o SMS não for enviado
                                   </span>
                                 ) : null}
                               </div>
@@ -1214,71 +1075,69 @@ export default function ComunicacaoPage() {
 
                             <td style={cellStyle}>
                               <div style={actionCellStyle}>
-                                <div style={rowActionsStyle}>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      void handleCreateReference(
-                                        row,
-                                      )
-                                    }
-                                    disabled={
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void handleCreateReference(
+                                      row,
+                                    )
+                                  }
+                                  disabled={
+                                    row.creatingReference ||
+                                    referenceCreated
+                                  }
+                                  style={{
+                                    ...generateButtonStyle,
+                                    ...(
                                       row.creatingReference ||
                                       referenceCreated
-                                    }
-                                    style={{
-                                      ...generateButtonStyle,
-                                      ...(
-                                        row.creatingReference ||
-                                        referenceCreated
-                                          ? disabledButtonStyle
-                                          : {}
-                                      ),
-                                      ...(
-                                        referenceCreated
-                                          ? referenceCreatedButtonStyle
-                                          : {}
-                                      ),
-                                    }}
-                                    title={
+                                        ? disabledButtonStyle
+                                        : {}
+                                    ),
+                                    ...(
                                       referenceCreated
-                                        ? "Referência Multibanco já criada."
-                                        : "Criar referência Multibanco através da EasyPay."
-                                    }
-                                  >
-                                    {row.creatingReference ? (
-                                      <>
-                                        <Loader2
-                                          size={14}
-                                          className="processing-spinner"
-                                        />
-                                        A criar...
-                                      </>
-                                    ) : referenceCreated ? (
-                                      <>
-                                        <CheckCircle2 size={14} />
-                                        Referência criada
-                                      </>
-                                    ) : (
-                                      <>
-                                        <WalletCards size={14} />
-                                        Criar referência
-                                      </>
-                                    )}
-                                  </button>
+                                        ? referenceCreatedButtonStyle
+                                        : {}
+                                    ),
+                                  }}
+                                  title={
+                                    referenceCreated
+                                      ? "Referência Multibanco já criada."
+                                      : "Criar referência Multibanco através da EasyPay."
+                                  }
+                                >
+                                  {row.creatingReference ? (
+                                    <>
+                                      <Loader2
+                                        size={13}
+                                        className="processing-spinner"
+                                      />
+                                      A criar...
+                                    </>
+                                  ) : referenceCreated ? (
+                                    <>
+                                      <CheckCircle2 size={13} />
+                                      Criada
+                                    </>
+                                  ) : (
+                                    <>
+                                      <WalletCards size={13} />
+                                      Criar referência
+                                    </>
+                                  )}
+                                </button>
 
-                                  <button
-                                    type="button"
-                                    style={{
-                                      ...sendButtonStyle,
-                                      ...disabledButtonStyle,
-                                    }}
-                                    disabled
-                                    title="A ligação à SMSUP será feita depois da EasyPay."
-                                  >
-                                    Enviar SMS
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  style={{
+                                    ...sendButtonStyle,
+                                    ...disabledButtonStyle,
+                                  }}
+                                  disabled
+                                  title="A ligação à SMSUP será ativada depois de validarmos esta fase."
+                                >
+                                  Enviar SMS
+                                </button>
 
                                 {row.referenceError ? (
                                   <span
@@ -1403,7 +1262,7 @@ function SmsStatusBadge({
   if (status === "sent") {
     return (
       <span style={sentStatusStyle}>
-        <CheckCircle2 size={15} />
+        <CheckCircle2 size={13} />
         Enviado
       </span>
     );
@@ -1412,7 +1271,7 @@ function SmsStatusBadge({
   if (status === "failed") {
     return (
       <span style={failedStatusStyle}>
-        <CircleAlert size={15} />
+        <CircleAlert size={13} />
         Falhou
       </span>
     );
@@ -1434,7 +1293,7 @@ const pageStyle: CSSProperties = {
   width: "100%",
   maxWidth: "1700px",
   margin: "0 auto",
-  padding: "30px 34px 55px",
+  padding: "22px 18px 42px",
   boxSizing: "border-box",
 };
 
@@ -1442,75 +1301,61 @@ const headingStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-end",
-  gap: "30px",
-  marginBottom: "24px",
-};
-
-const backButtonStyle: CSSProperties = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "5px",
-  padding: 0,
-  marginBottom: "17px",
-  border: 0,
-  background: "transparent",
-  color: "#666",
-  fontSize: "12px",
-  fontWeight: 700,
-  cursor: "pointer",
+  gap: "18px",
+  marginBottom: "16px",
 };
 
 const kickerStyle: CSSProperties = {
   color: "#9d0009",
-  fontSize: "10px",
+  fontSize: "9px",
   fontWeight: 900,
-  letterSpacing: "1.6px",
-  marginBottom: "5px",
+  letterSpacing: "1.5px",
+  marginBottom: "4px",
 };
 
 const titleStyle: CSSProperties = {
   margin: 0,
   color: "#161616",
-  fontSize: "30px",
+  fontSize: "27px",
   fontWeight: 900,
 };
 
 const subtitleStyle: CSSProperties = {
-  margin: "7px 0 0",
+  margin: "5px 0 0",
   color: "#777",
-  fontSize: "13px",
+  fontSize: "12px",
 };
 
 const processingStyle: CSSProperties = {
   display: "grid",
   justifyItems: "end",
-  gap: "4px",
+  gap: "3px",
 };
 
 const processingLabelStyle: CSSProperties = {
   color: "#999",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 900,
-  letterSpacing: "1.2px",
+  letterSpacing: "1.1px",
 };
 
 const processingFileStyle: CSSProperties = {
   color: "#777",
-  fontSize: "11px",
+  fontSize: "10px",
 };
 
 const processingCedisStyle: CSSProperties = {
   color: "#999",
-  fontSize: "9px",
+  fontSize: "8px",
 };
 
 const messageCardStyle: CSSProperties = {
-  minHeight: "110px",
+  minHeight: "100px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "14px",
-  padding: "25px",
+  padding: "22px",
   background: "#fff",
   border: "1px solid #ddd",
   borderRadius: "14px",
@@ -1531,33 +1376,33 @@ const errorCardStyle: CSSProperties = {
 const summaryGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(3, minmax(180px, 1fr)) minmax(260px, 1.25fr)",
-  gap: "14px",
-  marginBottom: "20px",
+    "repeat(3, minmax(150px, 1fr)) minmax(210px, 1.15fr)",
+  gap: "10px",
+  marginBottom: "14px",
 };
 
 const summaryCardStyle: CSSProperties = {
-  minHeight: "92px",
+  minHeight: "76px",
   display: "flex",
   alignItems: "center",
-  gap: "14px",
-  padding: "16px 18px",
+  gap: "11px",
+  padding: "12px 14px",
   background:
     "linear-gradient(145deg, #ffffff, #f8f8f8)",
   border: "1px solid #e3e3e3",
-  borderRadius: "14px",
+  borderRadius: "13px",
   boxShadow:
-    "0 6px 18px rgba(0,0,0,.045)",
+    "0 5px 14px rgba(0,0,0,.04)",
 };
 
 const summaryIconStyle: CSSProperties = {
-  width: "42px",
-  height: "42px",
+  width: "38px",
+  height: "38px",
   flexShrink: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "11px",
+  borderRadius: "10px",
   color: "#fff",
   background:
     "linear-gradient(145deg, #353535 0%, #777 55%, #414141 100%)",
@@ -1570,43 +1415,43 @@ const summaryWarningIconStyle: CSSProperties = {
 
 const summaryLabelStyle: CSSProperties = {
   display: "block",
-  marginBottom: "4px",
+  marginBottom: "3px",
   color: "#898989",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 900,
-  letterSpacing: "1px",
+  letterSpacing: ".9px",
 };
 
 const summaryValueLineStyle: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
-  gap: "9px",
+  gap: "7px",
   flexWrap: "wrap",
 };
 
 const summaryValueStyle: CSSProperties = {
   color: "#161616",
-  fontSize: "24px",
+  fontSize: "21px",
   lineHeight: 1,
 };
 
 const summaryDetailStyle: CSSProperties = {
   color: "#777",
-  fontSize: "11px",
+  fontSize: "9px",
 };
 
 const reportCardStyle: CSSProperties = {
-  minHeight: "92px",
+  minHeight: "76px",
   display: "flex",
   alignItems: "center",
-  gap: "14px",
-  padding: "16px 19px",
-  borderRadius: "14px",
+  gap: "11px",
+  padding: "12px 15px",
+  borderRadius: "13px",
   color: "#fff",
   background:
     "linear-gradient(110deg, #730007 0%, #a7000b 42%, #d20f1a 100%)",
   boxShadow:
-    "0 8px 20px rgba(130,0,8,.18)",
+    "0 7px 18px rgba(130,0,8,.16)",
   cursor: "pointer",
 };
 
@@ -1617,88 +1462,59 @@ const disabledReportCardStyle: CSSProperties = {
 };
 
 const reportIconStyle: CSSProperties = {
-  width: "44px",
-  height: "44px",
+  width: "39px",
+  height: "39px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "11px",
+  borderRadius: "10px",
   background: "rgba(0,0,0,.18)",
 };
 
 const reportLabelStyle: CSSProperties = {
   display: "block",
   color: "rgba(255,255,255,.68)",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 900,
-  letterSpacing: "1px",
+  letterSpacing: ".9px",
 };
 
 const reportTitleStyle: CSSProperties = {
   display: "block",
   marginTop: "2px",
-  fontSize: "15px",
+  fontSize: "13px",
 };
 
 const reportDetailStyle: CSSProperties = {
   display: "block",
-  marginTop: "3px",
+  marginTop: "2px",
   color: "rgba(255,255,255,.75)",
-  fontSize: "10px",
+  fontSize: "9px",
 };
 
 const actionsBarStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  gap: "20px",
-  padding: "16px 18px",
-  marginBottom: "12px",
+  gap: "14px",
+  padding: "12px 14px",
+  marginBottom: "9px",
   border: "1px solid #e3e3e3",
-  borderRadius: "13px",
+  borderRadius: "12px",
   background: "#fff",
 };
 
 const actionsTitleStyle: CSSProperties = {
   display: "block",
   color: "#191919",
-  fontSize: "14px",
+  fontSize: "13px",
 };
 
 const actionsSubtitleStyle: CSSProperties = {
   display: "block",
-  marginTop: "3px",
+  marginTop: "2px",
   color: "#888",
-  fontSize: "11px",
-};
-
-const actionsButtonsStyle: CSSProperties = {
-  display: "flex",
-  gap: "9px",
-};
-
-const secondaryButtonStyle: CSSProperties = {
-  height: "38px",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "7px",
-  padding: "0 14px",
-  border: "1px solid #d5d5d5",
-  borderRadius: "8px",
-  background:
-    "linear-gradient(180deg, #fff, #f4f4f4)",
-  color: "#333",
-  fontSize: "11px",
-  fontWeight: 800,
-  cursor: "pointer",
-};
-
-const redButtonStyle: CSSProperties = {
-  ...secondaryButtonStyle,
-  border: "1px solid #8f0008",
-  color: "#fff",
-  background:
-    "linear-gradient(100deg, #740007, #a9000b 55%, #ca0d17)",
+  fontSize: "10px",
 };
 
 const disabledButtonStyle: CSSProperties = {
@@ -1709,41 +1525,36 @@ const disabledButtonStyle: CSSProperties = {
 const tableCardStyle: CSSProperties = {
   overflow: "hidden",
   border: "1px solid #dedede",
-  borderRadius: "14px",
+  borderRadius: "13px",
   background: "#fff",
   boxShadow:
-    "0 7px 22px rgba(0,0,0,.04)",
+    "0 6px 18px rgba(0,0,0,.035)",
 };
 
 const tableScrollStyle: CSSProperties = {
   width: "100%",
-  overflowX: "auto",
+  overflowX: "hidden",
 };
 
 const tableStyle: CSSProperties = {
   width: "100%",
-  minWidth: "1530px",
+  tableLayout: "fixed",
   borderCollapse: "collapse",
 };
 
 const tableHeaderStyle: CSSProperties = {
-  padding: "12px 9px",
+  padding: "10px 4px",
   borderBottom: "1px solid #dedede",
   background:
     "linear-gradient(180deg, #f7f7f7, #ededed)",
   color: "#555",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 900,
   textTransform: "uppercase",
-  letterSpacing: ".55px",
+  letterSpacing: ".35px",
   textAlign: "left",
   whiteSpace: "nowrap",
-};
-
-const checkboxHeaderStyle: CSSProperties = {
-  ...tableHeaderStyle,
-  width: "38px",
-  textAlign: "center",
+  overflow: "hidden",
 };
 
 const rowStyle: CSSProperties = {
@@ -1751,47 +1562,49 @@ const rowStyle: CSSProperties = {
 };
 
 const cellStyle: CSSProperties = {
-  padding: "10px 8px",
+  padding: "8px 4px",
   verticalAlign: "middle",
   color: "#222",
-  fontSize: "11px",
-};
-
-const checkboxCellStyle: CSSProperties = {
-  ...cellStyle,
-  textAlign: "center",
+  fontSize: "10px",
+  overflow: "hidden",
 };
 
 const editableInputStyle: CSSProperties = {
-  height: "34px",
+  width: "100%",
+  minWidth: 0,
+  height: "32px",
   boxSizing: "border-box",
-  padding: "0 8px",
+  padding: "0 6px",
   border: "1px solid #d9d9d9",
   borderRadius: "6px",
   background: "#fff",
   color: "#202020",
   font: "inherit",
-  fontSize: "11px",
+  fontSize: "10px",
   outline: "none",
 };
 
 const memberStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "6px",
+  gap: "3px",
+  minWidth: 0,
 };
 
 const bankCodeStyle: CSSProperties = {
-  marginTop: "4px",
+  marginTop: "3px",
   color: "#a00008",
-  fontSize: "8px",
+  fontSize: "7px",
   fontWeight: 800,
   lineHeight: 1.15,
   whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const warningIconStyle: CSSProperties = {
   display: "inline-flex",
+  flexShrink: 0,
   color: "#b40710",
   cursor: "help",
 };
@@ -1799,73 +1612,79 @@ const warningIconStyle: CSSProperties = {
 const ageStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "5px",
+  gap: "3px",
+  minWidth: 0,
 };
 
 const minorWarningStyle: CSSProperties = {
   display: "inline-flex",
+  flexShrink: 0,
   color: "#c58400",
   cursor: "help",
 };
 
 const amountFieldStyle: CSSProperties = {
-  display: "inline-flex",
+  display: "flex",
   alignItems: "center",
-  gap: "3px",
+  gap: "2px",
+  minWidth: 0,
 };
 
 const euroStyle: CSSProperties = {
   color: "#444",
   fontWeight: 800,
-  fontSize: "11px",
+  fontSize: "10px",
+  flexShrink: 0,
 };
 
 const referenceCellStyle: CSSProperties = {
   display: "grid",
-  gap: "4px",
+  gap: "3px",
+  minWidth: 0,
 };
 
 const expiryStyle: CSSProperties = {
   color: "#4f765d",
-  fontSize: "8px",
+  fontSize: "7px",
   fontWeight: 700,
   whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const reasonFieldStyle: CSSProperties = {
   display: "grid",
-  gap: "5px",
+  gap: "3px",
+  minWidth: 0,
 };
 
 const requiredTextStyle: CSSProperties = {
   color: "#a00008",
-  fontSize: "8px",
+  fontSize: "7px",
   fontWeight: 700,
+  lineHeight: 1.15,
 };
 
 const actionCellStyle: CSSProperties = {
   display: "grid",
-  gap: "5px",
-};
-
-const rowActionsStyle: CSSProperties = {
-  display: "flex",
-  gap: "6px",
+  gap: "4px",
+  minWidth: 0,
 };
 
 const generateButtonStyle: CSSProperties = {
-  minHeight: "32px",
-  padding: "0 9px",
+  width: "100%",
+  minHeight: "29px",
+  padding: "0 5px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: "5px",
+  gap: "4px",
   border: "1px solid #cfcfcf",
   borderRadius: "6px",
   background:
     "linear-gradient(180deg, #fff, #f1f1f1)",
   color: "#333",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 800,
   whiteSpace: "nowrap",
   cursor: "pointer",
@@ -1888,25 +1707,24 @@ const sendButtonStyle: CSSProperties = {
 };
 
 const referenceErrorStyle: CSSProperties = {
-  maxWidth: "250px",
   display: "flex",
   alignItems: "flex-start",
-  gap: "4px",
+  gap: "3px",
   color: "#a00008",
-  fontSize: "8px",
+  fontSize: "7px",
   fontWeight: 700,
-  lineHeight: 1.25,
+  lineHeight: 1.2,
 };
 
 const sentStatusStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
-  gap: "5px",
-  padding: "6px 8px",
+  gap: "4px",
+  padding: "5px 6px",
   borderRadius: "999px",
   background: "#eaf8ef",
   color: "#187540",
-  fontSize: "9px",
+  fontSize: "8px",
   fontWeight: 900,
   whiteSpace: "nowrap",
 };
@@ -1927,7 +1745,7 @@ const emptyStateStyle: CSSProperties = {
   display: "grid",
   justifyItems: "center",
   gap: "7px",
-  padding: "45px",
+  padding: "40px",
   color: "#48715b",
   textAlign: "center",
 };
@@ -1935,10 +1753,10 @@ const emptyStateStyle: CSSProperties = {
 const tableFooterStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "20px",
-  padding: "11px 16px",
+  gap: "16px",
+  padding: "9px 13px",
   background: "#fafafa",
   borderTop: "1px solid #e7e7e7",
   color: "#888",
-  fontSize: "9px",
+  fontSize: "8px",
 };

@@ -1238,21 +1238,76 @@ export default function ProcessingWorkspace({
     ).length ?? 0;
 
   function handleOpenCommunication() {
-    if (!communicationSourceState) {
-      return;
-    }
-
-    const params =
-      new URLSearchParams({
-        fileId: String(
-          communicationSourceState.file.id,
-        ),
-        date: selectedDate,
-      });
-
-    window.location.href =
-      `/comunicacao?${params.toString()}`;
+  if (!communicationSourceState) {
+    return;
   }
+
+  const params =
+    new URLSearchParams({
+      fileId: String(
+        communicationSourceState.file.id,
+      ),
+      date: selectedDate,
+    });
+
+  const communicationUrl =
+    `/comunicacao?${params.toString()}`;
+
+  const popupWidth = Math.min(
+    1280,
+    Math.max(
+      1050,
+      window.screen.availWidth - 180,
+    ),
+  );
+
+  const popupHeight = Math.min(
+    820,
+    Math.max(
+      680,
+      window.screen.availHeight - 140,
+    ),
+  );
+
+  const popupLeft = Math.max(
+    20,
+    Math.round(
+      (window.screen.availWidth - popupWidth) / 2,
+    ),
+  );
+
+  const popupTop = Math.max(
+    20,
+    Math.round(
+      (window.screen.availHeight - popupHeight) / 2,
+    ),
+  );
+
+  const communicationWindow =
+    window.open(
+      communicationUrl,
+      `epicCommunication${communicationSourceState.file.id}`,
+      [
+        "popup=yes",
+        `width=${popupWidth}`,
+        `height=${popupHeight}`,
+        `left=${popupLeft}`,
+        `top=${popupTop}`,
+        "resizable=yes",
+        "scrollbars=yes",
+      ].join(","),
+    );
+
+  if (communicationWindow) {
+    communicationWindow.focus();
+    return;
+  }
+
+  window.open(
+    communicationUrl,
+    "_blank",
+  );
+}
 
   const f1State =
     fileStates.find(
