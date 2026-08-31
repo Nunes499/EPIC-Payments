@@ -1184,6 +1184,9 @@ export default function ProcessingWorkspace({
     return null;
   }
 
+  const selectedDate =
+    selection.date;
+
 
   const recoveryFiles =
     selection.files.filter(
@@ -1244,7 +1247,7 @@ export default function ProcessingWorkspace({
         fileId: String(
           communicationSourceState.file.id,
         ),
-        date: selection.date,
+        date: selectedDate,
       });
 
     window.location.href =
