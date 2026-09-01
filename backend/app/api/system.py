@@ -8,6 +8,9 @@ from app.services.cloudflare_metrics_service import (
     CLOUDFLARE_GRAPHQL_URL,
     CloudflareMetricsError,
     get_cloudflare_metrics,
+    get_r2_storage_metrics,
+    get_d1_daily_metrics,
+    get_d1_storage_metrics,
 )
 
 
@@ -87,9 +90,15 @@ def cloudflare_debug(
         except ValueError:
             cloudflare_body = response.text[:500]
 
+        graphql_errors = (
+            cloudflare_body.get("errors")
+            if isinstance(cloudflare_body, dict)
+            else None
+        )
+
         return {
             **result,
-            "success": response.ok,
+            "success": response.ok and not graphql_errors,
             "cloudflare_http_status": response.status_code,
             "cloudflare_response": cloudflare_body,
         }
@@ -101,16 +110,11 @@ def cloudflare_debug(
             "request_error": str(exc),
         }
 
+
 @router.get("/cloudflare-debug-metrics")
 def cloudflare_debug_metrics(
     current_user: User = Depends(require_admin),
 ):
-    from app.services.cloudflare_metrics_service import (
-        get_r2_storage_metrics,
-        get_d1_daily_metrics,
-        get_d1_storage_metrics,
-    )
-
     results = {}
 
     tests = {
@@ -136,4 +140,88 @@ def cloudflare_debug_metrics(
             }
 
     return results
-    
+
+
+@router.get("/cloudflare-debug-schema")
+def cloudflare_debug_schema(
+    current_user: User = Depends(require_admin),
+):
+    token = settings.cloudflare_monitoring_api_token
+
+    if not token:
+        return {
+            "success": False,
+            "error": "Token Cloudflare não configurado.",
+        }
+
+    query = """
+    query SchemaCheck {
+        __type(name: "Account") {
+            fields {
+                name
+            }
+        }
+    }
+    """
+
+    try:
+        response = requests.post(
+            CLOUDFLARE_GRAPHQL_URL,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "query": query,
+            },
+            timeout=20,
+        )
+
+        try:
+            body = response.json()
+        except ValueError:
+            return {
+                "success": False,
+                "cloudflare_http_status": response.status_code,
+                "error": "Resposta Cloudflare não é JSON.",
+                "response_preview": response.text[:500],
+            }
+
+        errors = body.get("errors") or []
+
+        fields = (
+            body.get("data", {})
+            .get("__type", {})
+            .get("fields", [])
+        )
+
+        field_names = {
+            field.get("name")
+            for field in fields
+            if field.get("name")
+        }
+
+        wanted_datasets = {
+            "r2StorageAdaptiveGroups",
+            "d1AnalyticsAdaptiveGroups",
+            "d1StorageAdaptiveGroups",
+        }
+
+        datasets = {
+            dataset: dataset in field_names
+            for dataset in sorted(wanted_datasets)
+        }
+
+        return {
+            "success": response.ok and not errors,
+            "cloudflare_http_status": response.status_code,
+            "graphql_errors": errors,
+            "account_field_count": len(field_names),
+            "datasets": datasets,
+        }
+
+    except requests.RequestException as exc:
+        return {
+            "success": False,
+            "request_error": str(exc),
+        }
