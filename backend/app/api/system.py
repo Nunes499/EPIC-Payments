@@ -147,18 +147,29 @@ def cloudflare_debug_schema(
     current_user: User = Depends(require_admin),
 ):
     token = settings.cloudflare_monitoring_api_token
+    account_id = settings.cloudflare_account_id
 
-    if not token:
+    if not token or not account_id:
         return {
             "success": False,
-            "error": "Token Cloudflare não configurado.",
+            "error": "Token Cloudflare ou Account ID não configurado.",
         }
 
     query = """
-    query SchemaCheck {
-        __type(name: "Account") {
-            fields {
-                name
+    query DatasetSettings($accountTag: string!) {
+        viewer {
+            accounts(filter: {accountTag: $accountTag}) {
+                settings {
+                    r2StorageAdaptiveGroups {
+                        enabled
+                    }
+                    d1AnalyticsAdaptiveGroups {
+                        enabled
+                    }
+                    d1StorageAdaptiveGroups {
+                        enabled
+                    }
+                }
             }
         }
     }
@@ -173,6 +184,9 @@ def cloudflare_debug_schema(
             },
             json={
                 "query": query,
+                "variables": {
+                    "accountTag": account_id,
+                },
             },
             timeout=20,
         )
@@ -189,33 +203,34 @@ def cloudflare_debug_schema(
 
         errors = body.get("errors") or []
 
-        data = body.get("data") or {}
-        account_type = data.get("__type") or {}
-        fields = account_type.get("fields") or []
+        accounts = (
+            (body.get("data") or {})
+            .get("viewer", {})
+            .get("accounts", [])
+        )
 
-        field_names = {
-            field.get("name")
-            for field in fields
-            if field.get("name")
-        }
+        settings_data = {}
 
-        wanted_datasets = {
-            "r2StorageAdaptiveGroups",
-            "d1AnalyticsAdaptiveGroups",
-            "d1StorageAdaptiveGroups",
-        }
+        if accounts:
+            settings_data = accounts[0].get("settings") or {}
 
         datasets = {
-            dataset: dataset in field_names
-            for dataset in sorted(wanted_datasets)
+            "r2StorageAdaptiveGroups": (
+                settings_data.get("r2StorageAdaptiveGroups") or {}
+            ).get("enabled"),
+            "d1AnalyticsAdaptiveGroups": (
+                settings_data.get("d1AnalyticsAdaptiveGroups") or {}
+            ).get("enabled"),
+            "d1StorageAdaptiveGroups": (
+                settings_data.get("d1StorageAdaptiveGroups") or {}
+            ).get("enabled"),
         }
 
         return {
             "success": response.ok and not errors,
             "cloudflare_http_status": response.status_code,
             "graphql_errors": errors,
-            "introspection_available": bool(account_type),
-            "account_field_count": len(field_names),
+            "account_found": bool(accounts),
             "datasets": datasets,
             "cloudflare_response": body,
         }
