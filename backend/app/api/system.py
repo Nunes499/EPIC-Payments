@@ -100,3 +100,40 @@ def cloudflare_debug(
             "success": False,
             "request_error": str(exc),
         }
+
+@router.get("/cloudflare-debug-metrics")
+def cloudflare_debug_metrics(
+    current_user: User = Depends(require_admin),
+):
+    from app.services.cloudflare_metrics_service import (
+        get_r2_storage_metrics,
+        get_d1_daily_metrics,
+        get_d1_storage_metrics,
+    )
+
+    results = {}
+
+    tests = {
+        "r2_storage": get_r2_storage_metrics,
+        "d1_daily": get_d1_daily_metrics,
+        "d1_storage": get_d1_storage_metrics,
+    }
+
+    for name, func in tests.items():
+        try:
+            data = func()
+
+            results[name] = {
+                "success": True,
+                "data": data,
+            }
+
+        except Exception as exc:
+            results[name] = {
+                "success": False,
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+            }
+
+    return results
+    
