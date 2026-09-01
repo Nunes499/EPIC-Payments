@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import hashlib
 import requests
 
 from app.api.dependencies import require_admin
@@ -43,6 +44,12 @@ def cloudflare_debug(
 
     result = {
         "token_loaded": bool(token),
+        "token_sha256": (
+            hashlib.sha256(token.encode("utf-8")).hexdigest()
+            if token
+            else None
+        ),
+        "token_length": len(token) if token else 0,
         "account_loaded": bool(account_id),
         "account_preview": (
             f"{account_id[:6]}...{account_id[-6:]}"
