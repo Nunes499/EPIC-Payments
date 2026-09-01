@@ -189,11 +189,9 @@ def cloudflare_debug_schema(
 
         errors = body.get("errors") or []
 
-        fields = (
-            body.get("data", {})
-            .get("__type", {})
-            .get("fields", [])
-        )
+        data = body.get("data") or {}
+        account_type = data.get("__type") or {}
+        fields = account_type.get("fields") or []
 
         field_names = {
             field.get("name")
@@ -216,8 +214,10 @@ def cloudflare_debug_schema(
             "success": response.ok and not errors,
             "cloudflare_http_status": response.status_code,
             "graphql_errors": errors,
+            "introspection_available": bool(account_type),
             "account_field_count": len(field_names),
             "datasets": datasets,
+            "cloudflare_response": body,
         }
 
     except requests.RequestException as exc:
