@@ -8,6 +8,7 @@
 !.env.example
 
 # Python
+.venv/
 backend/.venv/
 backend/__pycache__/
 *.py[cod]
