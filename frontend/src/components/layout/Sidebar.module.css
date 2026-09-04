@@ -1,30 +1,54 @@
+/* =========================================================
+   EPIC PAYMENTS
+   SIDEBAR — WINDOWS 11 / NAVY BLUE
+   ========================================================= */
+
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 50;
 
   display: flex;
-  width: 285px;
+  width: 245px;
   min-height: 100vh;
   flex-direction: column;
 
-  padding: 18px 16px 20px;
+  padding: 15px 14px 18px;
 
   background:
+    radial-gradient(
+      circle at 8% 12%,
+      rgba(89, 151, 207, 0.25),
+      transparent 29%
+    ),
+    radial-gradient(
+      circle at 92% 88%,
+      rgba(46, 103, 157, 0.15),
+      transparent 34%
+    ),
     linear-gradient(
-      90deg,
-      #050505 0%,
-      #080808 86%,
-      #121212 97%,
-      #181818 100%
+      155deg,
+      #173d5d 0%,
+      #0e3453 28%,
+      #082b48 62%,
+      #061f38 100%
     );
 
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-right:
+    1px solid rgba(255, 255, 255, 0.10);
 
   color: #ffffff;
 
   box-shadow:
-    14px 0 32px rgba(0, 0, 0, 0.18);
+    10px 0 28px rgba(18, 53, 82, 0.13);
+
+  font-family:
+    "Segoe UI Variable",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }
 
 
@@ -34,25 +58,33 @@
 
 .logoArea {
   display: flex;
-  min-height: 118px;
+
+  min-height: 96px;
+
   align-items: center;
   justify-content: center;
 
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 
-  padding: 5px 10px 12px;
+  padding: 2px 8px 9px;
 }
 
+
 .logo {
+  display: block;
+
   width: 100%;
-  max-width: 215px;
+  max-width: 175px;
   height: auto;
 
   object-fit: contain;
 
   filter:
+    brightness(0)
+    invert(1)
     drop-shadow(
-      0 0 9px rgba(255, 32, 45, 0.16)
+      0 4px 10px
+      rgba(0, 0, 0, 0.10)
     );
 }
 
@@ -63,104 +95,85 @@
 
 .navigation {
   display: flex;
+
   flex: 1;
   flex-direction: column;
 
-  gap: 10px;
+  gap: 6px;
 
-  /*
-   * Dá mais espaço entre os cartões
-   * e as laterais da sidebar.
-   */
-  padding: 0 7px;
+  padding: 0 4px;
 }
 
 
 /* =========================================================
-   CARTÕES DO MENU
+   ITEM DO MENU
    ========================================================= */
 
 .menuCard {
   position: relative;
 
   display: flex;
+
   width: 100%;
-  min-height: 76px;
+  min-height: 60px;
 
   align-items: center;
 
   overflow: hidden;
 
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 14px;
+  border:
+    1px solid transparent;
 
-  /*
-   * Preto dominante.
-   * O cinza aparece apenas ligeiramente
-   * no lado direito.
-   */
-  background:
-    radial-gradient(
-      circle at 100% 50%,
-      rgba(255, 32, 45, 0.13) 0%,
-      rgba(255, 32, 45, 0.045) 27%,
-      rgba(255, 32, 45, 0.01) 46%,
-      rgba(255, 32, 45, 0) 67%
-    ),
-    linear-gradient(
-      90deg,
-      #060606 0%,
-      #080808 72%,
-      #101010 92%,
-      #151515 100%
-    );
+  border-radius: 12px;
 
-  padding: 12px 16px;
+  background: transparent;
 
-  color: #ffffff;
+  padding: 8px 13px;
+
+  color:
+    rgba(255, 255, 255, 0.84);
 
   text-decoration: none;
 
-  box-shadow:
-    0 7px 18px rgba(0, 0, 0, 0.14);
-
   transition:
-    transform 170ms ease,
-    border-color 170ms ease,
-    background 170ms ease,
-    box-shadow 170ms ease;
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 
-/* =========================================================
-   BRILHO VERMELHO LATERAL
-   ========================================================= */
+/* barra vertical do item ativo */
 
-.menuCard::after {
-  content: "";
-
+.menuCard::before {
   position: absolute;
 
-  top: 12%;
-  right: 0;
+  top: 15%;
+  left: 0;
 
   width: 3px;
-  height: 76%;
+  height: 70%;
 
-  border-radius: 8px;
+  border-radius: 0 4px 4px 0;
 
   background:
     linear-gradient(
       180deg,
-      rgba(255, 32, 45, 0),
-      rgba(255, 32, 45, 0.48),
-      rgba(255, 32, 45, 0)
+      #8ac8f2,
+      #4c9ad3
     );
 
-  opacity: 0.32;
+  content: "";
 
-  box-shadow:
-    -4px 0 12px rgba(255, 32, 45, 0.15);
+  opacity: 0;
+
+  transition:
+    opacity 160ms ease;
+}
+
+
+.menuCard::after {
+  display: none;
 }
 
 
@@ -169,75 +182,40 @@
    ========================================================= */
 
 .menuCard:hover {
-  transform: translateX(2px);
-
   border-color:
-    rgba(255, 32, 45, 0.45);
+    rgba(255, 255, 255, 0.075);
 
   background:
-    radial-gradient(
-      circle at 100% 50%,
-      rgba(255, 32, 45, 0.25) 0%,
-      rgba(255, 32, 45, 0.09) 28%,
-      rgba(255, 32, 45, 0.018) 48%,
-      rgba(255, 32, 45, 0) 68%
-    ),
-    linear-gradient(
-      90deg,
-      #060606 0%,
-      #090909 70%,
-      #151515 100%
-    );
+    rgba(255, 255, 255, 0.055);
 
-  box-shadow:
-    6px 0 18px rgba(255, 32, 45, 0.09),
-    0 8px 20px rgba(0, 0, 0, 0.15);
+  transform:
+    translateX(1px);
 }
 
 
 /* =========================================================
-   OPÇÃO ATIVA
+   ITEM ATIVO
    ========================================================= */
 
 .active {
   border-color:
-    rgba(255, 32, 45, 0.88);
+    rgba(184, 218, 244, 0.16);
 
   background:
-    radial-gradient(
-      circle at 100% 50%,
-      rgba(255, 32, 45, 0.46) 0%,
-      rgba(255, 32, 45, 0.18) 27%,
-      rgba(255, 32, 45, 0.04) 49%,
-      rgba(255, 32, 45, 0) 69%
-    ),
     linear-gradient(
       90deg,
-      #070707 0%,
-      #090909 66%,
-      #171112 100%
+      rgba(113, 178, 226, 0.25),
+      rgba(255, 255, 255, 0.075)
     );
 
   box-shadow:
-    7px 0 22px rgba(255, 32, 45, 0.16),
-    inset -1px 0 8px rgba(255, 32, 45, 0.07);
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.07);
 }
 
-.active::after {
-  width: 4px;
 
-  opacity: 0.95;
-
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 32, 45, 0.08),
-      #ff202d,
-      rgba(255, 32, 45, 0.08)
-    );
-
-  box-shadow:
-    -5px 0 16px rgba(255, 32, 45, 0.38);
+.active::before {
+  opacity: 1;
 }
 
 
@@ -247,30 +225,34 @@
 
 .mainIcon {
   position: relative;
-  z-index: 3;
+  z-index: 2;
 
   display: grid;
 
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
 
-  flex: 0 0 42px;
+  flex: 0 0 36px;
 
   place-items: center;
 
-  margin-right: 14px;
+  margin-right: 11px;
 
-  color: #ffffff;
-
-  filter:
-    drop-shadow(
-      0 0 3px rgba(255, 255, 255, 0.05)
-    );
+  color:
+    rgba(255, 255, 255, 0.86);
 }
 
+
 .mainIcon svg {
-  width: 31px;
-  height: 31px;
+  width: 25px;
+  height: 25px;
+
+  stroke-width: 1.65;
+}
+
+
+.active .mainIcon {
+  color: #ffffff;
 }
 
 
@@ -282,100 +264,88 @@
   position: relative;
   z-index: 3;
 
-  max-width: 145px;
+  max-width: 140px;
 
+  color:
+    rgba(255, 255, 255, 0.88);
+
+  font-family:
+    "Segoe UI Variable",
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+
+  font-size: 13px;
+  font-weight: 400;
+
+  line-height: 1.15;
+
+  letter-spacing: -0.005em;
+}
+
+
+.active .menuLabel {
   color: #ffffff;
 
-  font-size: 15px;
-  font-weight: 760;
-  line-height: 1.1;
-
-  text-shadow:
-    0 1px 5px rgba(0, 0, 0, 0.55);
+  font-weight: 600;
 }
 
 
 /* =========================================================
-   ÍCONE FANTASMA À DIREITA
+   ÍCONE DECORATIVO
    ========================================================= */
 
 .ghostIcon {
   position: absolute;
 
-  z-index: 1;
-
   top: 50%;
-  right: 0;
+  right: 4px;
 
   display: grid;
 
-  width: 68px;
-  height: 68px;
+  width: 50px;
+  height: 50px;
 
   place-items: center;
 
   transform:
     translateY(-50%);
 
-  /*
-   * Muito mais discreto nos botões inativos.
-   */
   color:
-    rgba(255, 255, 255, 0.075);
+    rgba(255, 255, 255, 0.035);
 
-  opacity: 0.72;
+  opacity: 1;
 
   pointer-events: none;
 
   transition:
-    color 170ms ease,
-    opacity 170ms ease,
-    transform 170ms ease;
+    color 160ms ease,
+    transform 160ms ease;
 }
+
 
 .ghostIcon svg {
-  width: 60px;
-  height: 60px;
+  width: 44px;
+  height: 44px;
 
-  stroke-width: 1.35;
+  stroke-width: 1.05;
 }
 
-
-/* =========================================================
-   FANTASMA NO HOVER
-   ========================================================= */
 
 .menuCard:hover .ghostIcon {
   color:
-    rgba(255, 120, 125, 0.12);
-
-  opacity: 0.82;
+    rgba(255, 255, 255, 0.055);
 
   transform:
     translateY(-50%)
-    translateX(-2px);
+    translateX(-1px);
 }
 
 
-/* =========================================================
-   FANTASMA DO BOTÃO ATIVO
-   Mais visível que os restantes
-   ========================================================= */
-
-.active .ghostIcon {
-  color:
-    rgba(255, 92, 101, 0.25);
-
-  opacity: 1;
-
-  transform:
-    translateY(-50%)
-    translateX(-2px);
-}
-
+.active .ghostIcon,
 .active:hover .ghostIcon {
   color:
-    rgba(255, 92, 101, 0.30);
+    rgba(156, 207, 242, 0.10);
 }
 
 
@@ -388,57 +358,82 @@
 
   align-items: center;
 
-  gap: 12px;
+  gap: 10px;
 
-  margin-top: 22px;
+  margin-top: 15px;
 
   border-top:
-    1px solid rgba(255, 255, 255, 0.10);
+    1px solid
+    rgba(255, 255, 255, 0.10);
 
-  padding: 18px 14px 2px;
+  padding:
+    14px 9px 2px;
 }
+
 
 .footerAvatar {
   display: grid;
 
-  width: 46px;
-  height: 46px;
+  width: 38px;
+  height: 38px;
 
-  flex: 0 0 46px;
+  flex: 0 0 38px;
 
   place-items: center;
 
   border:
-    1px solid rgba(255, 255, 255, 0.40);
+    1px solid
+    rgba(255, 255, 255, 0.32);
 
   border-radius: 50%;
 
+  background:
+    rgba(3, 17, 31, 0.35);
+
   color: #ffffff;
 
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 400;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.06);
 }
+
 
 .footerText {
   display: flex;
 
+  min-width: 0;
+
   flex-direction: column;
 
-  gap: 5px;
+  gap: 3px;
 }
+
 
 .footerText span {
-  color: #999999;
+  color:
+    rgba(255, 255, 255, 0.42);
 
-  font-size: 10px;
+  font-size: 8px;
+  font-weight: 500;
 
-  letter-spacing: 0.055em;
+  letter-spacing: 0.09em;
 }
 
-.footerText strong {
-  color: #ffffff;
 
-  font-size: 13px;
+.footerText strong {
+  overflow: hidden;
+
+  color:
+    rgba(255, 255, 255, 0.88);
+
+  font-size: 11px;
+  font-weight: 500;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -448,10 +443,10 @@
 
 :global(.app-main) {
   width:
-    calc(100% - 285px) !important;
+    calc(100% - 245px) !important;
 
   margin-left:
-    285px !important;
+    245px !important;
 }
 
 
@@ -461,37 +456,33 @@
 
 @media (max-width: 1150px) {
   .sidebar {
-    width: 260px;
+    width: 225px;
+
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .logo {
+    max-width: 160px;
+  }
+
+  .menuCard {
+    min-height: 58px;
+
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .menuLabel {
+    font-size: 12.5px;
   }
 
   :global(.app-main) {
     width:
-      calc(100% - 260px) !important;
+      calc(100% - 225px) !important;
 
     margin-left:
-      260px !important;
-  }
-
-  .navigation {
-    padding: 0 5px;
-  }
-
-  .menuLabel {
-    font-size: 14px;
-  }
-
-  .menuCard {
-    min-height: 72px;
-  }
-
-  .ghostIcon {
-    width: 62px;
-    height: 62px;
-  }
-
-  .ghostIcon svg {
-    width: 54px;
-    height: 54px;
+      225px !important;
   }
 }
 
@@ -502,6 +493,16 @@
 
     width: 100%;
     min-height: auto;
+
+    border-right: 0;
+
+    border-bottom:
+      1px solid
+      rgba(255, 255, 255, 0.10);
+  }
+
+  .logoArea {
+    min-height: 80px;
   }
 
   .navigation {
@@ -513,7 +514,11 @@
 
   .menuCard {
     width:
-      calc(50% - 5px);
+      calc(50% - 3px);
+  }
+
+  .footer {
+    margin-top: 12px;
   }
 
   :global(.app-main) {
@@ -527,5 +532,9 @@
 @media (max-width: 520px) {
   .menuCard {
     width: 100%;
+  }
+
+  .ghostIcon {
+    display: none;
   }
 }

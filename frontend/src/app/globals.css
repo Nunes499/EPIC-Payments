@@ -223,6 +223,9 @@ a {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+.page-kicker {
+  color: #173a5c;
+}
 
 .topbar-title {
   margin: 5px 0 0;
