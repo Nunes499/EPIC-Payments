@@ -952,19 +952,55 @@ export default function AnnualCalendar({
     <>
       <section className="annual-calendar">
         <div className="annual-calendar-header">
-          <div>
-            <span className="section-label">
-              Calendário bancário
-            </span>
+          <div className="calendar-year-panel">
+  <span className="section-label">
+    Calendário bancário
+  </span>
 
-            <h2>
-              {year}
-            </h2>
+  <div className="calendar-year-navigation">
+    <button
+      type="button"
+      className="calendar-year-button"
+      onClick={() =>
+        setYear(
+          (currentYear) =>
+            currentYear - 1,
+        )
+      }
+      aria-label="Ano anterior"
+      title="Ano anterior"
+    >
+      <ChevronLeft size={22} />
+    </button>
 
-            <p>
-              Selecione um dia para consultar ou adicionar ficheiros.
-            </p>
-          </div>
+    <div className="calendar-year-display">
+      <span>ANO</span>
+
+      <strong>
+        {year}
+      </strong>
+    </div>
+
+    <button
+      type="button"
+      className="calendar-year-button"
+      onClick={() =>
+        setYear(
+          (currentYear) =>
+            currentYear + 1,
+        )
+      }
+      aria-label="Ano seguinte"
+      title="Ano seguinte"
+    >
+      <ChevronRight size={22} />
+    </button>
+  </div>
+
+  <p>
+    Selecione um dia para consultar ou adicionar ficheiros.
+  </p>
+</div>
 
           <button
             type="button"
