@@ -1739,7 +1739,7 @@ export default function ComunicacaoPage() {
                   <strong style={reportTitleStyle}>
                     {attachedReportName
                       ? "Relatório guardado"
-                      : "Guardar relatório"}
+                      : "Criar relatório"}
                   </strong>
 
                   <span style={reportDetailStyle}>
