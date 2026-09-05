@@ -4501,3 +4501,605 @@ body:has(.annual-calendar) .section-label {
     0 10px 24px
     rgba(41, 103, 157, 0.22) !important;
 }
+
+/* =========================================================
+   EPIC PAYMENTS — WINDOWS 11 LIGHT
+   OVERRIDES FINAIS DO CALENDÁRIO / DRAWER / UPLOAD
+   2026-09-05
+   ========================================================= */
+
+.annual-calendar {
+  color: var(--epic-text, #10233d);
+}
+
+.annual-calendar-header h2,
+.month-card-header h3,
+.day-drawer-header h2,
+.drawer-section-header h3,
+.dialog-header h2,
+.file-type-option strong,
+.selected-file-name {
+  color: var(--epic-text, #10233d) !important;
+}
+
+.annual-calendar-header p,
+.month-weekdays span,
+.day-drawer-header p,
+.drawer-file-main small,
+.dialog-header p,
+.file-type-option small,
+.selected-file-size {
+  color: var(--epic-muted, #6a7e90) !important;
+}
+
+/* Ações do calendário */
+.annual-calendar-actions > .ui-button:nth-child(2),
+.annual-calendar-actions .ui-button-primary {
+  min-height: 44px !important;
+  border: 1px solid rgba(8, 120, 189, 0.28) !important;
+  border-radius: 11px !important;
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f2f9fd 100%) !important;
+  color: #075d92 !important;
+  box-shadow:
+    0 4px 12px rgba(23, 92, 133, 0.07),
+    inset 0 1px rgba(255, 255, 255, 0.92) !important;
+}
+
+.annual-calendar-actions .ui-button-primary {
+  background:
+    linear-gradient(180deg, #159be5 0%, #087ac0 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(7, 109, 170, 0.55) !important;
+  box-shadow:
+    0 5px 16px rgba(8, 120, 189, 0.22),
+    inset 0 1px rgba(255, 255, 255, 0.22) !important;
+}
+
+.annual-calendar-actions > .ui-button:nth-child(2):hover {
+  border-color: rgba(8, 120, 189, 0.46) !important;
+  background: #eaf6fd !important;
+  color: #075d92 !important;
+  box-shadow: 0 8px 18px rgba(23, 92, 133, 0.11) !important;
+}
+
+.annual-calendar-actions .ui-button-primary:hover {
+  border-color: rgba(7, 109, 170, 0.65) !important;
+  background:
+    linear-gradient(180deg, #24a8ec 0%, #0875b5 100%) !important;
+  box-shadow: 0 8px 20px rgba(8, 120, 189, 0.26) !important;
+}
+
+/* Navegação anual */
+.calendar-year-navigation {
+  border: 1px solid rgba(75, 107, 132, 0.16) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 7px 20px rgba(18, 48, 71, 0.055) !important;
+  backdrop-filter: blur(16px) saturate(135%);
+}
+
+.calendar-year-button {
+  border-color: rgba(75, 107, 132, 0.16) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #34495b !important;
+}
+
+.calendar-year-button:hover {
+  border-color: rgba(20, 152, 229, 0.30) !important;
+  background: #edf8fe !important;
+  color: #0878bd !important;
+}
+
+.calendar-year-display span {
+  color: #728596 !important;
+}
+
+.calendar-year-display strong {
+  color: #10233d !important;
+}
+
+/* Meses e dias */
+.month-card {
+  border-color: rgba(75, 107, 132, 0.15) !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.93), rgba(247,252,255,.82)) !important;
+  box-shadow: 0 8px 24px rgba(18,48,71,.055) !important;
+  backdrop-filter: blur(14px);
+}
+
+.month-card-header span {
+  border-color: rgba(75, 107, 132, 0.14) !important;
+  background: #f2f7fb !important;
+  color: #516577 !important;
+}
+
+.calendar-day {
+  border-color: rgba(75, 107, 132, 0.08) !important;
+  background: rgba(244, 249, 252, 0.85) !important;
+  color: #203446 !important;
+}
+
+.calendar-day:hover {
+  border-color: rgba(20, 152, 229, 0.23) !important;
+  background: #ffffff !important;
+  box-shadow: 0 5px 14px rgba(18, 68, 98, 0.07) !important;
+}
+
+.calendar-day-today {
+  border: 2px solid #1498e5 !important;
+  background: rgba(227, 244, 253, 0.78) !important;
+  box-shadow: 0 5px 14px rgba(20, 152, 229, 0.12) !important;
+}
+
+.calendar-day-today .calendar-day-number {
+  background: #0878bd !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(8, 120, 189, 0.22) !important;
+}
+
+.calendar-day-has-content {
+  border-color: rgba(20, 152, 229, 0.16) !important;
+  background: rgba(247, 252, 255, 0.96) !important;
+}
+
+/* Mantém significado funcional dos ficheiros */
+.calendar-day-uploaded {
+  border-left-color: #d64b4b !important;
+}
+.calendar-day-pending {
+  border-left-color: #c88818 !important;
+}
+.calendar-day-processed {
+  border-left-color: #159467 !important;
+}
+
+.day-badge-pdf {
+  background: #fff0f0 !important;
+  color: #c83e45 !important;
+}
+.day-badge-xml {
+  background: #eaf8f2 !important;
+  color: #168158 !important;
+}
+.day-badge-recovery {
+  background: #fff5df !important;
+  color: #9b6711 !important;
+}
+.day-badge-report {
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+}
+.day-badge-members {
+  background: #eef2ff !important;
+  color: #5564a7 !important;
+}
+
+/* Ficheiros do dia */
+.files-of-day-card {
+  border-color: rgba(20, 152, 229, 0.20) !important;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #f5fbff 52%, #e7f5fd 100%) !important;
+  color: #10233d !important;
+  box-shadow: 0 10px 28px rgba(18, 94, 139, 0.09) !important;
+}
+
+.files-of-day-card:hover {
+  border-color: rgba(20, 152, 229, 0.40) !important;
+  box-shadow: 0 15px 34px rgba(18, 94, 139, 0.13) !important;
+}
+
+.files-of-day-eyebrow {
+  color: #0878bd !important;
+}
+
+.files-of-day-content strong {
+  color: #10233d !important;
+}
+
+.files-of-day-content small {
+  color: #6a7e90 !important;
+}
+
+.files-of-day-card::after {
+  opacity: 0.10 !important;
+  filter: hue-rotate(155deg) saturate(.85) brightness(.8);
+}
+
+/* Backdrop / drawer */
+.drawer-backdrop {
+  background: rgba(11, 38, 58, 0.26) !important;
+  backdrop-filter: blur(7px);
+}
+
+.day-drawer {
+  border-left-color: rgba(75, 107, 132, 0.16) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(247,251,254,.94)) !important;
+  box-shadow: -20px 0 55px rgba(11, 44, 68, 0.16) !important;
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.day-drawer-header,
+.drawer-section,
+.day-drawer-footer {
+  border-color: rgba(75, 107, 132, 0.12) !important;
+}
+
+.day-drawer-footer {
+  background: rgba(250, 253, 255, 0.88) !important;
+  backdrop-filter: blur(16px);
+}
+
+.icon-button {
+  border-color: rgba(75, 107, 132, 0.16) !important;
+  background: rgba(255,255,255,.84) !important;
+  color: #516577 !important;
+  box-shadow: 0 2px 8px rgba(18,48,71,.04);
+}
+
+.icon-button:hover {
+  border-color: rgba(20,152,229,.30) !important;
+  background: #eaf6fd !important;
+  color: #0878bd !important;
+}
+
+.drawer-section-header > span,
+.processing-selection-summary strong {
+  background: #0b3651 !important;
+  color: #ffffff !important;
+}
+
+.drawer-selection-toolbar {
+  border-color: rgba(75,107,132,.13) !important;
+  background: rgba(247,251,254,.88) !important;
+  color: #6a7e90 !important;
+}
+
+.drawer-selection-toolbar strong {
+  color: #10233d !important;
+}
+
+.drawer-selection-actions button {
+  color: #0878bd !important;
+}
+
+/* Grupos e cartões - cores funcionais */
+.drawer-file-card {
+  border-color: rgba(75, 107, 132, 0.14) !important;
+  background: rgba(255,255,255,.88) !important;
+  box-shadow: 0 3px 12px rgba(18,48,71,.035);
+}
+
+.drawer-file-card:hover {
+  border-color: rgba(20,152,229,.25) !important;
+  background: #ffffff !important;
+}
+
+.drawer-file-main strong {
+  color: #203446 !important;
+}
+
+.drawer-file-card-pdf {
+  border-color: rgba(214,75,75,.25) !important;
+  background: linear-gradient(90deg, rgba(214,75,75,.07), #fff 42%) !important;
+  box-shadow: inset 3px 0 0 #d64b4b !important;
+}
+.drawer-file-icon-pdf {
+  background: #fff0f0 !important;
+  color: #c83e45 !important;
+}
+.drawer-file-group-marker-pdf {
+  background: #d64b4b !important;
+}
+
+.drawer-file-card-xml {
+  border-color: rgba(27,154,106,.24) !important;
+  background: linear-gradient(90deg, rgba(27,154,106,.07), #fff 42%) !important;
+  box-shadow: inset 3px 0 0 #1b9a6a !important;
+}
+.drawer-file-icon-xml {
+  background: #eaf8f2 !important;
+  color: #168158 !important;
+}
+.drawer-file-group-marker-xml {
+  background: #1b9a6a !important;
+}
+
+.drawer-file-card-recovery {
+  border-color: rgba(200,136,24,.28) !important;
+  background: linear-gradient(90deg, rgba(200,136,24,.09), #fff 42%) !important;
+  box-shadow: inset 3px 0 0 #c88818 !important;
+}
+.drawer-file-icon-recovery {
+  background: #fff5df !important;
+  color: #9b6711 !important;
+}
+.drawer-file-group-marker-recovery {
+  background: #c88818 !important;
+}
+
+.drawer-file-card-report {
+  border-color: rgba(25,119,197,.24) !important;
+  background: linear-gradient(90deg, rgba(25,119,197,.07), #fff 42%) !important;
+}
+.drawer-file-icon-report {
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+}
+.drawer-file-group-marker-report {
+  background: #1977c5 !important;
+}
+
+/* Ações dos ficheiros */
+.drawer-file-actions button {
+  border-color: rgba(75,107,132,.15) !important;
+  background: rgba(255,255,255,.92) !important;
+  color: #516577 !important;
+}
+
+.file-action-preview:hover,
+.file-action-download:hover {
+  border-color: #1498e5 !important;
+  background: #0878bd !important;
+  color: #ffffff !important;
+}
+
+.file-action-delete:hover {
+  border-color: #d74747 !important;
+  background: #d74747 !important;
+  color: #ffffff !important;
+}
+
+/* Cartão de ação no drawer */
+.drawer-action-card {
+  border: 1px solid rgba(20,152,229,.20) !important;
+  background:
+    linear-gradient(135deg, rgba(242,250,255,.96), rgba(255,255,255,.96)) !important;
+  color: #10233d !important;
+  box-shadow: 0 7px 20px rgba(20,92,135,.07) !important;
+}
+
+.drawer-action-card:not(:disabled):hover {
+  border-color: rgba(20,152,229,.38) !important;
+  box-shadow: 0 10px 24px rgba(20,92,135,.11) !important;
+}
+
+.drawer-action-icon {
+  background: #e3f4fd !important;
+  color: #0878bd !important;
+}
+
+.drawer-action-card strong {
+  color: #10233d !important;
+}
+
+.drawer-action-card small {
+  color: #6a7e90 !important;
+}
+
+.drawer-action-count {
+  background: #0878bd !important;
+  color: #ffffff !important;
+}
+
+/* Botão Adicionar ficheiros do drawer */
+.day-drawer-footer .ui-button {
+  min-height: 50px !important;
+  border: 1px solid rgba(7,109,170,.52) !important;
+  background:
+    linear-gradient(180deg, #159be5 0%, #087ac0 100%) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 5px 16px rgba(8,120,189,.20),
+    inset 0 1px rgba(255,255,255,.20) !important;
+}
+
+.day-drawer-footer .ui-button:hover {
+  border-color: rgba(7,109,170,.65) !important;
+  box-shadow: 0 8px 20px rgba(8,120,189,.25) !important;
+}
+
+/* =========================================================
+   MODAL ADICIONAR FICHEIROS
+   ========================================================= */
+
+.dialog-backdrop {
+  background: rgba(8, 35, 54, 0.34) !important;
+  backdrop-filter: blur(9px) saturate(115%);
+}
+
+.upload-dialog {
+  border: 1px solid rgba(75,107,132,.18) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(150deg, rgba(255,255,255,.97), rgba(246,251,254,.94)) !important;
+  color: #10233d !important;
+  box-shadow:
+    0 28px 75px rgba(8,35,54,.20),
+    inset 0 1px rgba(255,255,255,.90) !important;
+  backdrop-filter: blur(24px) saturate(145%);
+}
+
+.dialog-header {
+  border-bottom-color: rgba(75,107,132,.12) !important;
+}
+
+.file-type-options {
+  gap: 10px !important;
+}
+
+.file-type-option {
+  min-height: 76px;
+  border: 1px solid rgba(75,107,132,.15) !important;
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #10233d !important;
+  box-shadow: 0 3px 10px rgba(18,48,71,.025);
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease !important;
+}
+
+.file-type-option:hover {
+  transform: translateY(-1px);
+  border-color: rgba(20,152,229,.27) !important;
+  background: #f5fbff !important;
+  box-shadow: 0 7px 18px rgba(18,91,134,.07);
+}
+
+/* Ativo neutro/azul por defeito */
+.file-type-option-active {
+  border-color: rgba(20,152,229,.50) !important;
+  background: linear-gradient(135deg, #edf8fe, #ffffff) !important;
+  box-shadow:
+    inset 3px 0 0 #1498e5,
+    0 6px 16px rgba(20,152,229,.08) !important;
+}
+
+.file-type-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 10px !important;
+  background: #eef3f8 !important;
+  color: #516577 !important;
+}
+
+/* PDF ativo = vermelho funcional */
+.file-type-option:nth-child(1).file-type-option-active {
+  border-color: rgba(214,75,75,.42) !important;
+  background: linear-gradient(135deg, #fff0f0, #ffffff) !important;
+  box-shadow: inset 3px 0 0 #d64b4b !important;
+}
+.file-type-option:nth-child(1) .file-type-icon {
+  background: #fff0f0 !important;
+  color: #d64b4b !important;
+}
+.file-type-option:nth-child(1).file-type-option-active .file-type-icon {
+  background: #d64b4b !important;
+  color: #ffffff !important;
+}
+
+/* XML ativo = verde funcional */
+.file-type-option:nth-child(2).file-type-option-active {
+  border-color: rgba(27,154,106,.38) !important;
+  background: linear-gradient(135deg, #eaf8f2, #ffffff) !important;
+  box-shadow: inset 3px 0 0 #1b9a6a !important;
+}
+.file-type-option:nth-child(2) .file-type-icon {
+  background: #eaf8f2 !important;
+  color: #1b9a6a !important;
+}
+.file-type-option:nth-child(2).file-type-option-active .file-type-icon {
+  background: #1b9a6a !important;
+  color: #ffffff !important;
+}
+
+/* Recuperação ativo = dourado */
+.file-type-option:nth-child(3).file-type-option-active {
+  border-color: rgba(200,136,24,.42) !important;
+  background: linear-gradient(135deg, #fff5df, #ffffff) !important;
+  box-shadow: inset 3px 0 0 #c88818 !important;
+}
+.file-type-option:nth-child(3) .file-type-icon {
+  background: #fff5df !important;
+  color: #c88818 !important;
+}
+.file-type-option:nth-child(3).file-type-option-active .file-type-icon {
+  background: #c88818 !important;
+  color: #ffffff !important;
+}
+
+/* Drop area clara Windows 11 */
+.file-drop-area {
+  min-height: 150px !important;
+  border: 1.5px dashed rgba(20,152,229,.38) !important;
+  border-radius: 15px !important;
+  background:
+    linear-gradient(145deg, rgba(241,249,254,.92), rgba(255,255,255,.96)) !important;
+  color: #10233d !important;
+  box-shadow:
+    inset 0 1px rgba(255,255,255,.9),
+    0 5px 16px rgba(18,79,115,.045) !important;
+}
+
+.file-drop-area:hover {
+  border-color: rgba(20,152,229,.64) !important;
+  background:
+    linear-gradient(145deg, #eaf7fe, #ffffff) !important;
+  box-shadow: 0 9px 22px rgba(18,79,115,.08) !important;
+}
+
+.file-drop-area > svg {
+  color: #1498e5 !important;
+}
+
+.file-drop-area strong {
+  color: #10233d !important;
+}
+
+.file-drop-area span {
+  color: #6a7e90 !important;
+}
+
+.selected-file-row {
+  border-color: rgba(75,107,132,.13) !important;
+  background: rgba(255,255,255,.88) !important;
+}
+
+.selected-file-row svg {
+  color: #0878bd !important;
+}
+
+/* Rodapé modal */
+.dialog-actions {
+  border-top-color: rgba(75,107,132,.12) !important;
+  background: rgba(249,252,254,.72);
+}
+
+.dialog-actions .ui-button-primary {
+  min-height: 46px !important;
+  border: 1px solid rgba(7,109,170,.52) !important;
+  background:
+    linear-gradient(180deg, #159be5 0%, #087ac0 100%) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 5px 16px rgba(8,120,189,.20),
+    inset 0 1px rgba(255,255,255,.20) !important;
+}
+
+.dialog-actions .ui-button-primary:hover {
+  border-color: rgba(7,109,170,.65) !important;
+  background:
+    linear-gradient(180deg, #24a8ec 0%, #0875b5 100%) !important;
+  box-shadow: 0 8px 20px rgba(8,120,189,.25) !important;
+}
+
+/* Estados vazios / erros */
+.drawer-empty-state,
+.drawer-error-state {
+  border-color: rgba(75,107,132,.18) !important;
+  background: rgba(247,251,254,.84) !important;
+}
+
+.drawer-error-state {
+  border-color: rgba(215,71,71,.27) !important;
+  background: #fff5f5 !important;
+}
+
+.drawer-error-state strong {
+  color: #c83e45 !important;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .upload-dialog {
+    border-radius: 16px !important;
+  }
+
+  .file-drop-area {
+    min-height: 132px !important;
+  }
+}
+

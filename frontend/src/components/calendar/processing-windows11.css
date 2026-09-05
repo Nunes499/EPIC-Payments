@@ -1,0 +1,390 @@
+/* =========================================================
+   EPIC PAYMENTS — WINDOWS 11 LIGHT
+   PROCESSAMENTO BANCÁRIO — OVERRIDES VISUAIS
+   Carregar DEPOIS de processing.css
+   ========================================================= */
+
+.processing-workspace {
+  color: var(--epic-text, #10233d) !important;
+  background:
+    radial-gradient(circle at 4% 3%, rgba(255,255,255,.97) 0, rgba(255,255,255,0) 30%),
+    radial-gradient(circle at 84% 10%, rgba(169,222,251,.45) 0, rgba(169,222,251,0) 31%),
+    radial-gradient(circle at 73% 88%, rgba(206,233,249,.52) 0, rgba(206,233,249,0) 34%),
+    linear-gradient(145deg, #f9fcfe 0%, #edf7fc 40%, #e3f1fa 70%, #f4f9fc 100%) !important;
+  background-attachment: fixed !important;
+}
+
+.processing-workspace-topbar {
+  min-height: 94px !important;
+  border-bottom: 1px solid rgba(56,95,122,.12) !important;
+  background: rgba(250,253,255,.80) !important;
+  padding: 16px 30px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.9),
+    0 5px 20px rgba(28,65,91,.035) !important;
+  backdrop-filter: blur(22px) saturate(150%) !important;
+}
+
+.processing-workspace-title h1,
+.processing-toolbar h2,
+.processing-file-heading h3,
+.processing-empty-table strong {
+  color: #10233d !important;
+}
+
+.processing-workspace-title h1 {
+  font-weight: 700 !important;
+  letter-spacing: -.025em;
+}
+
+.processing-workspace-title p,
+.processing-toolbar p,
+.processing-file-heading p,
+.processing-empty-table span {
+  color: #6a7e90 !important;
+}
+
+.processing-back-button,
+.processing-filter-button {
+  border: 1px solid rgba(20,152,229,.23) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.94), rgba(239,248,253,.94)) !important;
+  color: #075d92 !important;
+  box-shadow: 0 3px 10px rgba(18,79,115,.05) !important;
+}
+
+.processing-back-button:hover,
+.processing-filter-button:hover:not(:disabled) {
+  border-color: rgba(20,152,229,.40) !important;
+  background: #eaf6fd !important;
+  color: #075d92 !important;
+  box-shadow: 0 7px 18px rgba(18,79,115,.09) !important;
+}
+
+.processing-workspace-status span {
+  border-color: rgba(75,107,132,.15) !important;
+  background: rgba(255,255,255,.82) !important;
+  color: #34495b !important;
+  box-shadow: 0 2px 8px rgba(18,48,71,.04);
+}
+
+.processing-workspace-status svg {
+  color: #0878bd !important;
+}
+
+.processing-workspace-content {
+  width: min(1540px, calc(100% - 48px)) !important;
+  padding-top: 26px !important;
+}
+
+/* Resumo */
+.processing-summary-grid {
+  gap: 14px !important;
+}
+
+.processing-summary-card {
+  min-height: 103px !important;
+  border: 1px solid rgba(75,107,132,.14) !important;
+  border-radius: 17px !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.94), rgba(247,252,255,.82)) !important;
+  color: #10233d !important;
+  box-shadow: 0 9px 25px rgba(18,48,71,.06) !important;
+  backdrop-filter: blur(14px);
+}
+
+.processing-summary-card span,
+.processing-summary-card small {
+  color: #6a7e90 !important;
+}
+
+.processing-summary-card strong {
+  color: #10233d !important;
+  font-weight: 750 !important;
+  letter-spacing: -.02em;
+}
+
+/* Mantém sucesso/rejeição funcionais nos cards que já usam classes/seletores */
+.processing-summary-card-success,
+.processing-summary-card-accepted {
+  border-color: rgba(21,148,103,.28) !important;
+  background:
+    linear-gradient(145deg, rgba(232,247,240,.96), rgba(255,255,255,.96)) !important;
+}
+.processing-summary-card-success strong,
+.processing-summary-card-accepted strong {
+  color: #13845e !important;
+}
+
+.processing-summary-card-danger,
+.processing-summary-card-rejected {
+  border-color: rgba(215,71,71,.28) !important;
+  background:
+    linear-gradient(145deg, rgba(255,240,240,.96), rgba(255,255,255,.96)) !important;
+}
+.processing-summary-card-danger strong,
+.processing-summary-card-rejected strong {
+  color: #c83e45 !important;
+}
+
+/* Grupo de ficheiro */
+.processing-file-group {
+  border: 1px solid rgba(75,107,132,.15) !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 12px 32px rgba(15,55,80,.07) !important;
+  backdrop-filter: blur(14px);
+}
+
+.processing-file-group-header {
+  border-bottom-color: rgba(75,107,132,.11) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.95), rgba(249,252,254,.88)) !important;
+}
+
+.processing-file-index {
+  background:
+    linear-gradient(145deg, #0b5777, #063f5c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(6,63,92,.16);
+}
+
+.processing-file-type-icon {
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+}
+
+.processing-file-state {
+  border-color: rgba(75,107,132,.14) !important;
+  background: #f3f7fa !important;
+  color: #60758b !important;
+}
+
+.processing-file-state-success {
+  border-color: rgba(21,148,103,.25) !important;
+  background: #e8f7f0 !important;
+  color: #137c59 !important;
+}
+
+.processing-file-state-warning {
+  border-color: rgba(200,136,24,.28) !important;
+  background: #fff5df !important;
+  color: #946414 !important;
+}
+
+/* Tabela */
+.processing-table-head {
+  border-bottom-color: rgba(75,107,132,.12) !important;
+  background: #f2f7fb !important;
+}
+
+.processing-table-head span {
+  color: #60758b !important;
+  font-weight: 750 !important;
+}
+
+.processing-table-row {
+  border-bottom-color: rgba(75,107,132,.10) !important;
+  background: rgba(255,255,255,.92) !important;
+}
+
+.processing-table-row > div {
+  color: #203446 !important;
+}
+
+.processing-table-row:hover {
+  background: #f5fbff !important;
+}
+
+.processing-table-row-rejected {
+  background:
+    linear-gradient(90deg, rgba(215,71,71,.055), rgba(255,255,255,.97) 18%) !important;
+  box-shadow: inset 3px 0 0 rgba(215,71,71,.72) !important;
+}
+
+.processing-table-row-rejected:hover {
+  background:
+    linear-gradient(90deg, rgba(215,71,71,.085), #fff 22%) !important;
+}
+
+.processing-member-cell small {
+  color: #a06d1c !important;
+}
+
+.processing-reason-badge-accepted {
+  border-color: rgba(21,148,103,.23) !important;
+  background: #e8f7f0 !important;
+  color: #137c59 !important;
+}
+
+.processing-reason-badge-rejected {
+  border-color: rgba(215,71,71,.24) !important;
+  background: #fff0f0 !important;
+  color: #c83e45 !important;
+}
+
+.processing-empty-value {
+  color: #91a1af !important;
+}
+
+/* Tooltips */
+.processing-code-tooltip-popover {
+  border-color: rgba(20,152,229,.20) !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.99), rgba(245,251,255,.99)) !important;
+  color: #203446 !important;
+  box-shadow:
+    0 18px 45px rgba(10,44,67,.14),
+    inset 3px 0 0 #1498e5 !important;
+}
+
+/* Botões de ação do processamento - azuis por defeito */
+.processing-workspace button:not(.processing-reason-badge):not(:disabled) {
+  font-family: inherit;
+}
+
+/* Comunicação continua vermelho quando representa débitos rejeitados */
+.processing-communication-button,
+.processing-danger-button {
+  border-color: rgba(215,71,71,.42) !important;
+  background:
+    linear-gradient(180deg, #df5454, #c83e45) !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 15px rgba(200,62,69,.20) !important;
+}
+
+.processing-communication-button:hover:not(:disabled),
+.processing-danger-button:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, #e76565, #be3740) !important;
+  box-shadow: 0 8px 19px rgba(200,62,69,.25) !important;
+}
+
+/* Botões genéricos de gerar/guardar/imprimir */
+.processing-primary-button,
+.recovery-primary-button,
+.recovery-print-button,
+.recovery-generate-button {
+  border-color: rgba(7,109,170,.52) !important;
+  background:
+    linear-gradient(180deg, #159be5 0%, #087ac0 100%) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 5px 16px rgba(8,120,189,.20),
+    inset 0 1px rgba(255,255,255,.20) !important;
+}
+
+/* Recuperação */
+.recovery-action-card,
+.recovery-result-card,
+.recovery-print-preview-card,
+.recovery-result-panel {
+  border-color: rgba(75,107,132,.15) !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.94), rgba(247,252,255,.84)) !important;
+  color: #10233d !important;
+  box-shadow: 0 9px 26px rgba(18,48,71,.06) !important;
+}
+
+.recovery-action-card h3,
+.recovery-result-card h3,
+.recovery-result-header h3,
+.recovery-print-preview-card h3 {
+  color: #10233d !important;
+}
+
+.recovery-action-card p,
+.recovery-result-card p,
+.recovery-result-header p,
+.recovery-print-preview-card p {
+  color: #6a7e90 !important;
+}
+
+/* Impressão deliberadamente não alterada:
+   o CSS @media print existente mantém o relatório profissional. */
+
+@media (max-width: 950px) {
+  .processing-workspace-topbar {
+    padding: 15px 20px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .processing-workspace-content {
+    width: min(100% - 24px, 1540px) !important;
+  }
+}
+
+/* =========================================================
+   BOTÃO GERAR PDF — TOOLBAR
+   ========================================================= */
+
+.processing-pdf-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  border: 1px solid rgba(214, 75, 75, 0.25);
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 247, 247, 0.96)
+    );
+
+  padding: 8px 15px;
+
+  color: #c83e45;
+
+  font-size: 12px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 4px 12px rgba(151, 54, 60, 0.06),
+    inset 0 1px rgba(255, 255, 255, 0.9);
+
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.processing-pdf-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  border-color: rgba(214, 75, 75, 0.48);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fff8f8,
+      #fff0f0
+    );
+
+  box-shadow:
+    0 7px 18px rgba(151, 54, 60, 0.1);
+}
+
+.processing-pdf-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.processing-pdf-button-icon {
+  display: block;
+
+  width: 21px;
+  height: 21px;
+
+  flex: 0 0 21px;
+
+  object-fit: contain;
+}

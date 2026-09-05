@@ -34,6 +34,7 @@ import type {
 } from "./calendar-types";
 
 import "./processing.css";
+import "./processing-windows11.css";
 
 
 type ProcessingWorkspaceProps = {
@@ -3171,6 +3172,28 @@ export default function ProcessingWorkspace({
                   : "Filtrar sócios"}
               </button>
 
+              {communicationSourceState ? (
+  <button
+    type="button"
+    className="processing-pdf-button"
+    disabled={
+      communicationSourceState.loading ||
+      Boolean(communicationSourceState.error) ||
+      !communicationSourceState.data
+    }
+    onClick={() =>
+      handleGenerateBankPdf(
+        communicationSourceState,
+      )
+    }
+    title="Gerar PDF bancário"
+  >
+    <FileDown size={18} />
+
+    <span>Gerar PDF</span>
+  </button>
+) : null}
+
               <button
                 type="button"
                 className="processing-filter-button"
@@ -3562,74 +3585,6 @@ export default function ProcessingWorkspace({
             },
           )}
         </div>
-
-
-        {!isRecoverySelection ? (
-          <section className="bank-pdf-generation-section">
-            <div className="bank-pdf-generation-heading">
-              <span className="section-label">
-                Documento bancário
-              </span>
-
-              <h2>
-                Gerar PDF a partir do XML
-              </h2>
-
-              <p>
-                Recria o relatório no formato do ficheiro PDF enviado pelo banco, utilizando os dados originais do XML processado.
-              </p>
-            </div>
-
-            <div className="bank-pdf-generation-grid">
-              {fileStates
-                .filter(
-                  (state) =>
-                    state.file.type ===
-                      "xml" &&
-                    !isRecoveryFile(
-                      state.file,
-                    ),
-                )
-                .map((state) => (
-                  <article
-                    key={`bank-pdf-${state.file.id}`}
-                    className="bank-pdf-generation-card"
-                  >
-                    <span className="bank-pdf-generation-icon">
-                      <FileDown size={24} />
-                    </span>
-
-                    <div className="bank-pdf-generation-copy">
-                      <strong>
-                        Relatório bancário
-                      </strong>
-
-                      <small>
-                        {state.file.name}
-                      </small>
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={
-                        state.loading ||
-                        Boolean(state.error) ||
-                        !state.data
-                      }
-                      onClick={() =>
-                        handleGenerateBankPdf(
-                          state,
-                        )
-                      }
-                    >
-                      Gerar PDF
-                    </button>
-                  </article>
-                ))}
-            </div>
-          </section>
-        ) : null}
-
 
         {isRecoverySelection ? (
           <>
