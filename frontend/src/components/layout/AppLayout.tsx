@@ -5,15 +5,19 @@ import Sidebar from "./Sidebar";
 
 type AppLayoutProps = {
   children: ReactNode;
+  hideHeader?: boolean;
 };
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout({
+  children,
+  hideHeader = false,
+}: AppLayoutProps) {
   return (
     <div className="app-shell">
       <Sidebar />
 
       <div className="app-main">
-        <Header />
+        {!hideHeader && <Header />}
 
         <main className="app-content">{children}</main>
       </div>

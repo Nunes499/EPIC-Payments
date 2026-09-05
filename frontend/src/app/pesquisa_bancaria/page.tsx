@@ -884,18 +884,18 @@ export default function PesquisaBancariaPage() {
     <AppLayout>
       <main
         style={{
-          padding: "28px 34px 42px",
+          padding: "24px 30px 42px",
         }}
       >
         <section
           style={{
             position: "relative",
-            minHeight: "calc(100vh - 205px)",
+            minHeight: "calc(100vh - 190px)",
             overflow: "hidden",
-            background: "#ffffff",
-            border: "1px solid #e7e7e7",
-            borderRadius: "22px",
-            boxShadow: "0 12px 38px rgba(0, 0, 0, 0.06)",
+            background: "linear-gradient(145deg, rgba(255,255,255,.96), rgba(247,252,255,.92))",
+            border: "1px solid rgba(148,185,211,.34)",
+            borderRadius: "24px",
+            boxShadow: "0 18px 50px rgba(20,72,105,.08)",
           }}
         >
           <div
@@ -905,7 +905,7 @@ export default function PesquisaBancariaPage() {
               left: "-180px",
               width: "650px",
               height: "390px",
-              border: "42px solid rgba(239, 16, 28, 0.05)",
+              border: "42px solid rgba(77,178,232,.09)",
               borderRadius: "50%",
               transform: "rotate(-18deg)",
               pointerEvents: "none",
@@ -919,7 +919,7 @@ export default function PesquisaBancariaPage() {
               bottom: "-320px",
               width: "760px",
               height: "500px",
-              border: "55px solid rgba(239, 16, 28, 0.035)",
+              border: "55px solid rgba(48,137,196,.07)",
               borderRadius: "50%",
               transform: "rotate(-14deg)",
               pointerEvents: "none",
@@ -933,7 +933,7 @@ export default function PesquisaBancariaPage() {
               width: "100%",
               maxWidth: "1000px",
               margin: "0 auto",
-              padding: "50px 34px 70px",
+              padding: "38px 34px 64px",
               boxSizing: "border-box",
             }}
           >
@@ -941,21 +941,23 @@ export default function PesquisaBancariaPage() {
               style={{
                 display: "flex",
                 justifyContent: "center",
-                marginBottom: "18px",
+                marginBottom: "12px",
               }}
             >
               <Image
-                src="/branding/logo-epic-payments-dark.png"
+                src="/branding/logo-epic-payments-white.png"
                 alt="EPIC Payments"
                 width={245}
                 height={115}
                 priority
                 style={{
-                  width: "245px",
-                  height: "auto",
-                  objectFit: "contain",
-                }}
-              />
+                width: "245px",
+                height: "auto",
+                objectFit: "contain",
+                filter:
+                  "brightness(0) saturate(100%) invert(14%) sepia(28%) saturate(1287%) hue-rotate(169deg) brightness(91%) contrast(96%)",
+              }}
+            />
             </div>
 
             <div
@@ -966,10 +968,10 @@ export default function PesquisaBancariaPage() {
               <h1
                 style={{
                   margin: 0,
-                  color: "#151515",
-                  fontSize: "42px",
+                  color: "#10233d",
+                  fontSize: "40px",
                   lineHeight: 1.1,
-                  fontWeight: 850,
+                  fontWeight: 750,
                   letterSpacing: "-1.3px",
                 }}
               >
@@ -994,21 +996,21 @@ export default function PesquisaBancariaPage() {
               onSubmit={handleSearch}
               style={{
                 position: "relative",
-                marginTop: "78px",
-                padding: "27px 28px 24px",
+                marginTop: "38px",
+                padding: "22px",
                 background:
-                  "linear-gradient(135deg, #ffffff 0%, #ffffff 68%, #fff5f6 100%)",
-                border: "1px solid #efc9cc",
+                  "rgba(255,255,255,.76)",
+                border: "1px solid rgba(126,176,208,.30)",
                 borderRadius: "20px",
-                boxShadow: "0 14px 38px rgba(0, 0, 0, 0.055)",
+                boxShadow: "0 12px 34px rgba(31,91,128,.07)",
               }}
             >
               <div
                 style={{
                   marginBottom: "11px",
-                  color: "#2b2b2b",
+                  color: "#496276",
                   fontSize: "12px",
-                  fontWeight: 850,
+                  fontWeight: 750,
                   letterSpacing: "1.1px",
                   textTransform: "uppercase",
                 }}
@@ -1034,13 +1036,13 @@ export default function PesquisaBancariaPage() {
                   style={{
                     flex: 1,
                     minWidth: 0,
-                    height: "60px",
+                    height: "54px",
                     padding: "0 22px",
                     background: "#ffffff",
-                    border: "1px solid #d5d8dd",
+                    border: "1px solid #cbdde9",
                     borderRadius: "15px",
                     outline: "none",
-                    color: "#202020",
+                    color: "#10233d",
                     fontSize: "15px",
                     boxSizing: "border-box",
                   }}
@@ -1054,21 +1056,21 @@ export default function PesquisaBancariaPage() {
                     zIndex: 2,
                     flexShrink: 0,
                     minWidth: "165px",
-                    height: "60px",
+                    height: "54px",
                     padding: "0 27px",
                     border: "none",
                     borderRadius: "15px",
                     background:
-                      "linear-gradient(135deg, #ff171f 0%, #e9000b 100%)",
+                      "linear-gradient(135deg, #25a8e8 0%, #087fca 100%)",
                     color: "#ffffff",
                     fontSize: "14px",
-                    fontWeight: 850,
+                    fontWeight: 750,
                     cursor: isSearching
                       ? "wait"
                       : "pointer",
                     opacity: isSearching ? 0.78 : 1,
                     boxShadow:
-                      "0 11px 25px rgba(239, 16, 28, 0.22)",
+                      "0 9px 22px rgba(8,127,202,.20)",
                   }}
                 >
                   <span
@@ -1098,9 +1100,9 @@ export default function PesquisaBancariaPage() {
                   gap: "11px",
                   marginTop: "17px",
                   padding: "14px 17px",
-                  background: "#f7f7f8",
+                  background: "rgba(233,246,253,.68)",
                   borderRadius: "13px",
-                  color: "#777d87",
+                  color: "#637b8e",
                   fontSize: "13px",
                   lineHeight: 1.5,
                 }}
@@ -1113,7 +1115,7 @@ export default function PesquisaBancariaPage() {
                     width: "22px",
                     height: "22px",
                     borderRadius: "50%",
-                    background: "#ef101c",
+                    background: "#168fd3",
                     color: "#ffffff",
                     fontSize: "13px",
                     fontWeight: 900,
@@ -1163,8 +1165,8 @@ export default function PesquisaBancariaPage() {
                     style={{
                       margin: 0,
                       fontSize: "21px",
-                      color: "#181818",
-                      fontWeight: 850,
+                      color: "#10233d",
+                      fontWeight: 750,
                       letterSpacing: "-0.4px",
                     }}
                   >
@@ -1174,7 +1176,7 @@ export default function PesquisaBancariaPage() {
                   <p
                     style={{
                       margin: "6px 0 0",
-                      color: "#777d87",
+                      color: "#637b8e",
                       fontSize: "13px",
                     }}
                   >
@@ -1222,7 +1224,7 @@ export default function PesquisaBancariaPage() {
                             style={{
                               color: "#111111",
                               fontSize: "16px",
-                              fontWeight: 850,
+                              fontWeight: 750,
                             }}
                           >
                             {candidate.holder_name}
@@ -1231,7 +1233,7 @@ export default function PesquisaBancariaPage() {
                           <div
                             style={{
                               marginTop: "6px",
-                              color: "#777d87",
+                              color: "#637b8e",
                               fontSize: "12px",
                             }}
                           >
@@ -1253,12 +1255,12 @@ export default function PesquisaBancariaPage() {
                         <span
                           style={{
                             padding: "6px 9px",
-                            background: "#fff0f1",
-                            border: "1px solid #f3ced0",
+                            background: "#edf8fe",
+                            border: "1px solid #c9e5f5",
                             borderRadius: "999px",
-                            color: "#d40d18",
+                            color: "#147db9",
                             fontSize: "11px",
-                            fontWeight: 850,
+                            fontWeight: 750,
                             whiteSpace: "nowrap",
                           }}
                         >
@@ -1280,7 +1282,7 @@ export default function PesquisaBancariaPage() {
                             display: "flex",
                             justifyContent: "space-between",
                             gap: "10px",
-                            color: "#777d87",
+                            color: "#637b8e",
                             fontSize: "12px",
                           }}
                         >
@@ -1302,7 +1304,7 @@ export default function PesquisaBancariaPage() {
                             display: "flex",
                             justifyContent: "space-between",
                             gap: "10px",
-                            color: "#777d87",
+                            color: "#637b8e",
                             fontSize: "12px",
                           }}
                         >
@@ -1332,172 +1334,178 @@ export default function PesquisaBancariaPage() {
                 }}
               >
                 {selectedCandidate && (
-                  <div
-                    style={{
-                      padding: "22px 24px",
-                      background:
-                        "linear-gradient(135deg, #181818 0%, #2d2d2d 100%)",
-                      borderRadius: "18px",
-                      color: "#ffffff",
-                      boxShadow:
-                        "0 12px 30px rgba(0, 0, 0, 0.12)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                        gap: "22px",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            color: "#ff4249",
-                            fontSize: "11px",
-                            fontWeight: 900,
-                            letterSpacing: "1px",
-                            textTransform: "uppercase",
-                          }}
-                        >
-                          Histórico Bancário
-                        </div>
+  <div
+    style={{
+      padding: "22px 24px",
+      background:
+        "linear-gradient(135deg, #0d4565 0%, #082f49 100%)",
+      borderRadius: "18px",
+      color: "#ffffff",
+      boxShadow: "0 12px 30px rgba(8, 47, 73, 0.18)",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: "22px",
+        flexWrap: "wrap",
+      }}
+    >
+      <div>
+        <div
+          style={{
+            color: "#8ed8fb",
+            fontSize: "11px",
+            fontWeight: 900,
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+          }}
+        >
+          Histórico Bancário
+        </div>
 
-                        <h2
-                          style={{
-                            margin: "7px 0 0",
-                            fontSize: "24px",
-                            lineHeight: 1.15,
-                            fontWeight: 850,
-                          }}
-                        >
-                          {selectedCandidate.holder_name}
-                        </h2>
-                      </div>
+        <h2
+          style={{
+            margin: "7px 0 0",
+            color: "#ffffff",
+            fontSize: "24px",
+            lineHeight: 1.15,
+            fontWeight: 850,
+          }}
+        >
+          {selectedCandidate.holder_name}
+        </h2>
+      </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                          flexWrap: "wrap",
-                          justifyContent: "flex-end",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={printHistory}
-                          disabled={!history || history.events.length === 0}
-                          style={{
-                            height: "38px",
-                            padding: "0 15px",
-                            background: "#ffffff",
-                            color: "#181818",
-                            border: "1px solid #ffffff",
-                            borderRadius: "10px",
-                            cursor:
-                              !history || history.events.length === 0
-                                ? "not-allowed"
-                                : "pointer",
-                            opacity:
-                              !history || history.events.length === 0
-                                ? 0.55
-                                : 1,
-                            fontWeight: 850,
-                            fontSize: "12px",
-                          }}
-                        >
-                          Imprimir histórico
-                        </button>
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          flexWrap: "wrap",
+          justifyContent: "flex-end",
+        }}
+      >
+        <button
+          type="button"
+          onClick={printHistory}
+          disabled={!history || history.events.length === 0}
+          style={{
+            height: "38px",
+            padding: "0 15px",
+            background: "#ffffff",
+            color: "#10233d",
+            border: "1px solid #ffffff",
+            borderRadius: "10px",
+            cursor:
+              !history || history.events.length === 0
+                ? "not-allowed"
+                : "pointer",
+            opacity:
+              !history || history.events.length === 0
+                ? 0.55
+                : 1,
+            fontWeight: 750,
+            fontSize: "12px",
+          }}
+        >
+          Imprimir histórico
+        </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCandidate(null);
-                            setHistory(null);
-                          }}
-                          style={{
-                            height: "38px",
-                            padding: "0 15px",
-                            background: "rgba(255,255,255,0.08)",
-                            color: "#ffffff",
-                            border: "1px solid rgba(255,255,255,0.15)",
-                            borderRadius: "10px",
-                            cursor: "pointer",
-                            fontWeight: 750,
-                            fontSize: "12px",
-                          }}
-                        >
-                          Alterar titular
-                        </button>
-                      </div>
-                    </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedCandidate(null);
+            setHistory(null);
+          }}
+          style={{
+            height: "38px",
+            padding: "0 15px",
+            background: "rgba(255,255,255,0.08)",
+            color: "#ffffff",
+            border: "1px solid rgba(255,255,255,0.18)",
+            borderRadius: "10px",
+            cursor: "pointer",
+            fontWeight: 750,
+            fontSize: "12px",
+          }}
+        >
+          Alterar titular
+        </button>
+      </div>
+    </div>
 
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(190px, 1fr))",
-                        gap: "12px",
-                        marginTop: "19px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "13px 14px",
-                          background: "rgba(255,255,255,0.06)",
-                          borderRadius: "12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            color: "#aeb2ba",
-                            fontSize: "11px",
-                          }}
-                        >
-                          Código de envio
-                        </div>
-                        <div
-                          style={{
-                            marginTop: "4px",
-                            fontWeight: 850,
-                            fontSize: "14px",
-                          }}
-                        >
-                          {selectedCandidate.bank_reference_code}
-                        </div>
-                      </div>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(auto-fit, minmax(190px, 1fr))",
+        gap: "12px",
+        marginTop: "19px",
+      }}
+    >
+      <div
+        style={{
+          padding: "13px 14px",
+          background: "rgba(255,255,255,0.07)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "12px",
+        }}
+      >
+        <div
+          style={{
+            color: "#a8cadc",
+            fontSize: "11px",
+          }}
+        >
+          Código de envio
+        </div>
 
-                      <div
-                        style={{
-                          padding: "13px 14px",
-                          background: "rgba(255,255,255,0.06)",
-                          borderRadius: "12px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            color: "#aeb2ba",
-                            fontSize: "11px",
-                          }}
-                        >
-                          IBAN enviado
-                        </div>
-                        <div
-                          style={{
-                            marginTop: "4px",
-                            fontWeight: 750,
-                            fontSize: "13px",
-                            wordBreak: "break-all",
-                          }}
-                        >
-                          {selectedCandidate.iban || "—"}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+        <div
+          style={{
+            marginTop: "4px",
+            color: "#ffffff",
+            fontWeight: 850,
+            fontSize: "14px",
+          }}
+        >
+          {selectedCandidate.bank_reference_code}
+        </div>
+      </div>
+
+      <div
+        style={{
+          padding: "13px 14px",
+          background: "rgba(255,255,255,0.07)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: "12px",
+        }}
+      >
+        <div
+          style={{
+            color: "#a8cadc",
+            fontSize: "11px",
+          }}
+        >
+          IBAN enviado
+        </div>
+
+        <div
+          style={{
+            marginTop: "4px",
+            color: "#ffffff",
+            fontWeight: 750,
+            fontSize: "13px",
+            wordBreak: "break-all",
+          }}
+        >
+          {selectedCandidate.iban || "—"}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
                 <div
                   style={{
@@ -1514,7 +1522,7 @@ export default function PesquisaBancariaPage() {
                       style={{
                         color: "#222222",
                         fontSize: "16px",
-                        fontWeight: 850,
+                        fontWeight: 750,
                       }}
                     >
                       Período do histórico
@@ -1566,10 +1574,10 @@ export default function PesquisaBancariaPage() {
                             padding: "0 13px",
                             borderRadius: "10px",
                             border: selected
-                              ? "1px solid #ef101c"
+                              ? "1px solid #168fd3"
                               : "1px solid #dfe1e5",
                             background: selected
-                              ? "#ef101c"
+                              ? "#168fd3"
                               : "#ffffff",
                             color: selected
                               ? "#ffffff"
@@ -1658,7 +1666,7 @@ export default function PesquisaBancariaPage() {
                               width: "8px",
                               height: "8px",
                               borderRadius: "50%",
-                              background: "#ef101c",
+                              background: "#168fd3",
                             }}
                           />
 

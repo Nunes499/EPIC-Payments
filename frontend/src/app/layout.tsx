@@ -5,6 +5,7 @@ import ProtectedLayout from "@/components/auth/ProtectedLayout";
 
 import "../components/calendar/calendar.css";
 import "./globals.css";
+import "./epic-windows11.css";
 
 
 export const metadata: Metadata = {

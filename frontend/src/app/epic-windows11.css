@@ -1,0 +1,1244 @@
+/* =========================================================
+   EPIC PAYMENTS
+   GLOBAL WINDOWS 11 THEME
+   ========================================================= */
+
+:root {
+  /* Brand / Windows 11 */
+  --epic-navy-950: #061827;
+  --epic-navy-900: #08263b;
+  --epic-navy-800: #0b3651;
+  --epic-navy-700: #0e4b6c;
+
+  --epic-blue-700: #075d92;
+  --epic-blue-600: #0878bd;
+  --epic-blue-500: #1498e5;
+  --epic-blue-400: #3bb4f2;
+  --epic-blue-300: #7ccdf6;
+  --epic-blue-200: #b9e4fa;
+  --epic-blue-100: #e3f4fd;
+  --epic-blue-50: #f2faff;
+
+  /* Neutrals */
+  --epic-white: #ffffff;
+  --epic-gray-25: #fbfdff;
+  --epic-gray-50: #f6f9fc;
+  --epic-gray-100: #eef3f8;
+  --epic-gray-150: #e8eef4;
+  --epic-gray-200: #dde6ee;
+  --epic-gray-300: #cbd7e2;
+  --epic-gray-400: #9aabba;
+  --epic-gray-500: #728596;
+  --epic-gray-600: #516577;
+  --epic-gray-700: #34495b;
+  --epic-gray-800: #203446;
+  --epic-gray-900: #10233d;
+
+  /* Surfaces */
+  --epic-surface: rgba(255, 255, 255, 0.78);
+  --epic-surface-strong: rgba(255, 255, 255, 0.92);
+  --epic-surface-solid: #ffffff;
+  --epic-surface-soft: rgba(246, 250, 253, 0.88);
+  --epic-surface-blue: rgba(231, 246, 255, 0.74);
+
+  /* Borders */
+  --epic-border: rgba(75, 107, 132, 0.16);
+  --epic-border-medium: rgba(68, 103, 130, 0.23);
+  --epic-border-strong: rgba(48, 83, 110, 0.34);
+  --epic-border-blue: rgba(20, 152, 229, 0.25);
+
+  /* Typography */
+  --epic-text: #10233d;
+  --epic-text-soft: #344b60;
+  --epic-muted: #6a7e90;
+  --epic-muted-light: #91a1af;
+
+  /* States */
+  --epic-success: #159467;
+  --epic-success-soft: #e8f7f0;
+
+  --epic-warning: #c68114;
+  --epic-warning-soft: #fff5df;
+
+  --epic-danger: #d74747;
+  --epic-danger-soft: #fff0f0;
+
+  --epic-info: #0878bd;
+  --epic-info-soft: #e9f6fd;
+
+  /* Functional file colors */
+  --epic-pdf: #d64b4b;
+  --epic-pdf-soft: #fff0f0;
+
+  --epic-xml: #1b9a6a;
+  --epic-xml-soft: #eaf8f2;
+
+  --epic-recovery: #c88818;
+  --epic-recovery-soft: #fff5df;
+
+  --epic-report: #1977c5;
+  --epic-report-soft: #eaf4fe;
+
+  /* Radius */
+  --epic-radius-xs: 7px;
+  --epic-radius-sm: 10px;
+  --epic-radius-md: 13px;
+  --epic-radius-lg: 17px;
+  --epic-radius-xl: 22px;
+  --epic-radius-2xl: 28px;
+
+  /* Shadows */
+  --epic-shadow-xs:
+    0 1px 2px rgba(15, 40, 61, 0.04),
+    0 2px 8px rgba(15, 40, 61, 0.04);
+
+  --epic-shadow-sm:
+    0 2px 8px rgba(18, 48, 71, 0.055),
+    0 8px 20px rgba(18, 48, 71, 0.055);
+
+  --epic-shadow-md:
+    0 10px 30px rgba(12, 45, 70, 0.08),
+    0 2px 8px rgba(12, 45, 70, 0.035);
+
+  --epic-shadow-lg:
+    0 24px 55px rgba(11, 44, 68, 0.13),
+    0 8px 18px rgba(11, 44, 68, 0.07);
+
+  /* Focus */
+  --epic-focus:
+    0 0 0 3px rgba(20, 152, 229, 0.14);
+
+  /* Animation */
+  --epic-transition-fast: 130ms ease;
+  --epic-transition: 180ms ease;
+  --epic-transition-slow: 260ms ease;
+}
+
+
+/* =========================================================
+   DOCUMENT
+   ========================================================= */
+
+html {
+  color-scheme: light;
+  background: #edf6fc;
+}
+
+body {
+  color: var(--epic-text);
+  font-family:
+    "Segoe UI Variable",
+    "Segoe UI",
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    Arial,
+    sans-serif;
+
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+
+  background:
+    radial-gradient(
+      circle at 4% 3%,
+      rgba(255, 255, 255, 0.97) 0,
+      rgba(255, 255, 255, 0) 30%
+    ),
+    radial-gradient(
+      circle at 84% 10%,
+      rgba(169, 222, 251, 0.48) 0,
+      rgba(169, 222, 251, 0) 31%
+    ),
+    radial-gradient(
+      circle at 73% 88%,
+      rgba(206, 233, 249, 0.55) 0,
+      rgba(206, 233, 249, 0) 34%
+    ),
+    linear-gradient(
+      145deg,
+      #f9fcfe 0%,
+      #edf7fc 40%,
+      #e3f1fa 70%,
+      #f4f9fc 100%
+    );
+
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(20, 152, 229, 0.2);
+  color: var(--epic-navy-950);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+
+/* =========================================================
+   SCROLLBARS
+   ========================================================= */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(83, 114, 138, 0.42)
+    rgba(220, 232, 241, 0.34);
+}
+
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(220, 232, 241, 0.3);
+  border-radius: 20px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(83, 114, 138, 0.4);
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 91, 116, 0.55);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+
+/* =========================================================
+   APP CONTENT
+   ========================================================= */
+
+.app-main {
+  color: var(--epic-text);
+}
+
+.app-content {
+  position: relative;
+}
+
+.app-content::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  width: 440px;
+  height: 440px;
+  right: -180px;
+  top: 160px;
+  border-radius: 999px;
+  background: rgba(129, 203, 244, 0.18);
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   TOPBAR / HEADER
+   ========================================================= */
+
+.topbar {
+  border-bottom: 1px solid rgba(56, 95, 122, 0.12);
+  background: rgba(250, 253, 255, 0.76);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9),
+    0 5px 20px rgba(28, 65, 91, 0.035);
+}
+
+.page-kicker,
+.section-label {
+  color: var(--epic-blue-700);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.topbar-title {
+  color: var(--epic-text);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+}
+
+.topbar-subtitle {
+  color: var(--epic-muted);
+}
+
+.topbar-user {
+  color: var(--epic-text);
+}
+
+.user-avatar {
+  border: 1px solid rgba(20, 152, 229, 0.22);
+  background:
+    linear-gradient(
+      145deg,
+      var(--epic-blue-700),
+      var(--epic-navy-800)
+    );
+  color: #ffffff;
+  box-shadow:
+    0 4px 14px rgba(24, 95, 137, 0.17);
+}
+
+.user-info strong {
+  color: var(--epic-text);
+  font-weight: 650;
+}
+
+.user-info span {
+  color: var(--epic-muted);
+}
+
+.logout-button {
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-sm);
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--epic-text-soft);
+  box-shadow: var(--epic-shadow-xs);
+  transition:
+    background var(--epic-transition),
+    border-color var(--epic-transition),
+    box-shadow var(--epic-transition),
+    transform var(--epic-transition);
+}
+
+.logout-button:hover {
+  border-color: var(--epic-border-blue);
+  background: rgba(238, 248, 254, 0.95);
+  color: var(--epic-blue-700);
+  box-shadow: var(--epic-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.logout-button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   GENERIC PANELS / CARDS
+   ========================================================= */
+
+.ui-card,
+.page-intro,
+.calendar-panel,
+.stat-card {
+  border: 1px solid var(--epic-border);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.93),
+      rgba(247, 252, 255, 0.79)
+    );
+  color: var(--epic-text);
+  box-shadow: var(--epic-shadow-md);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.ui-card {
+  border-radius: var(--epic-radius-lg);
+}
+
+.page-intro,
+.calendar-panel,
+.stat-card {
+  border-radius: var(--epic-radius-lg);
+}
+
+.ui-card,
+.stat-card {
+  transition:
+    transform var(--epic-transition),
+    border-color var(--epic-transition),
+    box-shadow var(--epic-transition);
+}
+
+.ui-card:hover,
+.stat-card:hover {
+  border-color: rgba(68, 121, 157, 0.23);
+}
+
+
+/* =========================================================
+   PAGE TITLE
+   ========================================================= */
+
+.page-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.page-title h2 {
+  margin: 5px 0 0;
+  color: var(--epic-text);
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 650;
+  line-height: 1.13;
+  letter-spacing: -0.03em;
+}
+
+.page-title p {
+  max-width: 760px;
+  margin: 8px 0 0;
+  color: var(--epic-muted);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.page-title-action {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.ui-button {
+  position: relative;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  border: 1px solid transparent;
+  border-radius: var(--epic-radius-sm);
+
+  padding: 8px 14px;
+
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+
+  transition:
+    transform var(--epic-transition-fast),
+    background var(--epic-transition),
+    border-color var(--epic-transition),
+    color var(--epic-transition),
+    box-shadow var(--epic-transition);
+
+  user-select: none;
+}
+
+.ui-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.ui-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ui-button:focus-visible {
+  box-shadow: var(--epic-focus);
+}
+
+.ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  filter: saturate(0.65);
+}
+
+.ui-button-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.ui-button-primary {
+  border-color: rgba(7, 109, 170, 0.5);
+  background:
+    linear-gradient(
+      180deg,
+      #159be5 0%,
+      #087ac0 100%
+    );
+  color: #ffffff;
+  box-shadow:
+    0 3px 10px rgba(8, 120, 189, 0.21),
+    inset 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.ui-button-primary:hover:not(:disabled) {
+  background:
+    linear-gradient(
+      180deg,
+      #24a8ec 0%,
+      #0875b5 100%
+    );
+  box-shadow:
+    0 6px 16px rgba(8, 120, 189, 0.25),
+    inset 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.ui-button-secondary {
+  border-color: var(--epic-border-medium);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--epic-text-soft);
+  box-shadow: var(--epic-shadow-xs);
+}
+
+.ui-button-secondary:hover:not(:disabled) {
+  border-color: var(--epic-border-blue);
+  background: var(--epic-blue-50);
+  color: var(--epic-blue-700);
+}
+
+.ui-button-ghost {
+  border-color: transparent;
+  background: transparent;
+  color: var(--epic-muted);
+}
+
+.ui-button-ghost:hover:not(:disabled) {
+  background: rgba(229, 242, 250, 0.78);
+  color: var(--epic-blue-700);
+}
+
+.ui-button-dark {
+  border-color: rgba(7, 39, 59, 0.7);
+  background:
+    linear-gradient(
+      180deg,
+      #164861 0%,
+      #0a2f46 100%
+    );
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(8, 38, 57, 0.18);
+}
+
+.ui-button-dark:hover:not(:disabled) {
+  background:
+    linear-gradient(
+      180deg,
+      #1a5673 0%,
+      #0c3954 100%
+    );
+}
+
+.ui-button-highlight {
+  border-color: rgba(38, 149, 215, 0.32);
+  background: rgba(225, 244, 254, 0.88);
+  color: var(--epic-blue-700);
+}
+
+.ui-button-highlight:hover:not(:disabled) {
+  background: rgba(210, 238, 253, 0.98);
+}
+
+.ui-button-danger {
+  border-color: rgba(215, 71, 71, 0.28);
+  background: var(--epic-danger-soft);
+  color: #b42d2d;
+}
+
+.ui-button-danger:hover:not(:disabled) {
+  border-color: rgba(215, 71, 71, 0.4);
+  background: #ffe5e5;
+  color: #a52222;
+}
+
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+
+input,
+select,
+textarea {
+  color: var(--epic-text);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa9b5;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border: 1px solid var(--epic-border-medium);
+  border-radius: var(--epic-radius-sm);
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--epic-text);
+  box-shadow:
+    0 1px 2px rgba(16, 50, 73, 0.025),
+    inset 0 1px rgba(255, 255, 255, 0.8);
+
+  transition:
+    border-color var(--epic-transition),
+    background var(--epic-transition),
+    box-shadow var(--epic-transition);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):hover,
+select:hover,
+textarea:hover {
+  border-color: rgba(53, 102, 136, 0.34);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(20, 152, 229, 0.65);
+  background: #ffffff;
+  box-shadow:
+    var(--epic-focus),
+    0 1px 3px rgba(17, 67, 101, 0.05);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  background: rgba(238, 243, 247, 0.72);
+  color: var(--epic-muted-light);
+}
+
+textarea {
+  resize: vertical;
+}
+
+select {
+  cursor: pointer;
+}
+
+label {
+  color: var(--epic-text-soft);
+}
+
+
+/* =========================================================
+   CHECKBOX / RADIO
+   ========================================================= */
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--epic-blue-600);
+}
+
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--epic-text);
+}
+
+thead th {
+  color: var(--epic-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+tbody td {
+  color: var(--epic-text-soft);
+}
+
+tbody tr {
+  transition:
+    background var(--epic-transition-fast),
+    box-shadow var(--epic-transition-fast);
+}
+
+tbody tr:hover {
+  background: rgba(235, 247, 253, 0.62);
+}
+
+
+/* =========================================================
+   GENERIC TABLE WRAPPER
+   ========================================================= */
+
+.table-container,
+.table-wrapper,
+.data-table-wrapper {
+  overflow: auto;
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-lg);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--epic-shadow-sm);
+}
+
+
+/* =========================================================
+   BADGES / CHIPS
+   ========================================================= */
+
+.badge,
+.chip,
+.status-badge,
+.status-chip {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+
+  border: 1px solid var(--epic-border);
+  border-radius: 999px;
+
+  padding: 3px 8px;
+
+  background: rgba(241, 247, 251, 0.92);
+  color: var(--epic-text-soft);
+
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+.badge-success,
+.status-success {
+  border-color: rgba(21, 148, 103, 0.2);
+  background: var(--epic-success-soft);
+  color: #0c7953;
+}
+
+.badge-warning,
+.status-warning {
+  border-color: rgba(198, 129, 20, 0.22);
+  background: var(--epic-warning-soft);
+  color: #9a620d;
+}
+
+.badge-danger,
+.status-danger {
+  border-color: rgba(215, 71, 71, 0.2);
+  background: var(--epic-danger-soft);
+  color: #b83232;
+}
+
+.badge-info,
+.status-info {
+  border-color: rgba(8, 120, 189, 0.2);
+  background: var(--epic-info-soft);
+  color: #086ca6;
+}
+
+
+/* =========================================================
+   FILE TYPE STATES
+   IMPORTANT: THESE COLORS HAVE FUNCTIONAL MEANING
+   ========================================================= */
+
+.file-pdf,
+.badge-pdf {
+  border-color: rgba(214, 75, 75, 0.24);
+  background: var(--epic-pdf-soft);
+  color: #b63838;
+}
+
+.file-xml,
+.badge-xml {
+  border-color: rgba(27, 154, 106, 0.23);
+  background: var(--epic-xml-soft);
+  color: #137a55;
+}
+
+.file-recovery,
+.badge-recovery {
+  border-color: rgba(200, 136, 24, 0.25);
+  background: var(--epic-recovery-soft);
+  color: #99650d;
+}
+
+.file-report,
+.badge-report {
+  border-color: rgba(25, 119, 197, 0.24);
+  background: var(--epic-report-soft);
+  color: #1269ad;
+}
+
+
+/* =========================================================
+   ALERTS / NOTICES
+   ========================================================= */
+
+.alert,
+.notice,
+.feedback-message {
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-md);
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--epic-text-soft);
+}
+
+.alert-success,
+.notice-success {
+  border-color: rgba(21, 148, 103, 0.2);
+  background: var(--epic-success-soft);
+  color: #116f50;
+}
+
+.alert-warning,
+.notice-warning {
+  border-color: rgba(198, 129, 20, 0.22);
+  background: var(--epic-warning-soft);
+  color: #8e5b0c;
+}
+
+.alert-danger,
+.alert-error,
+.notice-error {
+  border-color: rgba(215, 71, 71, 0.22);
+  background: var(--epic-danger-soft);
+  color: #ab3333;
+}
+
+.alert-info,
+.notice-info {
+  border-color: rgba(8, 120, 189, 0.2);
+  background: var(--epic-info-soft);
+  color: #08689f;
+}
+
+
+/* =========================================================
+   MODALS / DIALOGS
+   ========================================================= */
+
+.modal-backdrop,
+.dialog-backdrop,
+.overlay {
+  background: rgba(13, 35, 52, 0.28);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.modal,
+.dialog,
+.modal-panel,
+.dialog-panel {
+  border: 1px solid rgba(74, 108, 132, 0.18);
+  border-radius: var(--epic-radius-xl);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.97),
+      rgba(246, 251, 254, 0.94)
+    );
+  color: var(--epic-text);
+  box-shadow: var(--epic-shadow-lg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+
+/* =========================================================
+   DRAWERS
+   ========================================================= */
+
+.drawer-backdrop {
+  background: rgba(10, 32, 49, 0.24);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.day-drawer,
+.drawer-panel {
+  border-left: 1px solid rgba(62, 100, 127, 0.17);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.97),
+      rgba(244, 250, 254, 0.96)
+    );
+  color: var(--epic-text);
+  box-shadow:
+    -18px 0 45px rgba(9, 40, 62, 0.12);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+
+/* =========================================================
+   ICON BUTTONS
+   ========================================================= */
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-sm);
+
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--epic-muted);
+
+  transition:
+    border-color var(--epic-transition),
+    background var(--epic-transition),
+    color var(--epic-transition),
+    transform var(--epic-transition-fast);
+}
+
+.icon-button:hover {
+  border-color: var(--epic-border-blue);
+  background: var(--epic-blue-50);
+  color: var(--epic-blue-700);
+  transform: translateY(-1px);
+}
+
+.icon-button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   DROPDOWNS
+   ========================================================= */
+
+.dropdown,
+.dropdown-menu,
+.context-menu,
+.popover {
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-md);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--epic-text);
+  box-shadow: var(--epic-shadow-lg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+
+/* =========================================================
+   TOOLTIP
+   ========================================================= */
+
+.tooltip {
+  border-radius: var(--epic-radius-xs);
+  background: rgba(9, 38, 57, 0.94);
+  color: #ffffff;
+  box-shadow: var(--epic-shadow-sm);
+}
+
+
+/* =========================================================
+   SEPARATORS
+   ========================================================= */
+
+hr,
+.separator,
+.divider {
+  border: 0;
+  border-top: 1px solid var(--epic-border);
+}
+
+
+/* =========================================================
+   EMPTY STATES
+   ========================================================= */
+
+.empty-state {
+  color: var(--epic-muted);
+  text-align: center;
+}
+
+.empty-state strong {
+  color: var(--epic-text-soft);
+}
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pagination button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-sm);
+  background: rgba(255, 255, 255, 0.76);
+  color: var(--epic-text-soft);
+  transition:
+    border-color var(--epic-transition),
+    background var(--epic-transition),
+    color var(--epic-transition);
+}
+
+.pagination button:hover:not(:disabled) {
+  border-color: var(--epic-border-blue);
+  background: var(--epic-blue-50);
+  color: var(--epic-blue-700);
+}
+
+.pagination button.active,
+.pagination button[aria-current="page"] {
+  border-color: var(--epic-blue-600);
+  background: var(--epic-blue-600);
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+.tabs,
+.tab-list {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  border: 1px solid var(--epic-border);
+  border-radius: var(--epic-radius-md);
+
+  padding: 4px;
+
+  background: rgba(235, 243, 248, 0.64);
+}
+
+.tab,
+.tab-button {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--epic-muted);
+  padding: 7px 11px;
+  font-size: 12.5px;
+  font-weight: 600;
+  transition:
+    background var(--epic-transition),
+    color var(--epic-transition),
+    box-shadow var(--epic-transition);
+}
+
+.tab:hover,
+.tab-button:hover {
+  color: var(--epic-text);
+}
+
+.tab.active,
+.tab-button.active,
+.tab[aria-selected="true"],
+.tab-button[aria-selected="true"] {
+  background: #ffffff;
+  color: var(--epic-blue-700);
+  box-shadow: var(--epic-shadow-xs);
+}
+
+
+/* =========================================================
+   SEARCH BOXES
+   ========================================================= */
+
+.search-box,
+.search-field,
+.filter-field {
+  border: 1px solid var(--epic-border-medium);
+  border-radius: var(--epic-radius-md);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--epic-shadow-xs);
+}
+
+.search-box:focus-within,
+.search-field:focus-within,
+.filter-field:focus-within {
+  border-color: rgba(20, 152, 229, 0.62);
+  box-shadow: var(--epic-focus);
+}
+
+
+/* =========================================================
+   STAT CARDS
+   ========================================================= */
+
+.stat-card {
+  color: var(--epic-text);
+}
+
+.stat-card strong,
+.stat-card h3 {
+  color: var(--epic-text);
+}
+
+.stat-card span,
+.stat-card p {
+  color: var(--epic-muted);
+}
+
+
+/* =========================================================
+   LOADING / SKELETON
+   ========================================================= */
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--epic-radius-sm);
+  background: #e7eef4;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.72),
+      transparent
+    );
+  animation: epicSkeleton 1.4s infinite;
+}
+
+@keyframes epicSkeleton {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.spinner {
+  border-color: rgba(8, 120, 189, 0.16);
+  border-top-color: var(--epic-blue-600);
+}
+
+
+/* =========================================================
+   DISABLED / READ ONLY
+   ========================================================= */
+
+[aria-disabled="true"],
+.disabled {
+  opacity: 0.52;
+}
+
+
+/* =========================================================
+   GENERIC HEADINGS
+   ========================================================= */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--epic-text);
+  letter-spacing: -0.018em;
+}
+
+p {
+  color: var(--epic-text-soft);
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+a {
+  transition:
+    color var(--epic-transition-fast),
+    opacity var(--epic-transition-fast);
+}
+
+a:not([class]) {
+  color: var(--epic-blue-700);
+}
+
+a:not([class]):hover {
+  color: var(--epic-blue-600);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .page-title {
+    gap: 16px;
+  }
+
+  .page-title h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-title {
+    flex-direction: column;
+  }
+
+  .page-title-action {
+    width: 100%;
+  }
+
+  .topbar-user .user-info {
+    display: none;
+  }
+
+  .ui-button {
+    min-height: 40px;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
