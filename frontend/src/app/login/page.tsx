@@ -236,29 +236,19 @@ export default function LoginPage() {
           }}
         >
           <Image
-            src="/branding/logo-epic-payments-white.png"
+            src="/branding/logo-epic-payments-Blue.png"
             alt="EPIC Payments"
-            width={260}
-            height={110}
+            width={520}
+            height={220}
             priority
+            unoptimized
             style={{
-              width: "220px",
-              maxWidth: "70%",
-              height: "auto",
-              objectFit: "contain",
-              filter:
-                `
-                  brightness(0)
-                  saturate(100%)
-                  invert(17%)
-                  sepia(30%)
-                  saturate(1660%)
-                  hue-rotate(169deg)
-                  brightness(88%)
-                  contrast(96%)
-                `,
-            }}
-          />
+             width: "250px",
+             maxWidth: "78%",
+             height: "auto",
+             objectFit: "contain",
+       }}
+     /> 
         </div>
 
         <div

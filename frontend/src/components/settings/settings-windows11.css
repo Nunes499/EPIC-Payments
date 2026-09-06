@@ -1,0 +1,575 @@
+/* =========================================================
+   EPIC PAYMENTS — DEFINIÇÕES / WINDOWS 11 LIGHT
+   CEDIS + CLOUDFLARE
+   ========================================================= */
+
+.cedis-settings,
+.cloudflare-system {
+  width: min(100% - 48px, 1540px);
+  margin: 0 auto;
+  color: var(--epic-text, #10233d);
+}
+
+.cedis-settings {
+  padding-top: 28px;
+}
+
+.cloudflare-system {
+  margin-top: 22px;
+  margin-bottom: 40px;
+}
+
+/* ---------- Cabeçalhos ---------- */
+
+.cedis-settings-header,
+.cloudflare-system-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 16px;
+}
+
+.cedis-settings-header h2,
+.cloudflare-system-header h2 {
+  margin: 5px 0 4px;
+  color: #10233d;
+  font-size: 24px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+}
+
+.cedis-settings-header p,
+.cloudflare-system-header p {
+  margin: 0;
+  color: #6a7e90;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cloudflare-eyebrow {
+  color: #0878bd !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+}
+
+/* ---------- CEDIS ---------- */
+
+.cedis-active-card,
+.cedis-history-section,
+.cedis-empty-card,
+.cedis-loading-card {
+  border: 1px solid rgba(75,107,132,.14) !important;
+  border-radius: 17px !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.95), rgba(247,252,255,.86)) !important;
+  box-shadow: 0 10px 28px rgba(18,48,71,.055) !important;
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+
+.cedis-active-card {
+  padding: 18px !important;
+}
+
+.cedis-active-main {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.cedis-file-icon {
+  display: grid !important;
+  width: 44px !important;
+  height: 44px !important;
+  flex: 0 0 44px;
+  place-items: center;
+  border: 1px solid rgba(25,119,197,.18) !important;
+  border-radius: 12px !important;
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+  box-shadow: 0 4px 12px rgba(25,119,197,.08);
+}
+
+.cedis-active-title-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+.cedis-active-title-row h3 {
+  margin: 0 !important;
+  color: #10233d !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+}
+
+.cedis-active-main p {
+  margin: 4px 0 0 !important;
+  color: #6a7e90 !important;
+  font-size: 10px !important;
+}
+
+.cedis-active-badge,
+.cedis-history-active {
+  border: 1px solid rgba(21,148,103,.22) !important;
+  background: #e8f7f0 !important;
+  color: #137c59 !important;
+  box-shadow: none !important;
+}
+
+.cedis-info-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+.cedis-info-grid > div {
+  min-height: 58px;
+  padding: 10px 12px !important;
+  border: 1px solid rgba(75,107,132,.12) !important;
+  border-radius: 11px !important;
+  background: rgba(247,251,254,.84) !important;
+}
+
+.cedis-info-grid span {
+  display: block;
+  color: #8192a0 !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.cedis-info-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #203446 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+}
+
+.cedis-status-active {
+  color: #159467 !important;
+}
+
+.cedis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px !important;
+  margin-top: 14px !important;
+}
+
+.cedis-actions button,
+.cedis-empty-card button,
+.cedis-preview-header button,
+.cloudflare-system-actions button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid rgba(75,107,132,.17) !important;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,248,253,.96)) !important;
+  padding: 8px 13px !important;
+  color: #24445d !important;
+  font-weight: 750 !important;
+  box-shadow: 0 3px 10px rgba(18,48,71,.04);
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.cedis-actions button:hover:not(:disabled),
+.cedis-empty-card button:hover:not(:disabled),
+.cedis-preview-header button:hover:not(:disabled),
+.cloudflare-system-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(20,152,229,.34) !important;
+  background: #eaf6fd !important;
+  color: #075d92 !important;
+}
+
+.cedis-primary-action {
+  border-color: rgba(7,109,170,.46) !important;
+  background:
+    linear-gradient(180deg, #159be5 0%, #087ac0 100%) !important;
+  color: #fff !important;
+  box-shadow:
+    0 5px 15px rgba(8,120,189,.18),
+    inset 0 1px rgba(255,255,255,.18) !important;
+}
+
+.cedis-primary-action:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, #23a7eb 0%, #0874b5 100%) !important;
+  color: #fff !important;
+}
+
+.cedis-history-section {
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.cedis-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 15px !important;
+  border-bottom: 1px solid rgba(75,107,132,.11) !important;
+  background: rgba(248,252,254,.80) !important;
+}
+
+.cedis-history-header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cedis-history-header h3 {
+  margin: 0 !important;
+  color: #203446 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.cedis-history-header svg {
+  color: #0878bd !important;
+}
+
+.cedis-history-header > span {
+  min-width: 24px;
+  padding: 4px 7px !important;
+  border-radius: 999px !important;
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+  text-align: center;
+}
+
+.cedis-history-row {
+  display: flex !important;
+  min-height: 48px !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 15px !important;
+  border-bottom: 1px solid rgba(75,107,132,.09) !important;
+  background: rgba(255,255,255,.76) !important;
+}
+
+.cedis-history-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.cedis-history-row strong {
+  color: #203446 !important;
+  font-size: 10px !important;
+}
+
+.cedis-history-row span {
+  color: #7b8e9d !important;
+  font-size: 8px !important;
+}
+
+.cedis-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.cedis-error,
+.cloudflare-error {
+  margin-bottom: 12px;
+  padding: 11px 13px !important;
+  border: 1px solid rgba(215,71,71,.20) !important;
+  border-radius: 10px !important;
+  background: #fff0f0 !important;
+  color: #b63c43 !important;
+}
+
+/* Preview CEDIS */
+
+.cedis-preview-backdrop {
+  background: rgba(9,31,49,.34) !important;
+  backdrop-filter: blur(10px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(120%) !important;
+}
+
+.cedis-preview-modal {
+  border: 1px solid rgba(255,255,255,.82) !important;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.98), rgba(244,250,254,.97)) !important;
+  box-shadow: 0 28px 80px rgba(17,50,74,.22) !important;
+}
+
+.cedis-preview-header {
+  border-bottom-color: rgba(75,107,132,.12) !important;
+}
+
+.cedis-preview-header h2 {
+  color: #10233d !important;
+}
+
+.cedis-preview-header p {
+  color: #6a7e90 !important;
+}
+
+.cedis-preview-table thead th {
+  background: #f2f7fb !important;
+  color: #60758b !important;
+  border-bottom-color: rgba(75,107,132,.12) !important;
+}
+
+.cedis-preview-table td {
+  border-bottom-color: rgba(75,107,132,.09) !important;
+  color: #203446 !important;
+}
+
+/* ---------- CLOUDFLARE ---------- */
+
+.cloudflare-system {
+  padding: 18px !important;
+  border: 1px solid rgba(75,107,132,.14) !important;
+  border-radius: 17px !important;
+  background:
+    linear-gradient(155deg, rgba(255,255,255,.94), rgba(247,252,255,.84)) !important;
+  box-shadow: 0 10px 28px rgba(18,48,71,.055) !important;
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+}
+
+.cloudflare-system-header {
+  margin-bottom: 14px;
+}
+
+.cloudflare-system-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cloudflare-status {
+  display: inline-flex !important;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(75,107,132,.15) !important;
+  border-radius: 999px !important;
+  background: #f1f6f9 !important;
+  padding: 6px 10px !important;
+  color: #657b8d !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+.cloudflare-status.is-online {
+  border-color: rgba(21,148,103,.22) !important;
+  background: #e8f7f0 !important;
+  color: #137c59 !important;
+}
+
+.cloudflare-status.is-online > span {
+  background: #159467 !important;
+}
+
+.cloudflare-service-block {
+  margin-top: 12px !important;
+  padding: 14px !important;
+  border: 1px solid rgba(75,107,132,.13) !important;
+  border-radius: 14px !important;
+  background: rgba(247,251,254,.72) !important;
+}
+
+.cloudflare-service-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 11px !important;
+}
+
+.cloudflare-service-title > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cloudflare-service-badge {
+  display: grid !important;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px;
+  place-items: center;
+  border: 1px solid rgba(20,152,229,.18) !important;
+  border-radius: 10px !important;
+  background: #eaf4fe !important;
+  color: #1977c5 !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.cloudflare-service-title h3 {
+  margin: 0 !important;
+  color: #203446 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+}
+
+.cloudflare-service-title p,
+.cloudflare-measured {
+  color: #7b8e9d !important;
+  font-size: 8px !important;
+}
+
+.cloudflare-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+}
+
+.cloudflare-grid-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+
+.cloudflare-usage-card {
+  min-height: 112px !important;
+  padding: 12px 13px !important;
+  border: 1px solid rgba(75,107,132,.12) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.90) !important;
+  box-shadow: 0 5px 16px rgba(18,48,71,.035) !important;
+}
+
+.cloudflare-usage-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cloudflare-usage-card-header span {
+  color: #60758b !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+}
+
+.cloudflare-usage-card-header strong {
+  color: #0878bd !important;
+  font-size: 9px !important;
+  font-weight: 900 !important;
+}
+
+.cloudflare-usage-value {
+  margin-top: 8px !important;
+  color: #10233d !important;
+  font-size: 21px !important;
+  font-weight: 850 !important;
+  letter-spacing: -.02em;
+}
+
+.cloudflare-usage-limit {
+  margin-top: 3px !important;
+  color: #8495a3 !important;
+  font-size: 8px !important;
+}
+
+.cloudflare-progress {
+  height: 5px !important;
+  margin-top: 10px !important;
+  overflow: hidden;
+  border-radius: 999px !important;
+  background: #e7eef4 !important;
+}
+
+.cloudflare-progress-fill {
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, #1498e5, #3bb4f2) !important;
+}
+
+.cloudflare-usage-card p {
+  margin: 8px 0 0 !important;
+  color: #718595 !important;
+  font-size: 8px !important;
+  line-height: 1.45;
+}
+
+.cloudflare-system-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid rgba(75,107,132,.10) !important;
+  color: #8495a3 !important;
+  font-size: 8px !important;
+}
+
+.cloudflare-loading {
+  padding: 18px !important;
+  border: 1px solid rgba(75,107,132,.13) !important;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.88) !important;
+  color: #60758b !important;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 980px) {
+  .cedis-info-grid,
+  .cloudflare-grid-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .cedis-settings,
+  .cloudflare-system {
+    width: min(100% - 24px, 1540px);
+  }
+
+  .cedis-settings-header,
+  .cloudflare-system-header,
+  .cloudflare-service-title,
+  .cloudflare-system-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cedis-info-grid,
+  .cloudflare-grid,
+  .cloudflare-grid-three {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Substituir base — ação principal azul */
+.cedis-actions .cedis-primary-action {
+  border-color: rgba(7, 109, 170, 0.46) !important;
+  background: linear-gradient(
+    180deg,
+    #159be5 0%,
+    #087ac0 100%
+  ) !important;
+  color: #ffffff !important;
+  box-shadow:
+    0 5px 15px rgba(8, 120, 189, 0.18),
+    inset 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+
+.cedis-actions .cedis-primary-action:hover:not(:disabled) {
+  background: linear-gradient(
+    180deg,
+    #23a7eb 0%,
+    #0874b5 100%
+  ) !important;
+  color: #ffffff !important;
+}

@@ -26,6 +26,9 @@ const D1_ROWS_WRITTEN_DAILY_LIMIT =
   100_000;
 
 
+import "./settings-windows11.css";
+
+
 function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";

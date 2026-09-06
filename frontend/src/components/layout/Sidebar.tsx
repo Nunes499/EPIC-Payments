@@ -89,7 +89,7 @@ export default function Sidebar() {
     <aside className={styles.sidebar}>
       <div className={styles.logoArea}>
         <Image
-          src="/branding/logo-epic-payments-white.png"
+          src="/branding/logo-epic-payments-all-white.png"
           alt="EPIC Payments"
           width={220}
           height={120}

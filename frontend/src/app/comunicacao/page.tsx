@@ -1554,7 +1554,7 @@ export default function ComunicacaoPage() {
 
 
   return (
-    <AppLayout>
+    <AppLayout hideHeader>
       <main style={pageStyle}>
         <section style={headingStyle}>
           <div>
@@ -2384,14 +2384,15 @@ function SmsStatusBadge({
 
 
 /* ========================= */
-/* ESTILOS                   */
+/* ESTILOS — WINDOWS 11 LIGHT */
 /* ========================= */
 
 const pageStyle: CSSProperties = {
   width: "100%",
-  maxWidth: "1700px",
+  minHeight: "100vh",
+  maxWidth: "1780px",
   margin: "0 auto",
-  padding: "22px 18px 42px",
+  padding: "26px 24px 48px",
   boxSizing: "border-box",
 };
 
@@ -2399,28 +2400,29 @@ const headingStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-end",
-  gap: "18px",
-  marginBottom: "16px",
+  gap: "22px",
+  marginBottom: "18px",
 };
 
 const kickerStyle: CSSProperties = {
-  color: "#9d0009",
+  color: "#0878bd",
   fontSize: "9px",
   fontWeight: 900,
-  letterSpacing: "1.5px",
-  marginBottom: "4px",
+  letterSpacing: "1.55px",
+  marginBottom: "5px",
 };
 
 const titleStyle: CSSProperties = {
   margin: 0,
-  color: "#161616",
-  fontSize: "27px",
-  fontWeight: 900,
+  color: "#10233d",
+  fontSize: "30px",
+  fontWeight: 850,
+  letterSpacing: "-0.03em",
 };
 
 const subtitleStyle: CSSProperties = {
   margin: "5px 0 0",
-  color: "#777",
+  color: "#6a7e90",
   fontSize: "12px",
 };
 
@@ -2428,35 +2430,44 @@ const processingStyle: CSSProperties = {
   display: "grid",
   justifyItems: "end",
   gap: "3px",
+  padding: "11px 14px",
+  border: "1px solid rgba(75,107,132,.13)",
+  borderRadius: "12px",
+  background: "rgba(255,255,255,.76)",
+  boxShadow: "0 5px 18px rgba(18,48,71,.045)",
+  backdropFilter: "blur(14px) saturate(135%)",
 };
 
 const processingLabelStyle: CSSProperties = {
-  color: "#999",
+  color: "#7e91a1",
   fontSize: "8px",
   fontWeight: 900,
   letterSpacing: "1.1px",
 };
 
 const processingFileStyle: CSSProperties = {
-  color: "#777",
+  color: "#5f7385",
   fontSize: "10px",
 };
 
 const processingCedisStyle: CSSProperties = {
-  color: "#999",
+  color: "#8da0af",
   fontSize: "8px",
 };
 
 const messageCardStyle: CSSProperties = {
-  minHeight: "100px",
+  minHeight: "104px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   gap: "14px",
-  padding: "22px",
-  background: "#fff",
-  border: "1px solid #ddd",
-  borderRadius: "14px",
+  padding: "24px",
+  background:
+    "linear-gradient(155deg, rgba(255,255,255,.96), rgba(246,251,255,.90))",
+  border: "1px solid rgba(75,107,132,.14)",
+  borderRadius: "16px",
+  color: "#10233d",
+  boxShadow: "0 10px 28px rgba(18,48,71,.055)",
 };
 
 const messageTextStyle: CSSProperties = {
@@ -2466,127 +2477,136 @@ const messageTextStyle: CSSProperties = {
 
 const errorCardStyle: CSSProperties = {
   ...messageCardStyle,
-  color: "#a00008",
-  borderColor: "#e2b4b7",
-  background: "#fff8f8",
+  color: "#b63c43",
+  borderColor: "rgba(214,75,75,.26)",
+  background:
+    "linear-gradient(145deg, rgba(255,240,240,.96), rgba(255,255,255,.96))",
 };
 
 const summaryGridStyle: CSSProperties = {
   display: "grid",
   gridTemplateColumns:
-    "repeat(3, minmax(150px, 1fr)) minmax(210px, 1.15fr)",
-  gap: "10px",
-  marginBottom: "14px",
+    "repeat(3, minmax(160px, 1fr)) minmax(240px, 1.12fr)",
+  gap: "12px",
+  marginBottom: "15px",
 };
 
 const summaryCardStyle: CSSProperties = {
-  minHeight: "76px",
+  minHeight: "84px",
   display: "flex",
   alignItems: "center",
-  gap: "11px",
-  padding: "12px 14px",
+  gap: "12px",
+  padding: "13px 15px",
   background:
-    "linear-gradient(145deg, #ffffff, #f8f8f8)",
-  border: "1px solid #e3e3e3",
-  borderRadius: "13px",
-  boxShadow:
-    "0 5px 14px rgba(0,0,0,.04)",
+    "linear-gradient(155deg, rgba(255,255,255,.96), rgba(247,252,255,.86))",
+  border: "1px solid rgba(75,107,132,.14)",
+  borderRadius: "15px",
+  boxShadow: "0 8px 24px rgba(18,48,71,.055)",
+  backdropFilter: "blur(12px)",
 };
 
 const summaryIconStyle: CSSProperties = {
-  width: "38px",
-  height: "38px",
+  width: "40px",
+  height: "40px",
   flexShrink: 0,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "10px",
-  color: "#fff",
+  borderRadius: "11px",
+  color: "#0878bd",
   background:
-    "linear-gradient(145deg, #353535 0%, #777 55%, #414141 100%)",
+    "linear-gradient(145deg, #edf8fe 0%, #dceffb 100%)",
+  border: "1px solid rgba(20,152,229,.16)",
 };
 
 const summaryWarningIconStyle: CSSProperties = {
+  color: "#9a6710",
   background:
-    "linear-gradient(145deg, #770007, #bd0711)",
+    "linear-gradient(145deg, #fff7e5 0%, #ffefc7 100%)",
+  border: "1px solid rgba(200,136,24,.20)",
 };
 
 const summaryLabelStyle: CSSProperties = {
   display: "block",
-  marginBottom: "3px",
-  color: "#898989",
+  marginBottom: "4px",
+  color: "#7e91a1",
   fontSize: "8px",
   fontWeight: 900,
-  letterSpacing: ".9px",
+  letterSpacing: ".95px",
 };
 
 const summaryValueLineStyle: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
-  gap: "7px",
+  gap: "8px",
   flexWrap: "wrap",
 };
 
 const summaryValueStyle: CSSProperties = {
-  color: "#161616",
-  fontSize: "21px",
+  color: "#10233d",
+  fontSize: "22px",
   lineHeight: 1,
+  fontWeight: 850,
 };
 
 const summaryDetailStyle: CSSProperties = {
-  color: "#777",
+  color: "#6a7e90",
   fontSize: "9px",
 };
 
 const reportCardStyle: CSSProperties = {
-  minHeight: "76px",
+  minHeight: "84px",
   display: "flex",
   alignItems: "center",
-  gap: "11px",
-  padding: "12px 15px",
-  borderRadius: "13px",
-  color: "#fff",
+  gap: "12px",
+  padding: "13px 16px",
+  borderRadius: "15px",
+  color: "#b83d44",
   background:
-    "linear-gradient(110deg, #730007 0%, #a7000b 42%, #d20f1a 100%)",
-  boxShadow:
-    "0 7px 18px rgba(130,0,8,.16)",
+    "linear-gradient(155deg, rgba(255,255,255,.98), rgba(255,242,243,.94))",
+  border: "1px solid rgba(214,75,75,.24)",
+  boxShadow: "0 8px 24px rgba(151,54,60,.07)",
   cursor: "pointer",
 };
 
 const disabledReportCardStyle: CSSProperties = {
-  filter: "grayscale(.75)",
-  opacity: 0.55,
+  opacity: 0.52,
   cursor: "not-allowed",
+  filter: "grayscale(.25)",
 };
 
 const reportIconStyle: CSSProperties = {
-  width: "39px",
-  height: "39px",
+  width: "41px",
+  height: "41px",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  borderRadius: "10px",
-  background: "rgba(0,0,0,.18)",
+  borderRadius: "11px",
+  background: "#fff0f0",
+  color: "#c83e45",
+  border: "1px solid rgba(214,75,75,.18)",
 };
 
 const reportLabelStyle: CSSProperties = {
   display: "block",
-  color: "rgba(255,255,255,.68)",
+  color: "#b76368",
   fontSize: "8px",
   fontWeight: 900,
-  letterSpacing: ".9px",
+  letterSpacing: ".95px",
 };
 
 const reportTitleStyle: CSSProperties = {
   display: "block",
   marginTop: "2px",
+  color: "#a9343b",
   fontSize: "13px",
+  fontWeight: 850,
 };
 
 const reportDetailStyle: CSSProperties = {
   display: "block",
   marginTop: "2px",
-  color: "rgba(255,255,255,.75)",
+  color: "#8c6669",
   fontSize: "9px",
 };
 
@@ -2595,74 +2615,77 @@ const actionsBarStyle: CSSProperties = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: "14px",
-  padding: "12px 14px",
-  marginBottom: "9px",
-  border: "1px solid #e3e3e3",
-  borderRadius: "12px",
-  background: "#fff",
+  padding: "13px 15px",
+  marginBottom: "10px",
+  border: "1px solid rgba(75,107,132,.13)",
+  borderRadius: "13px",
+  background: "rgba(255,255,255,.86)",
+  boxShadow: "0 5px 18px rgba(18,48,71,.035)",
+  backdropFilter: "blur(12px)",
 };
 
 const actionsTitleStyle: CSSProperties = {
   display: "block",
-  color: "#191919",
+  color: "#10233d",
   fontSize: "13px",
+  fontWeight: 800,
 };
 
 const actionsSubtitleStyle: CSSProperties = {
   display: "block",
   marginTop: "2px",
-  color: "#888",
+  color: "#6f8292",
   fontSize: "10px",
 };
 
 const disabledButtonStyle: CSSProperties = {
-  opacity: 0.58,
+  opacity: 0.48,
   cursor: "not-allowed",
 };
 
 const tableCardStyle: CSSProperties = {
   overflow: "hidden",
-  border: "1px solid #dedede",
-  borderRadius: "13px",
-  background: "#fff",
-  boxShadow:
-    "0 6px 18px rgba(0,0,0,.035)",
+  border: "1px solid rgba(75,107,132,.14)",
+  borderRadius: "15px",
+  background: "rgba(255,255,255,.95)",
+  boxShadow: "0 10px 28px rgba(18,48,71,.055)",
 };
 
 const tableScrollStyle: CSSProperties = {
   width: "100%",
-  overflowX: "hidden",
+  overflowX: "auto",
 };
 
 const tableStyle: CSSProperties = {
   width: "100%",
+  minWidth: "1180px",
   tableLayout: "fixed",
   borderCollapse: "collapse",
 };
 
 const tableHeaderStyle: CSSProperties = {
-  padding: "10px 4px",
-  borderBottom: "1px solid #dedede",
-  background:
-    "linear-gradient(180deg, #f7f7f7, #ededed)",
-  color: "#555",
+  padding: "11px 6px",
+  borderBottom: "1px solid rgba(75,107,132,.12)",
+  background: "#f2f7fb",
+  color: "#60758b",
   fontSize: "8px",
   fontWeight: 900,
   textTransform: "uppercase",
-  letterSpacing: ".35px",
+  letterSpacing: ".38px",
   textAlign: "left",
   whiteSpace: "nowrap",
   overflow: "hidden",
 };
 
 const rowStyle: CSSProperties = {
-  borderBottom: "1px solid #eeeeee",
+  borderBottom: "1px solid rgba(75,107,132,.095)",
+  background: "rgba(255,255,255,.92)",
 };
 
 const cellStyle: CSSProperties = {
-  padding: "8px 4px",
+  padding: "9px 5px",
   verticalAlign: "middle",
-  color: "#222",
+  color: "#203446",
   fontSize: "10px",
   overflow: "hidden",
 };
@@ -2670,28 +2693,29 @@ const cellStyle: CSSProperties = {
 const editableInputStyle: CSSProperties = {
   width: "100%",
   minWidth: 0,
-  height: "32px",
+  height: "34px",
   boxSizing: "border-box",
-  padding: "0 6px",
-  border: "1px solid #d9d9d9",
-  borderRadius: "6px",
-  background: "#fff",
-  color: "#202020",
+  padding: "0 8px",
+  border: "1px solid rgba(75,107,132,.18)",
+  borderRadius: "8px",
+  background: "rgba(255,255,255,.96)",
+  color: "#203446",
   font: "inherit",
   fontSize: "10px",
   outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(18,48,71,.025)",
 };
 
 const memberStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "3px",
+  gap: "4px",
   minWidth: 0,
 };
 
 const bankCodeStyle: CSSProperties = {
   marginTop: "3px",
-  color: "#a00008",
+  color: "#b56d17",
   fontSize: "7px",
   fontWeight: 800,
   lineHeight: 1.15,
@@ -2703,7 +2727,7 @@ const bankCodeStyle: CSSProperties = {
 const warningIconStyle: CSSProperties = {
   display: "inline-flex",
   flexShrink: 0,
-  color: "#b40710",
+  color: "#c88818",
   cursor: "help",
 };
 
@@ -2717,20 +2741,20 @@ const ageStyle: CSSProperties = {
 const minorWarningStyle: CSSProperties = {
   display: "inline-flex",
   flexShrink: 0,
-  color: "#c58400",
+  color: "#c88818",
   cursor: "help",
 };
 
 const amountFieldStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "2px",
+  gap: "3px",
   minWidth: 0,
 };
 
 const euroStyle: CSSProperties = {
-  color: "#444",
-  fontWeight: 800,
+  color: "#516577",
+  fontWeight: 850,
   fontSize: "10px",
   flexShrink: 0,
 };
@@ -2742,7 +2766,7 @@ const referenceCellStyle: CSSProperties = {
 };
 
 const expiryStyle: CSSProperties = {
-  color: "#4f765d",
+  color: "#4f7f67",
   fontSize: "7px",
   fontWeight: 700,
   whiteSpace: "nowrap",
@@ -2757,7 +2781,7 @@ const reasonFieldStyle: CSSProperties = {
 };
 
 const requiredTextStyle: CSSProperties = {
-  color: "#a00008",
+  color: "#b63c43",
   fontSize: "7px",
   fontWeight: 700,
   lineHeight: 1.15,
@@ -2765,58 +2789,62 @@ const requiredTextStyle: CSSProperties = {
 
 const actionCellStyle: CSSProperties = {
   display: "grid",
-  gap: "4px",
+  gap: "5px",
   minWidth: 0,
 };
 
 const generateButtonStyle: CSSProperties = {
   width: "100%",
-  minHeight: "29px",
-  padding: "0 5px",
+  minHeight: "31px",
+  padding: "0 7px",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: "4px",
-  border: "1px solid #cfcfcf",
-  borderRadius: "6px",
+  gap: "5px",
+  border: "1px solid rgba(20,152,229,.25)",
+  borderRadius: "8px",
   background:
-    "linear-gradient(180deg, #fff, #f1f1f1)",
-  color: "#333",
+    "linear-gradient(180deg, rgba(255,255,255,.98), rgba(237,248,254,.96))",
+  color: "#075d92",
   fontSize: "8px",
-  fontWeight: 800,
+  fontWeight: 850,
   whiteSpace: "nowrap",
   cursor: "pointer",
+  boxShadow: "0 3px 9px rgba(18,79,115,.045)",
 };
 
 const referenceCreatedButtonStyle: CSSProperties = {
   opacity: 1,
-  border: "1px solid #9bc4a8",
+  border: "1px solid rgba(21,148,103,.24)",
   background:
-    "linear-gradient(180deg, #f3fbf5, #e7f5eb)",
-  color: "#176b37",
+    "linear-gradient(180deg, #f2fbf6, #e5f6ed)",
+  color: "#137c59",
 };
 
 const sendButtonStyle: CSSProperties = {
   ...generateButtonStyle,
-  border: "1px solid #870008",
+  border: "1px solid rgba(7,109,170,.50)",
   background:
-    "linear-gradient(100deg, #760008, #b40913)",
+    "linear-gradient(180deg, #159be5 0%, #087ac0 100%)",
   color: "#fff",
+  boxShadow:
+    "0 5px 14px rgba(8,120,189,.18), inset 0 1px rgba(255,255,255,.18)",
 };
 
 const sentSmsButtonStyle: CSSProperties = {
   opacity: 1,
-  border: "1px solid #9bc4a8",
+  border: "1px solid rgba(21,148,103,.24)",
   background:
-    "linear-gradient(180deg, #f3fbf5, #e7f5eb)",
-  color: "#176b37",
+    "linear-gradient(180deg, #f2fbf6, #e5f6ed)",
+  color: "#137c59",
+  boxShadow: "none",
 };
 
 const smsErrorStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "3px",
-  color: "#a00008",
+  color: "#b63c43",
   fontSize: "7px",
   fontWeight: 700,
   lineHeight: 1.2,
@@ -2826,7 +2854,7 @@ const referenceErrorStyle: CSSProperties = {
   display: "flex",
   alignItems: "flex-start",
   gap: "3px",
-  color: "#a00008",
+  color: "#b63c43",
   fontSize: "7px",
   fontWeight: 700,
   lineHeight: 1.2,
@@ -2836,10 +2864,11 @@ const sentStatusStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: "4px",
-  padding: "5px 6px",
+  padding: "5px 7px",
   borderRadius: "999px",
-  background: "#eaf8ef",
-  color: "#187540",
+  border: "1px solid rgba(21,148,103,.18)",
+  background: "#e8f7f0",
+  color: "#137c59",
   fontSize: "8px",
   fontWeight: 900,
   whiteSpace: "nowrap",
@@ -2847,22 +2876,24 @@ const sentStatusStyle: CSSProperties = {
 
 const failedStatusStyle: CSSProperties = {
   ...sentStatusStyle,
-  background: "#fff0f1",
-  color: "#ad0710",
+  border: "1px solid rgba(215,71,71,.20)",
+  background: "#fff0f0",
+  color: "#c83e45",
 };
 
 const pendingStatusStyle: CSSProperties = {
   ...sentStatusStyle,
-  background: "#f1f1f1",
-  color: "#666",
+  border: "1px solid rgba(75,107,132,.12)",
+  background: "#f1f6f9",
+  color: "#657b8d",
 };
 
 const emptyStateStyle: CSSProperties = {
   display: "grid",
   justifyItems: "center",
   gap: "7px",
-  padding: "40px",
-  color: "#48715b",
+  padding: "42px",
+  color: "#4f7f67",
   textAlign: "center",
 };
 
@@ -2870,9 +2901,9 @@ const tableFooterStyle: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   gap: "16px",
-  padding: "9px 13px",
-  background: "#fafafa",
-  borderTop: "1px solid #e7e7e7",
-  color: "#888",
+  padding: "10px 14px",
+  background: "#f7fbfd",
+  borderTop: "1px solid rgba(75,107,132,.11)",
+  color: "#738797",
   fontSize: "8px",
 };

@@ -36,6 +36,12 @@ import type {
 import "./processing.css";
 import "./processing-windows11.css";
 
+import { useAuth } from "@/components/auth/AuthProvider";
+
+import {
+  decorateBankPdfReplica,
+} from "./bankPdfReplica";
+
 
 type ProcessingWorkspaceProps = {
   selection: ProcessingSelection | null;
@@ -934,6 +940,7 @@ export default function ProcessingWorkspace({
   selection,
   onClose,
 }: ProcessingWorkspaceProps) {
+  const { user } = useAuth();
   const [
     fileStates,
     setFileStates,
@@ -2024,9 +2031,35 @@ export default function ProcessingWorkspace({
       `;
 
       printWindow.document.open();
-      printWindow.document.write(html);
-      printWindow.document.close();
-      printWindow.focus();
+printWindow.document.write(html);
+printWindow.document.close();
+
+const generatedAt =
+  new Intl.DateTimeFormat(
+    "pt-PT",
+    {
+      dateStyle: "short",
+      timeStyle: "short",
+    },
+  ).format(new Date());
+
+await decorateBankPdfReplica(
+  printWindow.document,
+  {
+    generatedBy:
+      user?.name?.trim() ||
+      "Utilizador EPIC",
+
+    generatedRole:
+      user?.role === "admin"
+        ? "Administrador"
+        : "Colaborador",
+
+    generatedAt,
+  },
+);
+
+printWindow.focus();
     } catch (error) {
       const message =
         error instanceof Error

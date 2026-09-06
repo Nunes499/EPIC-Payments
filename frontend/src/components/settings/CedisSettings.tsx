@@ -26,6 +26,9 @@ import {
 } from "@/services/cedis";
 
 
+import "./settings-windows11.css";
+
+
 function formatFileSize(
   size: number | null,
 ): string {

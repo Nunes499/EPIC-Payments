@@ -945,19 +945,17 @@ export default function PesquisaBancariaPage() {
               }}
             >
               <Image
-                src="/branding/logo-epic-payments-white.png"
-                alt="EPIC Payments"
-                width={245}
-                height={115}
-                priority
-                style={{
-                width: "245px",
-                height: "auto",
-                objectFit: "contain",
-                filter:
-                  "brightness(0) saturate(100%) invert(14%) sepia(28%) saturate(1287%) hue-rotate(169deg) brightness(91%) contrast(96%)",
-              }}
-            />
+  src="/branding/logo-epic-payments-Blue.png"
+  alt="EPIC Payments"
+  width={320}
+  height={160}
+  priority
+  style={{
+    width: "220px",
+    height: "auto",
+    objectFit: "contain",
+  }}
+/>
             </div>
 
             <div

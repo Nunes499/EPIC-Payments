@@ -923,6 +923,14 @@ export default function AnnualCalendar({
       files:
         selectedFiles,
     });
+
+    setSelectedDate(
+      null,
+    );
+
+    setDrawerError(
+      null,
+    );
   }
 
 
@@ -950,7 +958,9 @@ export default function AnnualCalendar({
 
   return (
     <>
-      <section className="annual-calendar">
+      {!processingSelection ? (
+        <>
+          <section className="annual-calendar">
         <div className="annual-calendar-header">
           <div className="calendar-year-panel">
   <span className="section-label">
@@ -1067,57 +1077,59 @@ export default function AnnualCalendar({
       </section>
 
 
-      <DayDrawer
-        isOpen={
-          Boolean(
-            selectedDate,
-          )
-        }
-        selectedDate={
-          selectedDate
-        }
-        data={
-          selectedDayData
-        }
-        isLoading={
-          isLoadingFiles
-        }
-        error={
-          drawerError
-        }
-        selectedFileIds={
-          selectedFileIds
-        }
-        onClose={
-          handleCloseDrawer
-        }
-        onAddFile={() =>
-          setIsUploadOpen(
-            true,
-          )
-        }
-        onToggleFile={
-          handleToggleFile
-        }
-        onSelectAllFiles={
-          handleSelectAllFiles
-        }
-        onClearSelection={
-          handleClearSelection
-        }
-        onOpenProcessing={
-          handleOpenProcessing
-        }
-        onPreview={
-          handlePreview
-        }
-        onDownload={
-          handleDownload
-        }
-        onDelete={
-          handleDelete
-        }
-      />
+          <DayDrawer
+            isOpen={
+              Boolean(
+                selectedDate,
+              )
+            }
+            selectedDate={
+              selectedDate
+            }
+            data={
+              selectedDayData
+            }
+            isLoading={
+              isLoadingFiles
+            }
+            error={
+              drawerError
+            }
+            selectedFileIds={
+              selectedFileIds
+            }
+            onClose={
+              handleCloseDrawer
+            }
+            onAddFile={() =>
+              setIsUploadOpen(
+                true,
+              )
+            }
+            onToggleFile={
+              handleToggleFile
+            }
+            onSelectAllFiles={
+              handleSelectAllFiles
+            }
+            onClearSelection={
+              handleClearSelection
+            }
+            onOpenProcessing={
+              handleOpenProcessing
+            }
+            onPreview={
+              handlePreview
+            }
+            onDownload={
+              handleDownload
+            }
+            onDelete={
+              handleDelete
+            }
+          />
+        </>
+      ) : null}
 
 
       <ProcessingWorkspace

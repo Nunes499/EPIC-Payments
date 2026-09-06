@@ -418,6 +418,8 @@ export default function UtilizadoresPage() {
               style={{
                 margin: 0,
                 fontSize: "28px",
+                color: "#10233d",
+                letterSpacing: "-0.03em",
               }}
             >
               Utilizadores
@@ -426,7 +428,7 @@ export default function UtilizadoresPage() {
             <p
               style={{
                 margin: "6px 0 0",
-                color: "#666",
+                color: "#6a7e90",
               }}
             >
               Gestão dos Administradores
@@ -1010,7 +1012,11 @@ function Modal({
         justifyContent: "center",
         padding: "24px",
         background:
-          "rgba(0,0,0,.55)",
+          "rgba(9, 31, 49, .34)",
+        backdropFilter:
+          "blur(10px) saturate(120%)",
+        WebkitBackdropFilter:
+          "blur(10px) saturate(120%)",
       }}
     >
       <div
@@ -1021,10 +1027,13 @@ function Modal({
           maxWidth: "650px",
           maxHeight: "90vh",
           overflowY: "auto",
-          borderRadius: "18px",
-          background: "#fff",
+          borderRadius: "22px",
+          border:
+            "1px solid rgba(255,255,255,.82)",
+          background:
+            "linear-gradient(155deg, rgba(255,255,255,.98), rgba(244,250,254,.96))",
           boxShadow:
-            "0 24px 80px rgba(0,0,0,.25)",
+            "0 28px 80px rgba(17,50,74,.22), inset 0 1px rgba(255,255,255,.9)",
         }}
       >
         <div
@@ -1036,13 +1045,13 @@ function Modal({
             padding:
               "24px 26px 18px",
             borderBottom:
-              "1px solid #ededed",
+              "1px solid rgba(75,107,132,.12)",
           }}
         >
           <div>
             <div
               style={{
-                color: "#d71920",
+                color: "#0878bd",
                 fontSize: "11px",
                 fontWeight: 800,
                 letterSpacing:
@@ -1063,7 +1072,7 @@ function Modal({
             <p
               style={{
                 margin: "6px 0 0",
-                color: "#707070",
+                color: "#6a7e90",
                 fontSize: "14px",
               }}
             >
@@ -1190,53 +1199,65 @@ function UserAvatar({
 
 const inputStyle = {
   width: "100%",
+  minHeight: "44px",
   boxSizing: "border-box" as const,
-  padding: "11px 12px",
-  border: "1px solid #d8d8d8",
-  borderRadius: "9px",
-  background: "#fff",
+  padding: "11px 13px",
+  border: "1px solid rgba(75,107,132,.18)",
+  borderRadius: "11px",
+  background: "rgba(255,255,255,.92)",
+  color: "#17304a",
   font: "inherit",
+  outline: "none",
+  boxShadow: "inset 0 1px 2px rgba(18,48,71,.025)",
 };
 
 const labelStyle = {
   display: "grid",
   gap: "7px",
-  fontWeight: 700,
+  color: "#17304a",
+  fontWeight: 750,
   fontSize: "14px",
 };
 
 const helpTextStyle = {
-  color: "#888",
+  color: "#7c8f9e",
   fontSize: "12px",
   fontWeight: 400,
 };
 
 const primaryButton = {
-  border: 0,
-  borderRadius: "9px",
+  border: "1px solid rgba(6,111,174,.38)",
+  borderRadius: "10px",
   padding: "11px 18px",
-  background: "#d71920",
+  background:
+    "linear-gradient(180deg, #169de7 0%, #0879bd 100%)",
   color: "#fff",
-  fontWeight: 700,
+  fontWeight: 750,
   cursor: "pointer",
+  boxShadow:
+    "0 7px 18px rgba(8,120,189,.18), inset 0 1px rgba(255,255,255,.18)",
 };
 
 const secondaryButton = {
-  border: "1px solid #d8d8d8",
-  borderRadius: "9px",
+  border: "1px solid rgba(75,107,132,.18)",
+  borderRadius: "10px",
   padding: "10px 16px",
-  background: "#fff",
-  fontWeight: 700,
+  background:
+    "linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,248,252,.96))",
+  color: "#24445d",
+  fontWeight: 750,
   cursor: "pointer",
+  boxShadow: "0 3px 10px rgba(18,48,71,.04)",
 };
 
 const errorStyle = {
   padding: "12px 14px",
-  borderRadius: "9px",
-  background: "#fdecec",
-  color: "#a40000",
+  border: "1px solid rgba(205,69,69,.18)",
+  borderRadius: "10px",
+  background: "#fff0f0",
+  color: "#b63c43",
   fontSize: "13px",
-  fontWeight: 600,
+  fontWeight: 650,
 };
 
 const buttonRow = {
@@ -1266,10 +1287,12 @@ const userRowStyle = {
     "70px 1.4fr 1fr 1.6fr 1fr 110px",
   alignItems: "center",
   gap: "16px",
-  padding: "16px",
-  border: "1px solid #e2e2e2",
-  borderRadius: "14px",
-  background: "#fff",
+  padding: "15px 16px",
+  border: "1px solid rgba(75,107,132,.13)",
+  borderRadius: "15px",
+  background:
+    "linear-gradient(155deg, rgba(255,255,255,.95), rgba(246,251,254,.88))",
+  boxShadow: "0 7px 22px rgba(18,48,71,.045)",
 };
 
 const avatarStyle = {
@@ -1280,8 +1303,12 @@ const avatarStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "#171717",
+  background:
+    "linear-gradient(145deg, #0e6eaa, #0b3f66)",
   color: "#fff",
   fontWeight: 800,
   fontSize: "18px",
+  border: "2px solid rgba(255,255,255,.9)",
+  boxShadow: "0 4px 12px rgba(18,48,71,.14)",
 };
+

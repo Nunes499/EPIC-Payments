@@ -388,3 +388,66 @@
 
   object-fit: contain;
 }
+
+/* =========================================================
+   PROCESSAMENTO — FUNDO OPACO
+   Impede calendário/drawer de aparecer por trás
+   ========================================================= */
+
+.processing-workspace {
+  background:
+    radial-gradient(
+      circle at 88% 5%,
+      rgba(177, 222, 247, 0.42) 0,
+      rgba(177, 222, 247, 0) 34%
+    ),
+    radial-gradient(
+      circle at 8% 90%,
+      rgba(216, 236, 248, 0.55) 0,
+      rgba(216, 236, 248, 0) 36%
+    ),
+    linear-gradient(
+      145deg,
+      #f8fcff 0%,
+      #edf7fc 42%,
+      #e8f3fa 72%,
+      #f6fbfe 100%
+    ) !important;
+
+  background-color: #edf6fc !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  isolation: isolate !important;
+}
+
+.processing-workspace::before {
+  display: none !important;
+}
+
+/* Barra superior ligeiramente translúcida,
+   mas sem deixar aparecer a página anterior */
+
+.processing-workspace-topbar {
+  background: rgba(249, 253, 255, 0.96) !important;
+  backdrop-filter: blur(18px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(135%) !important;
+}
+
+/* Cartões continuam com efeito Windows 11,
+   mas praticamente opacos */
+
+.processing-summary-card,
+.processing-file-group {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+}
+
+/* Garante que o processamento fica acima
+   do calendário e do drawer */
+
+.processing-workspace {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+}

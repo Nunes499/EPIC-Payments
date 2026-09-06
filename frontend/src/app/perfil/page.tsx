@@ -552,7 +552,7 @@ export default function PerfilPage() {
               <div>
                 <strong
                   style={{
-                    color: "#171717",
+                    color: "#102a43",
                     fontSize:
                       "14px",
                   }}
@@ -564,7 +564,7 @@ export default function PerfilPage() {
                   style={{
                     margin:
                       "4px 0 0",
-                    color: "#777",
+                    color: "#668197",
                     fontSize:
                       "12px",
                     lineHeight: 1.55,
@@ -827,7 +827,7 @@ const pageStyle = {
     "border-box" as const,
 };
 
-/* CARTÃO PERFIL - PRATEADO */
+/* CARTÃO PERFIL - WINDOWS 11 AZUL */
 
 const profileHeroStyle = {
   position:
@@ -835,7 +835,7 @@ const profileHeroStyle = {
   overflow: "hidden",
 
   background:
-    "linear-gradient(115deg, #252525 0%, #505050 34%, #8b8b8b 58%, #525252 78%, #303030 100%)",
+    "linear-gradient(120deg, #0b3554 0%, #0d5f91 42%, #1599d8 72%, #dff4ff 140%)",
 
   borderRadius: "20px",
 
@@ -859,7 +859,7 @@ const redSideAccentStyle = {
   width: "6px",
 
   background:
-    "linear-gradient(180deg, #ff2a32 0%, #c9000c 55%, #7d0007 100%)",
+    "linear-gradient(180deg, #48bdf4 0%, #168fd0 55%, #08669f 100%)",
 };
 
 const profileHeroContent = {
@@ -902,7 +902,7 @@ const largeAvatarStyle = {
     "center",
 
   background:
-    "linear-gradient(145deg, #a4000a, #ef1722)",
+    "linear-gradient(145deg, #0b6fa8, #20a9e8)",
 
   border:
     "4px solid rgba(255,255,255,0.94)",
@@ -918,7 +918,7 @@ const largeAvatarStyle = {
 };
 
 const profileKickerStyle = {
-  color: "#ff2832",
+  color: "#9cddff",
 
   fontSize: "11px",
 
@@ -1010,10 +1010,10 @@ const roleDotStyle = {
 
   borderRadius: "50%",
 
-  background: "#ec101c",
+  background: "#39b9f3",
 
   boxShadow:
-    "0 0 0 4px rgba(236,16,28,.15)",
+    "0 0 0 4px rgba(57,185,243,.18)",
 };
 
 const accountStatusStyle = {
@@ -1097,14 +1097,14 @@ const whiteCardStyle = {
     "linear-gradient(145deg, #ffffff 0%, #fefefe 55%, #fafafa 100%)",
 
   border:
-    "1px solid #e4e4e4",
+    "1px solid rgba(91, 145, 178, 0.22)",
 
   borderRadius: "18px",
 
   padding: "25px",
 
   boxShadow:
-    "0 8px 24px rgba(0,0,0,0.055)",
+    "0 10px 30px rgba(31, 94, 132, 0.08)",
 };
 
 const securityCardStyle = {
@@ -1134,7 +1134,7 @@ const sectionHeaderStyle = {
     "1px solid #ececec",
 };
 
-/* ÍCONES - VERMELHO ESCURO DEGRADÊ */
+/* ÍCONES - AZUL WINDOWS 11 */
 
 const sectionIconStyle = {
   width: "42px",
@@ -1155,16 +1155,16 @@ const sectionIconStyle = {
   color: "#fff",
 
   background:
-    "linear-gradient(145deg, #7d0007 0%, #b7000b 48%, #e51a25 100%)",
+    "linear-gradient(145deg, #075f95 0%, #0d86c7 48%, #27abe6 100%)",
 
   boxShadow:
-    "0 6px 16px rgba(154,0,9,.18)",
+    "0 6px 16px rgba(13,134,199,.18)",
 };
 
 const sectionTitleStyle = {
   margin: 0,
 
-  color: "#171717",
+  color: "#102a43",
 
   fontSize: "18px",
 
@@ -1174,7 +1174,7 @@ const sectionTitleStyle = {
 const sectionSubtitleStyle = {
   margin: "5px 0 0",
 
-  color: "#777",
+  color: "#668197",
 
   fontSize: "13px",
 
@@ -1195,7 +1195,7 @@ const infoBoxStyle = {
     "15px 16px",
 
   background:
-    "linear-gradient(145deg, #fafafa 0%, #f1f1f1 100%)",
+    "linear-gradient(145deg, #f8fcff 0%, #edf6fb 100%)",
 
   border:
     "1px solid #e6e6e6",
@@ -1209,7 +1209,7 @@ const infoBoxStyle = {
 };
 
 const infoLabelStyle = {
-  color: "#8a8a8a",
+  color: "#7890a3",
 
   fontSize: "11px",
 
@@ -1223,7 +1223,7 @@ const infoLabelStyle = {
 };
 
 const infoValueStyle = {
-  color: "#181818",
+  color: "#102a43",
 
   fontSize: "14px",
 
@@ -1263,7 +1263,7 @@ const photoPreviewStyle = {
     "center",
 
   background:
-    "linear-gradient(145deg, #252525, #555)",
+    "linear-gradient(145deg, #0b4f78, #1599d8)",
 
   color: "#fff",
 
@@ -1288,7 +1288,7 @@ const fieldLabelStyle = {
 
   marginBottom: "7px",
 
-  color: "#292929",
+  color: "#18364e",
 
   fontSize: "13px",
 
@@ -1304,12 +1304,12 @@ const fileInputStyle = {
   padding: "10px",
 
   border:
-    "1px solid #d6d6d6",
+    "1px solid #cbdde8",
 
   borderRadius: "9px",
 
   background:
-    "linear-gradient(180deg, #fff, #fafafa)",
+    "linear-gradient(180deg, #ffffff, #f7fbfe)",
 
   font: "inherit",
 
@@ -1319,7 +1319,7 @@ const fileInputStyle = {
 const helpTextStyle = {
   margin: "7px 0 0",
 
-  color: "#8a8a8a",
+  color: "#7890a3",
 
   fontSize: "11px",
 
@@ -1344,7 +1344,7 @@ const selectedFileStyle = {
   fontSize: "12px",
 };
 
-/* BOTÕES - VERMELHO ESCURO DEGRADÊ */
+/* BOTÕES - AZUL WINDOWS 11 */
 
 const redGradientButtonStyle = {
   minHeight: "43px",
@@ -1367,7 +1367,7 @@ const redGradientButtonStyle = {
   padding: "0 19px",
 
   background:
-    "linear-gradient(100deg, #760008 0%, #a9000b 35%, #d5101c 72%, #b0000b 100%)",
+    "linear-gradient(100deg, #075f95 0%, #087dbb 35%, #1599d8 72%, #0b72aa 100%)",
 
   color: "#fff",
 
@@ -1378,7 +1378,7 @@ const redGradientButtonStyle = {
   cursor: "pointer",
 
   boxShadow:
-    "0 7px 18px rgba(148,0,9,.20)",
+    "0 7px 18px rgba(8,125,187,.22)",
 
   textShadow:
     "0 1px 2px rgba(0,0,0,.20)",
@@ -1400,7 +1400,7 @@ const securityNoticeStyle = {
     "20px",
 
   background:
-    "linear-gradient(145deg, #fafafa, #f1f1f1)",
+    "linear-gradient(145deg, #f8fcff, #eef7fb)",
 
   borderRadius: "11px",
 
@@ -1447,13 +1447,13 @@ const passwordInputStyle = {
     "0 12px",
 
   border:
-    "1px solid #d5d5d5",
+    "1px solid #cbdde8",
 
   borderRadius:
     "9px",
 
   background:
-    "linear-gradient(180deg, #fff, #fbfbfb)",
+    "linear-gradient(180deg, #ffffff, #f7fbfe)",
 
   font: "inherit",
 
