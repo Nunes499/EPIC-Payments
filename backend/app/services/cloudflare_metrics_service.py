@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -119,12 +119,12 @@ def get_r2_storage_metrics() -> dict[str, Any]:
     """
 
     now = datetime.now(timezone.utc)
-    start = now.replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0,
-    )
+
+    # O armazenamento R2 é um valor atual, não um contador diário.
+    # Procuramos a medição mais recente das últimas 48 horas para evitar
+    # mostrar 0 B / 0 objetos quando a Cloudflare ainda não publicou
+    # uma nova amostra após a mudança de dia.
+    start = now - timedelta(hours=48)
 
     data = _graphql_request(
         query,
