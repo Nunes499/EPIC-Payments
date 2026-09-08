@@ -307,26 +307,14 @@
 
   cursor: pointer;
 
-  transition:
-    border-color 150ms ease,
-    background 150ms ease,
-    transform 150ms ease,
-    box-shadow 150ms ease;
+  transition: none;
 }
 
 .calendar-day:hover {
-  border-color:
-    #d2d2d2;
-
-  background:
-    #ffffff;
-
-  transform:
-    translateY(-1px);
-
-  box-shadow:
-    0 4px 10px
-    rgba(0, 0, 0, 0.04);
+  border-color: #d2d2d2;
+  background: #ffffff;
+  transform: none;
+  box-shadow: none;
 }
 
 .calendar-day-number {
@@ -5103,3 +5091,89 @@ body:has(.annual-calendar) .section-label {
   }
 }
 
+/* =========================================================
+   EPIC PAYMENTS
+   CALENDAR PERFORMANCE FIX
+   Remove efeitos gráficos que provocam lag no Firefox
+   ========================================================= */
+
+/* Evita repintar todo o fundo durante o scroll */
+body:has(.annual-calendar) {
+  background-attachment: scroll !important;
+}
+
+/* As formas fixas obrigavam recomposição constante */
+body:has(.annual-calendar)::before,
+body:has(.annual-calendar)::after {
+  display: none !important;
+}
+
+/* Principal causa:
+   12 meses com backdrop blur simultâneo */
+.annual-calendar .month-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  transform: none !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(247, 251, 255, 0.94)
+    ) !important;
+
+  transition:
+    border-color 100ms ease !important;
+}
+
+/* Não mover cartões inteiros ao passar o rato */
+.annual-calendar .month-card:hover {
+  transform: none !important;
+}
+
+/* O seletor de ano também tinha blur */
+.annual-calendar .calendar-year-navigation {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  background:
+    rgba(255, 255, 255, 0.94) !important;
+}
+
+/* O cartão Ficheiros do dia também tinha blur */
+.annual-calendar .files-of-day-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.97),
+      rgba(244, 250, 255, 0.95)
+    ) !important;
+}
+
+/* Hover dos dias instantâneo e barato */
+.annual-calendar .calendar-day {
+  transition: none !important;
+  transform: none !important;
+}
+
+.annual-calendar .calendar-day:hover {
+  transform: none !important;
+}
+
+/* Cada mês passa a ser uma área de pintura independente */
+.annual-calendar .month-card {
+  contain:
+    layout
+    paint
+    style;
+}
+
+/* Meses fora do ecrã não precisam de ser desenhados */
+.annual-calendar .month-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 350px;
+}

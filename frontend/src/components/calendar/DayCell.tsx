@@ -1,6 +1,11 @@
 "use client";
 
 import {
+  memo,
+  useCallback,
+} from "react";
+
+import {
   CheckCircle2,
   FileSpreadsheet,
   FileText,
@@ -28,7 +33,7 @@ type DayCellProps = {
 };
 
 
-export default function DayCell({
+function DayCell({
   dayNumber,
   date,
   isToday,
@@ -47,14 +52,32 @@ export default function DayCell({
   const reportCount =
     data?.reportCount ?? 0;
 
+  const pendingMembers =
+    data?.pendingMembers ?? 0;
+
 
   const hasContent =
-    (data?.totalFiles ?? 0) > 0 ||
+    (data?.totalFiles ?? 0) >
+      0 ||
     pdfCount > 0 ||
     xmlCount > 0 ||
     recoveryCount > 0 ||
     reportCount > 0 ||
-    (data?.pendingMembers ?? 0) > 0;
+    pendingMembers > 0;
+
+
+  const handleClick =
+    useCallback(
+      () => {
+        onClick(
+          date,
+        );
+      },
+      [
+        date,
+        onClick,
+      ],
+    );
 
 
   return (
@@ -77,10 +100,8 @@ export default function DayCell({
       ]
         .filter(Boolean)
         .join(" ")}
-      onClick={() =>
-        onClick(
-          date,
-        )
+      onClick={
+        handleClick
       }
       aria-label={
         `Abrir dia ${date}`
@@ -136,7 +157,7 @@ export default function DayCell({
         ) : null}
 
 
-        {(data?.pendingMembers ?? 0) >
+        {pendingMembers >
         0 ? (
           <span className="day-badge day-badge-members">
             <Users
@@ -144,7 +165,7 @@ export default function DayCell({
             />
 
             {
-              data?.pendingMembers
+              pendingMembers
             }
           </span>
         ) : null}
@@ -165,3 +186,81 @@ export default function DayCell({
     </button>
   );
 }
+
+
+export default memo(
+  DayCell,
+  (
+    previous,
+    next,
+  ) => {
+    if (
+      previous.dayNumber !==
+        next.dayNumber ||
+      previous.date !==
+        next.date ||
+      previous.isToday !==
+        next.isToday ||
+      previous.onClick !==
+        next.onClick
+    ) {
+      return false;
+    }
+
+    const previousData =
+      previous.data;
+
+    const nextData =
+      next.data;
+
+    if (
+      previousData ===
+      nextData
+    ) {
+      return true;
+    }
+
+    return (
+      (previousData
+        ?.totalFiles ??
+        0) ===
+        (nextData
+          ?.totalFiles ??
+          0) &&
+      (previousData
+        ?.pdfCount ??
+        0) ===
+        (nextData
+          ?.pdfCount ??
+          0) &&
+      (previousData
+        ?.xmlCount ??
+        0) ===
+        (nextData
+          ?.xmlCount ??
+          0) &&
+      (previousData
+        ?.recoveryCount ??
+        0) ===
+        (nextData
+          ?.recoveryCount ??
+          0) &&
+      (previousData
+        ?.reportCount ??
+        0) ===
+        (nextData
+          ?.reportCount ??
+          0) &&
+      (previousData
+        ?.pendingMembers ??
+        0) ===
+        (nextData
+          ?.pendingMembers ??
+          0) &&
+      previousData
+        ?.status ===
+        nextData
+          ?.status
+    );
+  },
+);

@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -215,18 +216,53 @@ export default function AnnualCalendar({
       : undefined;
 
 
-  const dataForCurrentYear =
+  const dataByMonth =
     useMemo(() => {
-      return Object.fromEntries(
-        Object.entries(
-          daysData,
-        ).filter(
-          ([date]) =>
-            date.startsWith(
-              `${year}-`,
-            ),
-        ),
+      const months = Array.from(
+        { length: 12 },
+        () =>
+          ({} as Record<
+            string,
+            CalendarDayData
+          >),
       );
+
+      const yearPrefix =
+        `${year}-`;
+
+      for (
+        const [date, data]
+        of Object.entries(
+          daysData,
+        )
+      ) {
+        if (
+          !date.startsWith(
+            yearPrefix,
+          )
+        ) {
+          continue;
+        }
+
+        const monthIndex =
+          Number(
+            date.slice(
+              5,
+              7,
+            ),
+          ) - 1;
+
+        if (
+          monthIndex >= 0 &&
+          monthIndex < 12
+        ) {
+          months[
+            monthIndex
+          ][date] = data;
+        }
+      }
+
+      return months;
     }, [
       daysData,
       year,
@@ -404,9 +440,11 @@ export default function AnnualCalendar({
     selectedDate,
   ]);
 
-  async function loadFilesForDate(
-    date: string,
-  ) {
+  const loadFilesForDate =
+    useCallback(
+      async (
+        date: string,
+      ) => {
     setIsLoadingFiles(
       true,
     );
@@ -507,24 +545,32 @@ export default function AnnualCalendar({
         false,
       );
     }
-  }
-
-
-  async function handleSelectDay(
-    date: string,
-  ) {
-    setSelectedFileIds(
+      },
       [],
     );
 
-    setSelectedDate(
-      date,
-    );
 
-    await loadFilesForDate(
-      date,
+  const handleSelectDay =
+    useCallback(
+      async (
+        date: string,
+      ) => {
+        setSelectedFileIds(
+          [],
+        );
+
+        setSelectedDate(
+          date,
+        );
+
+        await loadFilesForDate(
+          date,
+        );
+      },
+      [
+        loadFilesForDate,
+      ],
     );
-  }
 
 
   function openCurrentDay() {
@@ -1065,7 +1111,9 @@ export default function AnnualCalendar({
                   monthName
                 }
                 daysData={
-                  dataForCurrentYear
+                  dataByMonth[
+                    monthIndex
+                  ]
                 }
                 onSelectDay={
                   handleSelectDay
@@ -1132,14 +1180,16 @@ export default function AnnualCalendar({
       ) : null}
 
 
-      <ProcessingWorkspace
-        selection={
-          processingSelection
-        }
-        onClose={
-          handleCloseProcessing
-        }
-      />
+      {processingSelection ? (
+        <ProcessingWorkspace
+          selection={
+            processingSelection
+          }
+          onClose={
+            handleCloseProcessing
+          }
+        />
+      ) : null}
 
 
       <UploadFileDialog
