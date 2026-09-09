@@ -11,6 +11,7 @@ export type SmsMessageType =
 export type MultibancoReferenceRequest = {
   member_number: string;
   member_name: string;
+  phone: string;
   value: number;
 };
 

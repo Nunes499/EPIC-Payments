@@ -172,10 +172,11 @@ export default function CriarReferenciaPage() {
       setFeedback("");
 
       const result = await createMultibancoReference({
-        member_number: memberNumber.trim(),
-        member_name: memberName.trim(),
-        value: numericValue as number,
-      });
+  member_number: memberNumber.trim(),
+  member_name: memberName.trim(),
+  phone: phone.trim(),
+  value: numericValue as number,
+});
 
       setReferenceData(result);
 

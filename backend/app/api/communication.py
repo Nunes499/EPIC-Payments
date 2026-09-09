@@ -1,16 +1,33 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+from pydantic import (
+    BaseModel,
+    Field,
+)
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import (
+    get_current_user,
+)
 from app.database.session import get_db
-from app.models import SmsHistory, User
-from app.schemas.calendar_file import CalendarFileRead
+from app.models import (
+    PaymentReference,
+    SmsHistory,
+    User,
+)
+from app.schemas.calendar_file import (
+    CalendarFileRead,
+)
 from app.services.communication_report_service import (
     create_communication_report,
 )
@@ -30,7 +47,9 @@ router = APIRouter(
 )
 
 
-class MultibancoReferenceCreate(BaseModel):
+class MultibancoReferenceCreate(
+    BaseModel
+):
     member_number: str = Field(
         min_length=1,
         max_length=50,
@@ -39,13 +58,19 @@ class MultibancoReferenceCreate(BaseModel):
         default="",
         max_length=200,
     )
+    phone: str = Field(
+        min_length=1,
+        max_length=40,
+    )
     value: Decimal = Field(
         gt=0,
         decimal_places=2,
     )
 
 
-class MultibancoReferenceRead(BaseModel):
+class MultibancoReferenceRead(
+    BaseModel
+):
     status: str
     entity: str
     reference: str
@@ -117,7 +142,9 @@ class SmsHistoryRead(BaseModel):
     sent_at: datetime
 
 
-class CommunicationReportRow(BaseModel):
+class CommunicationReportRow(
+    BaseModel
+):
     member_number: str = ""
     name: str = ""
     phone: str = ""
@@ -135,33 +162,158 @@ class CommunicationReportRow(BaseModel):
     reason: str = ""
 
 
-class CommunicationReportCreate(BaseModel):
+class CommunicationReportCreate(
+    BaseModel
+):
     calendar_date: date
     source_file_id: int | None = None
     source_filename: str = ""
     cedis_filename: str = ""
-    rows: list[CommunicationReportRow]
+    rows: list[
+        CommunicationReportRow
+    ]
+
+
+def _parse_iso_datetime(
+    value: str,
+) -> datetime | None:
+    text = (
+        value.strip()
+    )
+
+    if not text:
+        return None
+
+    try:
+        if text.endswith("Z"):
+            text = (
+                text[:-1]
+                + "+00:00"
+            )
+
+        result = (
+            datetime.fromisoformat(
+                text
+            )
+        )
+
+        if result.tzinfo is None:
+            result = (
+                result.replace(
+                    tzinfo=timezone.utc
+                )
+            )
+
+        return result
+    except ValueError:
+        return None
 
 
 @router.post(
     "/multibanco-reference",
-    response_model=MultibancoReferenceRead,
+    response_model=(
+        MultibancoReferenceRead
+    ),
 )
 def create_reference(
     payload: MultibancoReferenceCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
 ):
     try:
-        return create_multibanco_reference(
-            value=payload.value,
-            member_number=payload.member_number.strip(),
-            member_name=payload.member_name.strip(),
+        result = (
+            create_multibanco_reference(
+                value=payload.value,
+                member_number=(
+                    payload
+                    .member_number
+                    .strip()
+                ),
+                member_name=(
+                    payload
+                    .member_name
+                    .strip()
+                ),
+                phone=(
+                    payload
+                    .phone
+                    .strip()
+                ),
+            )
         )
     except EasypayError as exc:
         raise HTTPException(
             status_code=502,
             detail=str(exc),
         ) from exc
+
+    easypay_id = str(
+        result.get(
+            "easypay_id"
+        )
+        or ""
+    ).strip()
+
+    if easypay_id:
+        item = PaymentReference(
+            member_number=(
+                payload
+                .member_number
+                .strip()
+            ),
+            member_name=(
+                payload
+                .member_name
+                .strip()
+            ),
+            value=payload.value,
+            entity=str(
+                result["entity"]
+            ),
+            reference=str(
+                result["reference"]
+            ),
+            easypay_id=easypay_id,
+            payment_status=(
+                "pending"
+            ),
+            expires_at=(
+                _parse_iso_datetime(
+                    str(
+                        result.get(
+                            "expires_at"
+                        )
+                        or ""
+                    )
+                )
+            ),
+            created_by_id=(
+                current_user.id
+            ),
+            created_by_name=(
+                current_user.name
+            ),
+        )
+
+        try:
+            db.add(
+                item
+            )
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+        except Exception:
+            # A referência já foi criada na Easypay.
+            # Não devolvemos erro para evitar que o
+            # utilizador crie uma segunda referência
+            # por engano ao repetir o pedido.
+            db.rollback()
+
+    return result
 
 
 @router.post(
@@ -170,34 +322,68 @@ def create_reference(
 )
 def send_sms(
     payload: SmsCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
 ):
     try:
         result = send_payment_sms(
-            phone=payload.phone.strip(),
-            entity=payload.entity.strip(),
-            reference=payload.reference.strip(),
+            phone=(
+                payload.phone.strip()
+            ),
+            entity=(
+                payload.entity.strip()
+            ),
+            reference=(
+                payload.reference.strip()
+            ),
             value=payload.value,
-            message_type=payload.message_type,
+            message_type=(
+                payload.message_type
+            ),
         )
 
         history = SmsHistory(
             source=payload.source,
-            member_number=payload.member_number.strip(),
-            member_name=payload.member_name.strip(),
+            member_number=(
+                payload
+                .member_number
+                .strip()
+            ),
+            member_name=(
+                payload
+                .member_name
+                .strip()
+            ),
             phone=result["phone"],
-            entity=payload.entity.strip(),
-            reference=payload.reference.strip(),
+            entity=(
+                payload.entity.strip()
+            ),
+            reference=(
+                payload
+                .reference
+                .strip()
+            ),
             value=payload.value,
-            message_type=payload.message_type,
+            message_type=(
+                payload.message_type
+            ),
             message=result["message"],
             sms_id=result["sms_id"],
-            sent_by_id=current_user.id,
-            sent_by_name=current_user.name,
+            sent_by_id=(
+                current_user.id
+            ),
+            sent_by_name=(
+                current_user.name
+            ),
         )
 
-        db.add(history)
+        db.add(
+            history
+        )
         db.commit()
 
         return result
@@ -215,7 +401,9 @@ def send_sms(
 
 @router.get(
     "/sms-history",
-    response_model=list[SmsHistoryRead],
+    response_model=list[
+        SmsHistoryRead
+    ],
 )
 def get_sms_history(
     source: Literal[
@@ -223,9 +411,15 @@ def get_sms_history(
         "create_reference",
     ] = "create_reference",
     limit: int = 10,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
 ):
+    del current_user
+
     safe_limit = max(
         1,
         min(
@@ -235,7 +429,9 @@ def get_sms_history(
     )
 
     items = db.scalars(
-        select(SmsHistory)
+        select(
+            SmsHistory
+        )
         .where(
             SmsHistory.source
             == source
@@ -253,17 +449,29 @@ def get_sms_history(
         SmsHistoryRead(
             id=item.id,
             source=item.source,
-            member_number=item.member_number,
-            member_name=item.member_name,
+            member_number=(
+                item.member_number
+            ),
+            member_name=(
+                item.member_name
+            ),
             phone=item.phone,
             entity=item.entity,
             reference=item.reference,
-            value=float(item.value),
-            message_type=item.message_type,
+            value=float(
+                item.value
+            ),
+            message_type=(
+                item.message_type
+            ),
             message=item.message,
             sms_id=item.sms_id,
-            sent_by_id=item.sent_by_id,
-            sent_by_name=item.sent_by_name,
+            sent_by_id=(
+                item.sent_by_id
+            ),
+            sent_by_name=(
+                item.sent_by_name
+            ),
             sent_at=item.sent_at,
         )
         for item in items
@@ -273,28 +481,53 @@ def get_sms_history(
 @router.post(
     "/report",
     response_model=CalendarFileRead,
-    status_code=status.HTTP_201_CREATED,
+    status_code=(
+        status.HTTP_201_CREATED
+    ),
 )
 def attach_report(
     payload: CommunicationReportCreate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
 ):
     try:
         return create_communication_report(
             db,
-            calendar_date=payload.calendar_date,
-            source_file_id=payload.source_file_id,
-            source_filename=payload.source_filename.strip(),
-            cedis_filename=payload.cedis_filename.strip(),
+            calendar_date=(
+                payload.calendar_date
+            ),
+            source_file_id=(
+                payload.source_file_id
+            ),
+            source_filename=(
+                payload
+                .source_filename
+                .strip()
+            ),
+            cedis_filename=(
+                payload
+                .cedis_filename
+                .strip()
+            ),
             rows=[
                 row.model_dump()
                 for row in payload.rows
             ],
-            uploaded_by_id=current_user.id,
+            uploaded_by_id=(
+                current_user.id
+            ),
+            generated_by_name=(
+                current_user.name
+            ),
         )
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
             detail=str(exc),
         ) from exc

@@ -2,7 +2,9 @@ from contextlib import asynccontextmanager
 import os
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
 
 from app.api import (
     auth_router,
@@ -10,20 +12,31 @@ from app.api import (
     cedis_router,
     communication_router,
     files_router,
+    payments_router,
     system_router,
     users_router,
 )
 from app.core.config import settings
-from app.database.session import SessionLocal
-from app.services import create_initial_admin
+from app.database.session import (
+    SessionLocal,
+)
+from app.services import (
+    create_initial_admin,
+)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(
+    app: FastAPI,
+):
+    del app
+
     db = SessionLocal()
 
     try:
-        create_initial_admin(db)
+        create_initial_admin(
+            db
+        )
     finally:
         db.close()
 
@@ -68,19 +81,37 @@ app.add_middleware(
 )
 
 
-app.include_router(auth_router)
-app.include_router(calendar_router)
-app.include_router(files_router)
-app.include_router(cedis_router)
-app.include_router(users_router)
-app.include_router(communication_router)
-app.include_router(system_router)
+app.include_router(
+    auth_router
+)
+app.include_router(
+    calendar_router
+)
+app.include_router(
+    files_router
+)
+app.include_router(
+    cedis_router
+)
+app.include_router(
+    users_router
+)
+app.include_router(
+    communication_router
+)
+app.include_router(
+    payments_router
+)
+app.include_router(
+    system_router
+)
 
 
 @app.get("/")
 def root():
     return {
-        "message": "EPIC Payments API está a funcionar",
+        "message":
+            "EPIC Payments API está a funcionar",
     }
 
 

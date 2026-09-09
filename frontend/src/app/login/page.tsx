@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  House,
   LockKeyhole,
   UserRound,
 } from "lucide-react";
@@ -198,6 +199,71 @@ export default function LoginPage() {
         }}
       />
 
+      <a
+        href="https://epicfitness-client.com"
+        aria-label="Home"
+        style={{
+          position: "absolute",
+          top: "28px",
+          left: "28px",
+          zIndex: 4,
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          minHeight: "46px",
+          padding: "7px 13px 7px 8px",
+          border:
+            "1px solid rgba(45,107,156,0.20)",
+          borderRadius: "13px",
+          background:
+            "rgba(255,255,255,0.72)",
+          color: "#123d64",
+          textDecoration: "none",
+          boxShadow:
+            "0 8px 24px rgba(50,93,128,0.08)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
+      >
+        <span
+          style={{
+            display: "grid",
+            width: "32px",
+            height: "32px",
+            placeItems: "center",
+            borderRadius: "9px",
+            background:
+              `
+                linear-gradient(
+                  145deg,
+                  #eaf6ff 0%,
+                  #d8ecfa 100%
+                )
+              `,
+            border:
+              "1px solid rgba(55,126,180,0.16)",
+            color: "#0b4f7d",
+          }}
+        >
+          <House
+            size={19}
+            strokeWidth={2}
+          />
+        </span>
+
+        <strong
+          style={{
+            color: "#0b3f69",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            textTransform: "uppercase",
+          }}
+        >
+          Home
+        </strong>
+      </a>
+
       <section
         style={{
           position: "relative",
@@ -243,12 +309,12 @@ export default function LoginPage() {
             priority
             unoptimized
             style={{
-             width: "250px",
-             maxWidth: "78%",
-             height: "auto",
-             objectFit: "contain",
-       }}
-     /> 
+              width: "250px",
+              maxWidth: "78%",
+              height: "auto",
+              objectFit: "contain",
+            }}
+          />
         </div>
 
         <div

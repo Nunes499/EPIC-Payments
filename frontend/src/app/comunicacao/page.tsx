@@ -33,6 +33,10 @@ import {
   sendCommunicationSms,
 } from "@/services/communication";
 
+import {
+  getCurrentUser,
+} from "@/services/auth";
+
 
 type SmsStatus =
   | "pending"
@@ -222,6 +226,522 @@ function formatReportTimestamp(): string {
   ).format(
     new Date(),
   );
+}
+
+
+type CommunicationReportThemeOptions = {
+  generatedByName: string;
+  generatedAt: string;
+  processingDate: string;
+  filename: string;
+};
+
+function applyCommunicationReportTheme(
+  html: string,
+  options: CommunicationReportThemeOptions,
+): string {
+  const generatedByName =
+    escapeHtml(options.generatedByName || "—");
+
+  const generatedAt =
+    escapeHtml(options.generatedAt || "—");
+
+  const processingDate =
+    escapeHtml(options.processingDate || "—");
+
+  const filename =
+    escapeHtml(options.filename || "Ficheiro bancário");
+
+  const approvedHeader = `
+    <section class="header epic-report-header">
+      <div class="epic-header-main">
+        <img
+          class="epic-report-logo"
+          src="/branding/logo-epic-payments-all-white.png"
+          alt="EPIC Payments"
+        />
+
+        <div class="epic-header-title">
+          <h1>Relatório de Comunicação</h1>
+          <div class="subtitle">
+            Mensalidades não cobradas e respetivo estado de comunicação.
+          </div>
+        </div>
+      </div>
+
+      <div class="epic-generated-meta">
+        <div class="epic-generated-block">
+          <span>GERADO EM</span>
+          <strong>${generatedAt}</strong>
+        </div>
+
+        <div class="epic-generated-block">
+          <span>COLABORADOR</span>
+          <strong>${generatedByName}</strong>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const processingPanel = `
+    <section class="epic-processing-panel">
+      <div class="epic-processing-item">
+        <span>DATA DO PROCESSAMENTO</span>
+        <strong>${processingDate}</strong>
+      </div>
+
+      <div class="epic-processing-item">
+        <span>FICHEIRO BANCÁRIO</span>
+        <strong>${filename}</strong>
+      </div>
+    </section>
+  `;
+
+  const footer = `
+    <div class="footer epic-report-footer">
+      EPIC PAYMENTS · RELATÓRIO DE COMUNICAÇÃO · PÁGINA 1 DE 1
+    </div>
+  `;
+
+  const approvedCss = `
+    <style id="epic-approved-report-theme">
+      :root {
+        --epic-navy: #0d3450;
+        --epic-navy-deep: #092d4a;
+        --epic-blue: #0e5a8a;
+        --epic-blue-soft: #edf6fc;
+        --epic-border: #d8e5ee;
+        --epic-text: #17293a;
+        --epic-muted: #6c7f90;
+        --epic-green: #17734b;
+        --epic-green-soft: #e8f7ef;
+        --epic-red: #c44343;
+        --epic-red-soft: #fceeee;
+      }
+
+      body {
+        padding: 28px !important;
+        color: var(--epic-text) !important;
+        background: #eef3f7 !important;
+        font-family:
+          "Segoe UI Variable",
+          "Segoe UI",
+          Arial,
+          Helvetica,
+          sans-serif !important;
+      }
+
+      .toolbar,
+      .report-success {
+        max-width: 794px !important;
+      }
+
+      .toolbar-button {
+        border-radius: 10px !important;
+      }
+
+      .print-button,
+      .attach-button {
+        color: #fff !important;
+        background: var(--epic-navy) !important;
+        box-shadow:
+          0 5px 14px rgba(13, 52, 80, .14) !important;
+      }
+
+      .print-button:hover,
+      .attach-button:hover:not(:disabled) {
+        background: #154b70 !important;
+      }
+
+      .attach-button.created {
+        color: #17613f !important;
+        background: #e9f6ef !important;
+        border: 1px solid #b8dec8 !important;
+        box-shadow: none !important;
+      }
+
+      .report {
+        width: 794px !important;
+        max-width: 794px !important;
+        min-height: 1123px !important;
+        margin: 0 auto !important;
+        padding: 0 28px 28px !important;
+        overflow: hidden !important;
+        background: #fff !important;
+        border: 1px solid #d9e3ea !important;
+        border-radius: 16px !important;
+        box-shadow:
+          0 14px 38px rgba(19, 49, 70, .10) !important;
+      }
+
+      .epic-report-header {
+        min-height: 235px !important;
+        margin: 0 -28px 24px !important;
+        padding: 30px 34px 27px !important;
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) 185px !important;
+        align-items: end !important;
+        gap: 30px !important;
+        color: #fff !important;
+        border: 0 !important;
+        background:
+          linear-gradient(
+            135deg,
+            var(--epic-navy-deep) 0%,
+            var(--epic-navy) 55%,
+            #124568 100%
+          ) !important;
+        position: relative !important;
+      }
+
+      .epic-report-header::after {
+        content: "" !important;
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        height: 3px !important;
+        background:
+          linear-gradient(
+            90deg,
+            #0c70b3,
+            #4aa8df,
+            #0c70b3
+          ) !important;
+      }
+
+      .epic-header-main {
+        min-width: 0 !important;
+      }
+
+      .epic-report-logo {
+        width: 172px !important;
+        height: auto !important;
+        display: block !important;
+        object-fit: contain !important;
+        margin: 0 0 42px !important;
+      }
+
+      .epic-header-title h1 {
+        margin: 0 0 7px !important;
+        color: #fff !important;
+        font-size: 31px !important;
+        line-height: 1.08 !important;
+        font-weight: 760 !important;
+        letter-spacing: -.7px !important;
+      }
+
+      .epic-header-title .subtitle {
+        color: #d7e7f1 !important;
+        font-size: 12px !important;
+        line-height: 1.5 !important;
+      }
+
+      .epic-generated-meta {
+        margin-bottom: 2px !important;
+        padding-left: 22px !important;
+        display: grid !important;
+        gap: 18px !important;
+        border-left:
+          1px solid rgba(188, 216, 233, .55) !important;
+      }
+
+      .epic-generated-block {
+        display: grid !important;
+        gap: 4px !important;
+      }
+
+      .epic-generated-block span {
+        color: #bad1df !important;
+        font-size: 8px !important;
+        font-weight: 700 !important;
+        letter-spacing: 1.2px !important;
+      }
+
+      .epic-generated-block strong {
+        color: #fff !important;
+        font-size: 11px !important;
+        font-weight: 750 !important;
+      }
+
+      .epic-processing-panel {
+        display: grid !important;
+        grid-template-columns: .8fr 1.7fr !important;
+        margin-bottom: 18px !important;
+        border: 1px solid #cddfea !important;
+        border-radius: 11px !important;
+        overflow: hidden !important;
+        background: #fff !important;
+      }
+
+      .epic-processing-item {
+        min-height: 74px !important;
+        padding: 16px 18px !important;
+        display: grid !important;
+        align-content: center !important;
+        gap: 5px !important;
+      }
+
+      .epic-processing-item + .epic-processing-item {
+        border-left: 1px solid #dce7ee !important;
+      }
+
+      .epic-processing-item span {
+        color: #607689 !important;
+        font-size: 8px !important;
+        font-weight: 850 !important;
+        letter-spacing: .55px !important;
+      }
+
+      .epic-processing-item strong {
+        color: #12283b !important;
+        font-size: 14px !important;
+        font-weight: 800 !important;
+      }
+
+      .summary {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .summary-card {
+        min-height: 98px !important;
+        padding: 16px !important;
+        display: grid !important;
+        align-content: center !important;
+        border-radius: 11px !important;
+        box-shadow: none !important;
+      }
+
+      .summary-card:nth-child(1) {
+        border: 1px solid #c8ddec !important;
+        background:
+          linear-gradient(145deg, #f7fbfe, #eaf5fc) !important;
+      }
+
+      .summary-card:nth-child(2) {
+        border: 1px solid #c9e6d7 !important;
+        background:
+          linear-gradient(145deg, #f7fcf9, #e8f7ef) !important;
+      }
+
+      .summary-card:nth-child(3) {
+        border: 1px solid #efd1d1 !important;
+        background:
+          linear-gradient(145deg, #fffafa, #fceeee) !important;
+      }
+
+      .summary-label {
+        margin-bottom: 8px !important;
+        color: #5e7487 !important;
+        font-size: 8px !important;
+        letter-spacing: .65px !important;
+      }
+
+      .summary-value {
+        color: #10283c !important;
+        font-size: 27px !important;
+        line-height: 1 !important;
+      }
+
+      table {
+        border: 1px solid #d8e3eb !important;
+        border-radius: 10px !important;
+        overflow: hidden !important;
+      }
+
+      th {
+        padding: 10px 6px !important;
+        color: #fff !important;
+        background: var(--epic-navy) !important;
+        border-bottom: 0 !important;
+        font-size: 7.4px !important;
+        letter-spacing: .15px !important;
+      }
+
+      td {
+        padding: 10px 6px !important;
+        color: #243748 !important;
+        border-bottom: 1px solid #e4ebf0 !important;
+        font-size: 8.2px !important;
+        line-height: 1.25 !important;
+      }
+
+      tbody tr:nth-child(even) td {
+        background: #f8fafc !important;
+      }
+
+      .money {
+        color: #152a3c !important;
+        font-weight: 800 !important;
+      }
+
+      .status {
+        padding: 4px 7px !important;
+        font-size: 7.4px !important;
+      }
+
+      .sent {
+        color: var(--epic-green) !important;
+        background: var(--epic-green-soft) !important;
+      }
+
+      .not-sent {
+        color: var(--epic-red) !important;
+        background: var(--epic-red-soft) !important;
+      }
+
+      .epic-report-note {
+        margin-top: 22px !important;
+        padding: 15px 17px !important;
+        color: #667b8d !important;
+        background: #f7fafc !important;
+        border: 1px solid #dce6ed !important;
+        border-radius: 10px !important;
+        font-size: 9px !important;
+        line-height: 1.5 !important;
+      }
+
+      .epic-report-note strong {
+        color: #19334a !important;
+      }
+
+      .epic-report-footer {
+        margin-top: 58px !important;
+        padding-top: 15px !important;
+        color: #778a99 !important;
+        border-top: 1px solid #dde6ec !important;
+        font-size: 7.5px !important;
+        text-align: right !important;
+        letter-spacing: .35px !important;
+      }
+
+      @media print {
+        @page {
+          size: A4 portrait !important;
+          margin: 0 !important;
+        }
+
+        html,
+        body {
+          width: 210mm !important;
+          min-height: 297mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        .toolbar,
+        .report-success {
+          display: none !important;
+        }
+
+        .report {
+          width: 210mm !important;
+          max-width: 210mm !important;
+          min-height: 297mm !important;
+          margin: 0 !important;
+          padding: 0 7mm 7mm !important;
+          border: 0 !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+        }
+
+        .epic-report-header {
+          min-height: 58mm !important;
+          margin: 0 -7mm 6mm !important;
+          padding: 8mm 9mm 7mm !important;
+          grid-template-columns: minmax(0, 1fr) 49mm !important;
+          gap: 7mm !important;
+          break-inside: avoid !important;
+        }
+
+        .epic-report-logo {
+          width: 45mm !important;
+          margin-bottom: 10mm !important;
+        }
+
+        .epic-header-title h1 {
+          font-size: 22pt !important;
+        }
+
+        .epic-processing-panel {
+          margin-bottom: 5mm !important;
+          break-inside: avoid !important;
+        }
+
+        .epic-processing-item {
+          min-height: 19mm !important;
+          padding: 4mm 5mm !important;
+        }
+
+        .summary {
+          gap: 3mm !important;
+          margin-bottom: 5mm !important;
+          break-inside: avoid !important;
+        }
+
+        .summary-card {
+          min-height: 25mm !important;
+          padding: 4mm !important;
+        }
+
+        table {
+          width: 100% !important;
+          table-layout: fixed !important;
+        }
+
+        thead {
+          display: table-header-group !important;
+        }
+
+        tr {
+          break-inside: avoid !important;
+        }
+
+        .epic-report-note {
+          margin-top: 5mm !important;
+          padding: 4mm !important;
+          break-inside: avoid !important;
+        }
+
+        .epic-report-footer {
+          margin-top: 9mm !important;
+        }
+      }
+    </style>
+  `;
+
+  let themed = html.replace(
+    "</head>",
+    `${approvedCss}</head>`,
+  );
+
+  themed = themed.replace(
+    /<section class="header">[\s\S]*?<\/section>/,
+    approvedHeader,
+  );
+
+  themed = themed.replace(
+    '<section class="summary">',
+    `${processingPanel}<section class="summary">`,
+  );
+
+  themed = themed.replace(
+    /<div class="footer">[\s\S]*?<\/div>/,
+    `
+      <div class="epic-report-note">
+        <strong>Documento gerado automaticamente pelo EPIC Payments.</strong><br />
+        Os processos sem SMS enviado encontram-se acompanhados da respetiva justificação.
+      </div>
+      ${footer}
+    `,
+  );
+
+  return themed;
 }
 
 
@@ -755,14 +1275,16 @@ export default function ComunicacaoPage() {
 
     try {
       const result =
-        await createMultibancoReference({
-          member_number:
-            memberNumber,
-          member_name:
-            memberName,
-          value:
-            amount,
-        });
+  await createMultibancoReference({
+    member_number:
+      memberNumber,
+    member_name:
+      memberName,
+    phone:
+      row.phone.trim(),
+    value:
+      amount,
+  });
 
       updateRow(
         row.id,
@@ -1038,7 +1560,7 @@ export default function ComunicacaoPage() {
   }
 
 
-  function handleGenerateReport() {
+  async function handleGenerateReport() {
     if (
       !reportReady ||
       attachedReportName
@@ -1066,6 +1588,18 @@ export default function ComunicacaoPage() {
 
     const generatedAt =
       formatReportTimestamp();
+
+    let generatedByName = "—";
+
+    try {
+      const currentUser =
+        await getCurrentUser();
+
+      generatedByName =
+        currentUser.name || "—";
+    } catch {
+      generatedByName = "—";
+    }
 
     const reportRows =
       rows.map(
@@ -1544,9 +2078,25 @@ export default function ComunicacaoPage() {
       </html>
     `;
 
+    const themedHtml =
+      applyCommunicationReportTheme(
+        html,
+        {
+          generatedByName,
+          generatedAt,
+          processingDate:
+            formatDate(
+              calendarDate,
+            ),
+          filename:
+            filename ||
+            "Ficheiro bancário",
+        },
+      );
+
     reportWindow.document.open();
     reportWindow.document.write(
-      html,
+      themedHtml,
     );
     reportWindow.document.close();
     reportWindow.focus();
