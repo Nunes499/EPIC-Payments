@@ -7,7 +7,6 @@ import "../components/calendar/calendar.css";
 import "./globals.css";
 import "./epic-windows11.css";
 
-
 export const metadata: Metadata = {
   title: "EPIC Payments",
   description:
