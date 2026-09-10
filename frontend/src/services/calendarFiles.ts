@@ -1,3 +1,8 @@
+import {
+  getToken,
+} from "@/services/auth";
+
+
 export type ApiBankMovement = {
   sequence: number;
   original_member_reference: string;
@@ -19,7 +24,25 @@ export type ApiBankMovement = {
   reason_description: string;
   collection_date: string | null;
   bank_reference: string | null;
+
+  recovery_file_1_id?: number | null;
+  recovery_file_2_id?: number | null;
+
+  recovery_f1_reason_code?: string | null;
+  recovery_f1_reason_description?: string | null;
+
+  recovery_f2_reason_code?: string | null;
+  recovery_f2_reason_description?: string | null;
+
+  recovery_status?:
+    | "RECUPERADA_COM_SUCESSO"
+    | "NAO_PAGA"
+    | "PROVISORIO"
+    | null;
+
+  requires_action?: boolean;
 };
+
 
 export type ApiCalendarDaySummary = {
   calendar_date: string;
@@ -27,18 +50,17 @@ export type ApiCalendarDaySummary = {
   total_files: number;
 
   pdf_count: number;
-
   xml_count: number;
-
   recovery_count: number;
-
   report_count: number;
 };
+
 
 export type ApiBankFileCategory =
   | "normal"
   | "returned"
   | "recovery";
+
 
 export type ApiCalendarFile = {
   id: number;
@@ -69,6 +91,7 @@ export type ApiCalendarFile = {
   uploaded_at: string;
 };
 
+
 export type ApiBankFileProcessing = {
   file_id: number;
   filename: string;
@@ -92,6 +115,43 @@ export type ApiBankFileProcessing = {
   movements: ApiBankMovement[];
 };
 
+
+export type ApiRecoveryConsolidation =
+  ApiBankFileProcessing & {
+    file_category: "recovery";
+    recovery_part: 1;
+
+    recovery_file_1_id: number;
+    recovery_file_1_filename: string;
+
+    recovery_file_2_id:
+      | number
+      | null;
+
+    recovery_file_2_filename:
+      | string
+      | null;
+
+    recovery_pair_complete: boolean;
+
+    recovery_result_status:
+      | "FINAL"
+      | "PROVISORIO";
+
+    recovered_successfully: number;
+    recovered_successfully_amount: string;
+
+    not_paid: number;
+    not_paid_amount: string;
+
+    provisional: number;
+    provisional_amount: string;
+
+    recovery_f2_transactions: number;
+    recovery_f2_total_amount: string;
+  };
+
+
 export type UploadCalendarFileOptions = {
   fileCategory?:
     | "normal"
@@ -108,9 +168,33 @@ export type UploadCalendarFileOptions = {
     | null;
 };
 
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "http://localhost:8000";
+
+
+function requireToken(): string {
+  const token =
+    getToken();
+
+  if (!token) {
+    throw new Error(
+      "Sessão não encontrada. Inicie sessão novamente.",
+    );
+  }
+
+  return token;
+}
+
+
+function authorizationHeaders():
+Record<string, string> {
+  return {
+    Authorization:
+      `Bearer ${requireToken()}`,
+  };
+}
 
 
 async function parseError(
@@ -148,6 +232,8 @@ export async function listCalendarFiles(
       `${API_URL}/files/calendar/${calendarDate}`,
       {
         method: "GET",
+        headers:
+          authorizationHeaders(),
         cache: "no-store",
       },
     );
@@ -170,6 +256,8 @@ export async function listYearSummary(
       `${API_URL}/files/year/${year}`,
       {
         method: "GET",
+        headers:
+          authorizationHeaders(),
         cache: "no-store",
       },
     );
@@ -236,6 +324,8 @@ export async function uploadCalendarFile(
       `${API_URL}/files/calendar/${calendarDate}`,
       {
         method: "POST",
+        headers:
+          authorizationHeaders(),
         body: formData,
       },
     );
@@ -258,6 +348,8 @@ export async function deleteCalendarFile(
       `${API_URL}/files/${fileId}`,
       {
         method: "DELETE",
+        headers:
+          authorizationHeaders(),
       },
     );
 
@@ -277,6 +369,33 @@ export async function processCalendarFile(
       `${API_URL}/files/${fileId}/process`,
       {
         method: "GET",
+        headers:
+          authorizationHeaders(),
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await parseError(response),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function processRecoveryConsolidation(
+  f1FileId: number,
+  f2FileId: number,
+): Promise<ApiRecoveryConsolidation> {
+  const response =
+    await fetch(
+      `${API_URL}/files/${f1FileId}/recovery-consolidation?f2_file_id=${f2FileId}`,
+      {
+        method: "GET",
+        headers:
+          authorizationHeaders(),
         cache: "no-store",
       },
     );
@@ -299,6 +418,8 @@ export async function downloadCalendarFile(
       `${API_URL}/files/${file.id}/download`,
       {
         method: "GET",
+        headers:
+          authorizationHeaders(),
       },
     );
 
@@ -424,6 +545,8 @@ export async function previewCalendarFile(
         `${API_URL}/files/${file.id}/download`,
         {
           method: "GET",
+          headers:
+            authorizationHeaders(),
         },
       );
 

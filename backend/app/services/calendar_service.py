@@ -3180,6 +3180,8 @@ def process_recovery_consolidation(
 
     file_id: int,
 
+    recovery_file_2_id: int | None = None,
+
 ) -> dict:
 
     """
@@ -3232,19 +3234,109 @@ def process_recovery_consolidation(
 
         )
 
-    (
+    if recovery_file_2_id is None:
 
-        recovery_file_1,
+        (
 
-        recovery_file_2,
+            recovery_file_1,
 
-    ) = get_recovery_pair(
+            recovery_file_2,
 
-        db,
+        ) = get_recovery_pair(
 
-        calendar_file=selected_file,
+            db,
 
-    )
+            calendar_file=selected_file,
+
+        )
+
+    else:
+
+        recovery_file_1 = selected_file
+
+        if (
+
+            recovery_file_1.file_category != "recovery"
+
+            or recovery_file_1.recovery_part != 1
+
+        ):
+
+            raise HTTPException(
+
+                status_code=status.HTTP_400_BAD_REQUEST,
+
+                detail=(
+
+                    "O primeiro ficheiro selecionado para a "
+
+                    "conciliação tem de ser o Ficheiro 1 (F1)."
+
+                ),
+
+            )
+
+        recovery_file_2 = get_calendar_file_by_id(
+
+            db,
+
+            recovery_file_2_id,
+
+        )
+
+        if recovery_file_2 is None:
+
+            raise HTTPException(
+
+                status_code=status.HTTP_404_NOT_FOUND,
+
+                detail="O Ficheiro 2 (F2) não foi encontrado.",
+
+            )
+
+        if (
+
+            recovery_file_2.file_category != "recovery"
+
+            or recovery_file_2.recovery_part != 2
+
+        ):
+
+            raise HTTPException(
+
+                status_code=status.HTTP_400_BAD_REQUEST,
+
+                detail=(
+
+                    "O segundo ficheiro selecionado para a "
+
+                    "conciliação tem de ser o Ficheiro 2 (F2)."
+
+                ),
+
+            )
+
+        if (
+
+            recovery_file_1.calendar_date
+
+            != recovery_file_2.calendar_date
+
+        ):
+
+            raise HTTPException(
+
+                status_code=status.HTTP_400_BAD_REQUEST,
+
+                detail=(
+
+                    "Os Ficheiros 1 e 2 de recuperação "
+
+                    "devem pertencer ao mesmo dia do calendário."
+
+                ),
+
+            )
 
     # Os ficheiros físicos de recuperação são PDFs,
 

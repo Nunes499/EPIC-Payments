@@ -5,8 +5,28 @@ import { FormEvent, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
+import { getToken } from "@/services/auth";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+function requireToken(): string {
+  const token = getToken();
+
+  if (!token) {
+    throw new Error(
+      "Sessão não encontrada. Inicie sessão novamente.",
+    );
+  }
+
+  return token;
+}
+
+function authHeaders(): Record<string, string> {
+  return {
+    Authorization: `Bearer ${requireToken()}`,
+  };
+}
 
 type BankCandidate = {
   candidate_id: string;
@@ -260,6 +280,7 @@ export default function PesquisaBancariaPage() {
       const response = await fetch(
         `${API_URL}/files/bank-history?${params.toString()}`,
         {
+          headers: authHeaders(),
           cache: "no-store",
         },
       );
@@ -316,6 +337,7 @@ export default function PesquisaBancariaPage() {
       const response = await fetch(
         `${API_URL}/files/bank-search?${params.toString()}`,
         {
+          headers: authHeaders(),
           cache: "no-store",
         },
       );
@@ -393,12 +415,103 @@ export default function PesquisaBancariaPage() {
     );
   }
 
-  function openDocument(document: BankDocument) {
-    const url = document.download_url.startsWith("http")
-      ? document.download_url
-      : `${API_URL}${document.download_url}`;
+  async function openDocument(
+    document: BankDocument,
+  ) {
+    const previewWindow = window.open(
+      "",
+      "_blank",
+    );
 
-    window.open(url, "_blank", "noopener,noreferrer");
+    if (!previewWindow) {
+      setError(
+        "O navegador bloqueou a janela do documento. Permita pop-ups para o EPIC Payments.",
+      );
+      return;
+    }
+
+    previewWindow.opener = null;
+
+    previewWindow.document.write(`
+      <!doctype html>
+      <html lang="pt">
+        <head>
+          <meta charset="utf-8" />
+          <title>A carregar documento...</title>
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: Arial, Helvetica, sans-serif;
+              background: #f5f8fb;
+              color: #10233d;
+            }
+
+            .loading {
+              text-align: center;
+              font-size: 15px;
+              font-weight: 700;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="loading">
+            A carregar documento...
+          </div>
+        </body>
+      </html>
+    `);
+
+    previewWindow.document.close();
+
+    try {
+      const url = document.download_url.startsWith("http")
+        ? document.download_url
+        : `${API_URL}${document.download_url}`;
+
+      const response = await fetch(
+        url,
+        {
+          method: "GET",
+          headers: authHeaders(),
+        },
+      );
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+
+        throw new Error(
+          body?.detail ||
+            "Não foi possível abrir o documento.",
+        );
+      }
+
+      const blob = await response.blob();
+
+      const objectUrl = URL.createObjectURL(blob);
+
+      previewWindow.location.href = objectUrl;
+
+      window.setTimeout(
+        () => {
+          URL.revokeObjectURL(objectUrl);
+        },
+        5 * 60 * 1000,
+      );
+
+      setError("");
+    } catch (err) {
+      previewWindow.close();
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível abrir o documento.",
+      );
+    }
   }
 
 
