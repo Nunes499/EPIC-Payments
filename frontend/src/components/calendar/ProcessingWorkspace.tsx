@@ -24,8 +24,10 @@ import {
 
 import {
   processCalendarFile,
+  processRecoveryConsolidation,
   type ApiBankFileProcessing,
   type ApiBankMovement,
+  type ApiRecoveryConsolidation,
 } from "@/services/calendarFiles";
 
 import type {
@@ -37,6 +39,7 @@ import "./processing.css";
 import "./processing-windows11.css";
 
 import { useAuth } from "@/components/auth/AuthProvider";
+import { getToken } from "@/services/auth";
 
 import {
   decorateBankPdfReplica,
@@ -848,93 +851,103 @@ function ReasonCodeTooltip({
 }
 
 
-function buildRecoveryResults(
-  f1: ApiBankFileProcessing,
-  f2: ApiBankFileProcessing,
+function mapRecoveryConsolidationResults(
+  consolidation: ApiRecoveryConsolidation,
 ): RecoveryResult[] {
-  const f2ByReference =
-    new Map<string, ApiBankMovement>();
-
-  for (const movement of f2.movements) {
-    const reference =
-      movement.bank_reference?.trim();
-
-    if (!reference) {
-      continue;
-    }
-
-    f2ByReference.set(
-      reference,
-      movement,
+  if (!consolidation.recovery_pair_complete) {
+    throw new Error(
+      "A conciliação final exige os dois ficheiros de recuperação: F1 e F2.",
     );
   }
 
-  return f1.movements.map(
+  return consolidation.movements.map(
     (movement) => {
-      const reference =
-        movement.bank_reference?.trim() || "";
+      const backendStatus =
+        movement.recovery_status;
 
-      const f2Movement =
-        reference
-          ? f2ByReference.get(reference)
-          : undefined;
-
-      /*
-       * Regra funcional:
-       *
-       * 1. Rejeitado já no F1 -> NÃO PAGA.
-       * 2. 0000 no F1 mas aparece no F2 -> NÃO PAGA,
-       *    usando o motivo do F2.
-       * 3. 0000 no F1 e não aparece no F2 -> RECUPERADA.
-       *
-       * A chave é sempre a Referência da Cobrança.
-       */
-      if (movement.reason_code !== "0000") {
+      if (
+        backendStatus ===
+        "RECUPERADA_COM_SUCESSO"
+      ) {
         return {
           ...movement,
-          recovery_status: "NAO_PAGA",
-          final_reason_code:
-            movement.reason_code,
+          recovery_status: "RECUPERADA",
+          final_reason_code: "0000",
           final_reason_description:
-            movement.reason_description,
+            "Recuperada com sucesso",
           conclusion:
-            "Não pago — rejeitado no Ficheiro 1",
+            "Pago / recuperado — aceite no Ficheiro 1 e não devolvido no Ficheiro 2",
           source_file: "F1",
         };
       }
 
-      if (f2Movement) {
+      if (backendStatus === "NAO_PAGA") {
+        const f1Code =
+          (
+            movement.recovery_f1_reason_code ||
+            ""
+          )
+            .trim()
+            .toUpperCase();
+
+        const cameFromF2 =
+          f1Code === "0000" &&
+          Boolean(
+            movement.recovery_f2_reason_code,
+          );
+
+        const finalCode =
+          cameFromF2
+            ? (
+                movement.recovery_f2_reason_code ||
+                movement.reason_code ||
+                ""
+              )
+            : (
+                movement.recovery_f1_reason_code ||
+                movement.reason_code ||
+                ""
+              );
+
+        const finalDescription =
+          cameFromF2
+            ? (
+                movement.recovery_f2_reason_description ||
+                movement.reason_description ||
+                ""
+              )
+            : (
+                movement.recovery_f1_reason_description ||
+                movement.reason_description ||
+                ""
+              );
+
         return {
           ...movement,
-          reason_code:
-            f2Movement.reason_code,
+          reason_code: finalCode,
           reason_description:
-            f2Movement.reason_description,
+            finalDescription,
           recovery_status: "NAO_PAGA",
-          final_reason_code:
-            f2Movement.reason_code,
+          final_reason_code: finalCode,
           final_reason_description:
-            f2Movement.reason_description,
+            finalDescription,
           conclusion:
-            "Não pago — apareceu devolvido no Ficheiro 2",
-          source_file: "F2",
+            cameFromF2
+              ? "Não pago — aceite no Ficheiro 1, mas devolvido no Ficheiro 2"
+              : "Não pago — já rejeitado no Ficheiro 1",
+          source_file:
+            cameFromF2
+              ? "F2"
+              : "F1",
         };
       }
 
-      return {
-        ...movement,
-        recovery_status: "RECUPERADA",
-        final_reason_code: "0000",
-        final_reason_description:
-          "Recuperada com sucesso",
-        conclusion:
-          "Pago / recuperado — não apareceu devolvido no Ficheiro 2",
-        source_file: "F1",
-      };
+      throw new Error(
+        "A recuperação ainda não possui um resultado final válido.",
+      );
     },
   );
 }
-
 
 export default function ProcessingWorkspace({
   selection,
@@ -971,7 +984,9 @@ export default function ProcessingWorkspace({
   ] = useState<Date | null>(null);
 
   const generatedBy =
-    "Administrador";
+    user?.name?.trim() ||
+    user?.username?.trim() ||
+    "Utilizador EPIC";
 
 
   useEffect(() => {
@@ -1366,6 +1381,116 @@ export default function ProcessingWorkspace({
     );
 
 
+  const recoveryBaseMovements =
+    f1State?.data?.movements ?? [];
+
+  const recoveryBaseAccepted =
+    recoveryBaseMovements.filter(
+      isAcceptedMovement,
+    );
+
+  const recoveryBaseRejected =
+    recoveryBaseMovements.filter(
+      (movement) =>
+        !isAcceptedMovement(movement),
+    );
+
+  const recoveryFinalAccepted =
+    recoveryResults?.filter(
+      (movement) =>
+        movement.recovery_status ===
+        "RECUPERADA",
+    ) ?? [];
+
+  const recoveryFinalRejected =
+    recoveryResults?.filter(
+      (movement) =>
+        movement.recovery_status ===
+        "NAO_PAGA",
+    ) ?? [];
+
+  const recoverySummaryTotals =
+    recoveryResults
+      ? {
+          movements:
+            recoveryResults.length,
+          amount:
+            recoveryResults.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+          accepted:
+            recoveryFinalAccepted.length,
+          acceptedAmount:
+            recoveryFinalAccepted.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+          rejected:
+            recoveryFinalRejected.length,
+          rejectedAmount:
+            recoveryFinalRejected.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+        }
+      : {
+          movements:
+            recoveryBaseMovements.length,
+          amount:
+            recoveryBaseMovements.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+          accepted:
+            recoveryBaseAccepted.length,
+          acceptedAmount:
+            recoveryBaseAccepted.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+          rejected:
+            recoveryBaseRejected.length,
+          rejectedAmount:
+            recoveryBaseRejected.reduce(
+              (sum, movement) =>
+                sum +
+                Number(
+                  movement.amount || 0,
+                ),
+              0,
+            ),
+        };
+
+  const displayTotals =
+    isRecoverySelection
+      ? recoverySummaryTotals
+      : totals;
+
+  const hasLoadedDisplayMovements =
+    displayTotals.movements > 0;
+
+
   async function handleGenerateBankPdf(
     state: ProcessingFileState,
   ) {
@@ -1432,11 +1557,24 @@ export default function ProcessingWorkspace({
         process.env.NEXT_PUBLIC_API_URL ??
         "http://localhost:8000";
 
+      const token =
+        getToken();
+
+      if (!token) {
+        throw new Error(
+          "Sessão não encontrada. Inicie sessão novamente.",
+        );
+      }
+
       const response =
         await fetch(
           `${apiUrl}/files/${state.file.id}/download`,
           {
             method: "GET",
+            headers: {
+              Authorization:
+                `Bearer ${token}`,
+            },
             cache: "no-store",
           },
         );
@@ -2105,7 +2243,7 @@ printWindow.focus();
   }
 
 
-  function handleRecoveryFilter() {
+  async function handleRecoveryFilter() {
     if (
       !f1State?.data ||
       !f2State?.data
@@ -2113,17 +2251,29 @@ printWindow.focus();
       return;
     }
 
-    const results =
-      buildRecoveryResults(
-        f1State.data,
-        f2State.data,
+    try {
+      const consolidation =
+        await processRecoveryConsolidation(
+          f1State.file.id,
+          f2State.file.id,
+        );
+
+      const results =
+        mapRecoveryConsolidationResults(
+          consolidation,
+        );
+
+      setRecoveryResults(results);
+      setPrintReady(false);
+      setReportGeneratedAt(null);
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível conciliar os ficheiros de recuperação.",
       );
-
-    setRecoveryResults(results);
-    setPrintReady(false);
-    setReportGeneratedAt(null);
+    }
   }
-
 
   function getRecoveryReportBaseName() {
     const f1Name =
@@ -2167,7 +2317,7 @@ printWindow.focus();
   }
 
 
-  function handlePreparePrint() {
+  async function handlePreparePrint() {
     if (
       !f1State?.data ||
       !f2State?.data
@@ -2175,14 +2325,32 @@ printWindow.focus();
       return;
     }
 
-    const results =
-      recoveryResults ||
-      buildRecoveryResults(
-        f1State.data,
-        f2State.data,
-      );
+    let results =
+      recoveryResults;
 
-    setRecoveryResults(results);
+    if (!results) {
+      try {
+        const consolidation =
+          await processRecoveryConsolidation(
+            f1State.file.id,
+            f2State.file.id,
+          );
+
+        results =
+          mapRecoveryConsolidationResults(
+            consolidation,
+          );
+
+        setRecoveryResults(results);
+      } catch (error) {
+        window.alert(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível conciliar os ficheiros de recuperação.",
+        );
+        return;
+      }
+    }
 
     const generatedAt =
       new Date();
@@ -2244,43 +2412,118 @@ printWindow.focus();
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 
-    const pageSizeRecovered = 18;
-    const pageSizeUnpaid = 11;
+    /*
+     * Paginação do relatório.
+     *
+     * A primeira página tem o cabeçalho azul, metadados e cartões,
+     * por isso recebe menos linhas.
+     *
+     * As páginas seguintes não têm o cabeçalho grande e aproveitam
+     * muito melhor a área A4.
+     *
+     * Para "Não recuperadas" distribuímos as linhas de forma
+     * equilibrada entre as páginas. Isto evita, por exemplo,
+     * terminar o relatório com uma página contendo apenas 1 ou 2
+     * movimentos enquanto as páginas anteriores têm muito espaço livre.
+     */
+    const recoveredFirstPageSize = 18;
+    const unpaidMaxRowsPerPage = 15;
 
-    const chunk = <T,>(
+    const paginateRecovered = <T,>(
       items: T[],
-      size: number,
     ): T[][] => {
-      const chunks: T[][] = [];
-
-      for (
-        let index = 0;
-        index < items.length;
-        index += size
-      ) {
-        chunks.push(
-          items.slice(
-            index,
-            index + size,
-          ),
-        );
+      if (items.length === 0) {
+        return [[]];
       }
 
-      return chunks.length > 0
-        ? chunks
-        : [[]];
+      const firstPage =
+        items.slice(
+          0,
+          recoveredFirstPageSize,
+        );
+
+      const remaining =
+        items.slice(
+          recoveredFirstPageSize,
+        );
+
+      if (remaining.length === 0) {
+        return [firstPage];
+      }
+
+      /*
+       * Como as páginas de continuação já não têm o cabeçalho azul,
+       * o restante das recuperadas cabe confortavelmente numa página.
+       */
+      return [
+        firstPage,
+        remaining,
+      ];
+    };
+
+    const chunkBalanced = <T,>(
+      items: T[],
+      maxRowsPerPage: number,
+    ): T[][] => {
+      if (items.length === 0) {
+        return [[]];
+      }
+
+      const pageCount =
+        Math.ceil(
+          items.length /
+          maxRowsPerPage,
+        );
+
+      const baseSize =
+        Math.floor(
+          items.length /
+          pageCount,
+        );
+
+      const extraRows =
+        items.length %
+        pageCount;
+
+      const pages: T[][] = [];
+      let cursor = 0;
+
+      for (
+        let pageIndex = 0;
+        pageIndex < pageCount;
+        pageIndex += 1
+      ) {
+        const pageSize =
+          baseSize +
+          (
+            pageIndex <
+            extraRows
+              ? 1
+              : 0
+          );
+
+        pages.push(
+          items.slice(
+            cursor,
+            cursor + pageSize,
+          ),
+        );
+
+        cursor += pageSize;
+      }
+
+      return pages;
     };
 
     const recoveredPages =
-      chunk(
+      paginateRecovered(
         recovered,
-        pageSizeRecovered,
       );
 
     const unpaidPages =
-      chunk(
+      chunkBalanced(
         unpaid,
-        pageSizeUnpaid,
+        unpaidMaxRowsPerPage,
       );
 
     const allPages = [
@@ -2315,14 +2558,34 @@ printWindow.focus();
           ? "report-header-compact"
           : ""
       }">
-        <img
-          src="${window.location.origin}/branding/logo-epic-payments-dark.png"
-          alt="EPIC Payments"
-        />
+        <div class="report-header-main">
+          <img
+            src="${window.location.origin}/branding/logo-epic-payments-all-white.png"
+            alt="EPIC Payments"
+          />
 
-        <div>
-          <h1>${escape(title)}</h1>
-          <p>${escape(subtitle)}</p>
+          <div class="report-header-copy">
+            <h1>${escape(title)}</h1>
+            <p>${escape(subtitle)}</p>
+          </div>
+        </div>
+
+        <div class="report-generation">
+          <div>
+            <span>GERADO EM</span>
+            <strong>${escape(
+              formatDateTime(
+                generatedAt,
+              ),
+            )}</strong>
+          </div>
+
+          <div>
+            <span>COLABORADOR</span>
+            <strong>${escape(
+              generatedBy,
+            )}</strong>
+          </div>
         </div>
       </header>
     `;
@@ -2330,35 +2593,37 @@ printWindow.focus();
     const renderMetadata = () => `
       <div class="metadata-grid">
         <div>
-          <span>Data de criação</span>
+          <span>DATA DO PROCESSAMENTO</span>
           <strong>${escape(
-            formatDateTime(
-              generatedAt,
+            formatDate(
+              selectedDate,
             ),
           )}</strong>
         </div>
 
-        <div>
-          <span>Gerado por</span>
-          <strong>${escape(
-            generatedBy,
-          )}</strong>
-        </div>
-
         <div class="metadata-files">
-          <span>Ficheiros processados</span>
+          <span>FICHEIROS BANCÁRIOS</span>
           <strong>${escape(
             fileNames,
           )}</strong>
         </div>
+      </div>
+    `;
 
-        <div>
-          <span>Recuperadas</span>
+    const renderStats = () => `
+      <div class="stats-grid">
+        <div class="stat-card stat-processes">
+          <span>PROCESSOS</span>
+          <strong>${results.length}</strong>
+        </div>
+
+        <div class="stat-card stat-recovered">
+          <span>RECUPERADAS</span>
           <strong>${recovered.length}</strong>
         </div>
 
-        <div>
-          <span>Não recuperadas</span>
+        <div class="stat-card stat-unpaid">
+          <span>NÃO RECUPERADAS</span>
           <strong>${unpaid.length}</strong>
         </div>
       </div>
@@ -2516,16 +2781,27 @@ printWindow.focus();
                 );
 
           return `
-            <section class="report-page">
-              ${renderHeader(
-                title,
-                subtitle,
-                page.continuation,
-              )}
+            <section class="report-page ${
+              pageIndex === 0
+                ? "report-page-first"
+                : "report-page-continuation"
+            }">
+              ${
+                pageIndex === 0
+                  ? renderHeader(
+                      title,
+                      subtitle,
+                      false,
+                    )
+                  : ""
+              }
 
               ${
                 pageIndex === 0
-                  ? renderMetadata()
+                  ? `
+                    ${renderMetadata()}
+                    ${renderStats()}
+                  `
                   : ""
               }
 
@@ -2572,7 +2848,7 @@ printWindow.focus();
 
               <footer>
                 <span>
-                  EPIC Payments · Documento interno
+                  EPIC PAYMENTS · RELATÓRIO DE RECUPERAÇÃO
                 </span>
                 <span>
                   Página ${pageIndex + 1} de ${totalPages}
@@ -2651,22 +2927,29 @@ printWindow.focus();
               position: relative;
               width: 210mm;
               height: 297mm;
-              margin:
-                0 auto
-                14px;
+              min-height: 297mm;
+              max-height: 297mm;
+              margin: 0 auto 14px;
               overflow: hidden;
               background: #ffffff;
-              padding:
-                12mm
-                10mm
-                19mm;
-              page-break-after:
-                always;
-              break-after:
-                page;
+              padding-left: 10mm;
+              padding-right: 10mm;
+              padding-bottom: 19mm;
+              page-break-inside: avoid;
+              break-inside: avoid-page;
+              page-break-after: always;
+              break-after: page;
               box-shadow:
                 0 5px 22px
                 rgba(0,0,0,.14);
+            }
+
+            .report-page-first {
+              padding-top: 64mm;
+            }
+
+            .report-page-continuation {
+              padding-top: 8mm;
             }
 
             .report-page:last-child {
@@ -2675,105 +2958,188 @@ printWindow.focus();
             }
 
             .report-header {
+              position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 58mm;
               display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10mm;
+              padding: 10mm 12mm 8mm;
+              background: #092D4A;
+              border-bottom: .8mm solid #0E5A8A;
+              color: #ffffff;
+            }
+
+            .report-header-main {
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
               align-items: flex-start;
-              justify-content:
-                space-between;
-              gap: 12mm;
-              padding-bottom: 5mm;
-              border-bottom:
-                .45mm solid
-                #111111;
+              min-width: 0;
+              height: 100%;
+              flex: 1;
             }
 
             .report-header img {
-              width: 34mm;
-              height: auto;
+              width: 48mm;
+              max-height: 15mm;
               object-fit: contain;
+              object-position: left center;
             }
 
-            .report-header > div {
-              flex: 1;
-              text-align: right;
+            .report-header-copy {
+              min-width: 0;
             }
 
             .report-header h1 {
               margin: 0;
-              font-size: 20pt;
+              color: #ffffff;
+              font-size: 21pt;
               line-height: 1.05;
-              text-transform: uppercase;
+              font-weight: 800;
             }
 
             .report-header p {
-              margin:
-                2.3mm 0 0;
-              font-size: 9pt;
+              margin: 2.2mm 0 0;
+              color: #D8E8F3;
+              font-size: 8.5pt;
+              line-height: 1.25;
+              font-weight: 400;
+            }
+
+            .report-generation {
+              width: 50mm;
+              min-width: 50mm;
+              padding-left: 7mm;
+              border-left: .3mm solid #6E94AE;
+              display: grid;
+              gap: 4mm;
+            }
+
+            .report-generation div {
+              display: grid;
+              gap: 1.1mm;
+            }
+
+            .report-generation span {
+              color: #BFD6E5;
+              font-size: 6.8pt;
+              line-height: 1;
               font-weight: 700;
             }
 
+            .report-generation strong {
+              color: #ffffff;
+              font-size: 8pt;
+              line-height: 1.2;
+              font-weight: 800;
+              overflow-wrap: anywhere;
+            }
+
             .report-header-compact {
-              padding-bottom: 3.5mm;
-            }
-
-            .report-header-compact img {
-              width: 27mm;
-            }
-
-            .report-header-compact h1 {
-              font-size: 16pt;
+              height: 58mm;
             }
 
             .metadata-grid {
               display: grid;
               grid-template-columns:
-                .95fr
-                .8fr
-                1.65fr
-                .7fr
-                .8fr;
-              gap: 2.5mm;
-              margin-top: 5mm;
+                63mm
+                1fr;
+              margin-top: 0;
+              border: .25mm solid #C9DEEC;
+              background: #ffffff;
             }
 
             .metadata-grid > div {
-              min-height: 17mm;
-              padding:
-                3mm
-                3.2mm;
-              border:
-                .25mm solid
-                #cccccc;
-              border-radius:
-                2.2mm;
+              min-height: 18mm;
+              padding: 3.4mm 3.6mm;
+              border-right: .18mm solid #DCE6ED;
             }
 
-            .metadata-grid span {
+            .metadata-grid > div:last-child {
+              border-right: 0;
+            }
+
+            .metadata-grid span,
+            .stats-grid span {
               display: block;
-              margin-bottom:
-                1.4mm;
+              margin-bottom: 1.6mm;
+              color: #66788A;
               font-size: 6.8pt;
+              line-height: 1;
               font-weight: 800;
-              text-transform:
-                uppercase;
             }
 
             .metadata-grid strong {
               display: block;
-              font-size: 8.3pt;
-              line-height: 1.25;
-              overflow-wrap:
-                anywhere;
+              color: #152536;
+              font-size: 10pt;
+              line-height: 1.22;
+              font-weight: 800;
+              overflow-wrap: anywhere;
+            }
+
+            .stats-grid {
+              display: grid;
+              grid-template-columns:
+                1fr
+                1fr
+                1fr;
+              margin-top: 4.5mm;
+              border: .25mm solid #DCE6ED;
+            }
+
+            .stat-card {
+              min-height: 17mm;
+              padding: 3.2mm 3.6mm;
+              border-right: .18mm solid #DCE6ED;
+            }
+
+            .stat-card:last-child {
+              border-right: 0;
+            }
+
+            .stat-card strong {
+              display: block;
+              color: #152536;
+              font-size: 19pt;
+              line-height: 1;
+              font-weight: 800;
+            }
+
+            .stat-processes {
+              background: #EAF4FB;
+            }
+
+            .stat-recovered {
+              background: #E7F7EF;
+            }
+
+            .stat-recovered strong {
+              color: #16734A;
+            }
+
+            .stat-unpaid {
+              background: #FCECEC;
+            }
+
+            .stat-unpaid strong {
+              color: #C84242;
             }
 
             .section-heading {
               display: flex;
               align-items: flex-end;
-              justify-content:
-                space-between;
+              justify-content: space-between;
               gap: 6mm;
-              margin:
-                6mm 0
-                3mm;
+              margin: 5.5mm 0 2.5mm;
+            }
+
+            .report-page-continuation .section-heading {
+              margin-top: 0;
             }
 
             .section-heading div {
@@ -2783,47 +3149,61 @@ printWindow.focus();
             }
 
             .section-heading strong {
-              font-size: 12pt;
-              text-transform:
-                uppercase;
+              color: #152536;
+              font-size: 11.5pt;
+              line-height: 1;
+              font-weight: 800;
+              text-transform: uppercase;
             }
 
             .section-heading span,
             .section-heading small {
+              color: #66788A;
               font-size: 7pt;
               line-height: 1.25;
             }
 
             .section-heading small {
-              max-width: 80mm;
+              max-width: 82mm;
               text-align: right;
             }
 
             table {
               width: 100%;
-              border-collapse:
-                collapse;
+              border-collapse: collapse;
               table-layout: fixed;
-              font-size: 7.2pt;
+              font-size: 6.4pt;
+              color: #152536;
             }
 
             th,
             td {
-              border:
-                .22mm solid
-                #c8c8c8;
-              padding:
-                1.9mm
-                2.2mm;
+              border: .18mm solid #DCE6ED;
+              padding: 1.8mm 2mm;
               vertical-align: top;
             }
 
+            thead {
+              display: table-header-group;
+            }
+
+            tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+
             th {
-              background: #f2f2f2;
-              text-align: left;
-              font-size: 6.7pt;
-              text-transform:
-                uppercase;
+              background: #092D4A;
+              color: #ffffff;
+              text-align: center;
+              font-size: 6.1pt;
+              line-height: 1.1;
+              font-weight: 800;
+              text-transform: uppercase;
+            }
+
+            tbody tr:nth-child(even) td {
+              background: #F7FAFC;
             }
 
             th:nth-child(1),
@@ -2857,32 +3237,29 @@ printWindow.focus();
             }
 
             td.money {
-              font-weight: 700;
+              font-weight: 800;
               white-space: nowrap;
             }
 
             .small-line {
               display: block;
-              margin-top: 1mm;
-              color: #4f4f4f;
-              font-size: 6.2pt;
-              line-height: 1.12;
+              margin-top: .8mm;
+              color: #66788A;
+              font-size: 5.9pt;
+              line-height: 1.16;
             }
 
             footer {
               position: absolute;
-              left: 10mm;
-              right: 10mm;
-              bottom: 7mm;
+              left: 12mm;
+              right: 12mm;
+              bottom: 8.5mm;
               display: flex;
-              justify-content:
-                space-between;
-              padding-top: 2.2mm;
-              border-top:
-                .22mm solid
-                #bbbbbb;
-              font-size: 6.7pt;
-              color: #555555;
+              justify-content: space-between;
+              padding-top: 2mm;
+              border-top: .18mm solid #DCE6ED;
+              color: #7C8B99;
+              font-size: 6.5pt;
             }
 
             @media print {
@@ -2900,8 +3277,21 @@ printWindow.focus();
               }
 
               .report-page {
+                width: 210mm;
+                height: 297mm;
+                min-height: 297mm;
+                max-height: 297mm;
                 margin: 0;
                 box-shadow: none;
+                page-break-inside: avoid;
+                break-inside: avoid-page;
+                page-break-after: always;
+                break-after: page;
+              }
+
+              .report-page:last-child {
+                page-break-after: auto;
+                break-after: auto;
               }
             }
           </style>
@@ -3105,13 +3495,13 @@ printWindow.focus();
             </span>
 
             <strong>
-              {totals.accepted}
+              {displayTotals.accepted}
             </strong>
 
             <small>
-              {hasLoadedMovements
+              {hasLoadedDisplayMovements
                 ? formatCurrency(
-                    totals.acceptedAmount,
+                    displayTotals.acceptedAmount,
                   )
                 : "A aguardar leitura"}
             </small>
@@ -3123,13 +3513,13 @@ printWindow.focus();
             </span>
 
             <strong>
-              {totals.rejected}
+              {displayTotals.rejected}
             </strong>
 
             <small>
-              {hasLoadedMovements
+              {hasLoadedDisplayMovements
                 ? formatCurrency(
-                    totals.rejectedAmount,
+                    displayTotals.rejectedAmount,
                   )
                 : "A aguardar leitura"}
             </small>
@@ -3141,13 +3531,13 @@ printWindow.focus();
             </span>
 
             <strong>
-              {totals.movements}
+              {displayTotals.movements}
             </strong>
 
             <small>
-              {totals.movements > 0
+              {displayTotals.movements > 0
                 ? formatCurrency(
-                    totals.amount,
+                    displayTotals.amount,
                   )
                 : "A aguardar leitura"}
             </small>
