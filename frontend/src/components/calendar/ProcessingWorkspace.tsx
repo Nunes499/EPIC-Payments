@@ -72,13 +72,17 @@ type RecoveryStatus =
   | "NAO_PAGA";
 
 
-type RecoveryResult = ApiBankMovement & {
-  recovery_status: RecoveryStatus;
-  final_reason_code: string;
-  final_reason_description: string;
-  conclusion: string;
-  source_file: "F1" | "F2";
-};
+type RecoveryResult =
+  Omit<
+    ApiBankMovement,
+    "recovery_status"
+  > & {
+    recovery_status: RecoveryStatus;
+    final_reason_code: string;
+    final_reason_description: string;
+    conclusion: string;
+    source_file: "F1" | "F2";
+  };
 
 
 type BankPdfMovement = {
