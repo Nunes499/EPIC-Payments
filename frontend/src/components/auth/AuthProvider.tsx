@@ -12,7 +12,7 @@ import {
 import {
   clearToken,
   getCurrentUser,
-  getToken,
+  getValidToken,
   login as loginRequest,
   logout as logoutRequest,
   setToken,
@@ -24,19 +24,23 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   isAuthenticated: boolean;
+
   login: (
     username: string,
     password: string,
   ) => Promise<void>;
+
   logout: () => void;
-  refreshUser: () => Promise<void>;
+
+  refreshUser:
+    () => Promise<void>;
 };
 
 
 const AuthContext =
-  createContext<AuthContextValue | null>(
-    null,
-  );
+  createContext<
+    AuthContextValue | null
+  >(null);
 
 
 type AuthProviderProps = {
@@ -47,15 +51,31 @@ type AuthProviderProps = {
 export function AuthProvider({
   children,
 }: AuthProviderProps) {
-  const [user, setUser] =
-    useState<AuthUser | null>(null);
+  const [
+    user,
+    setUser,
+  ] =
+    useState<
+      AuthUser | null
+    >(null);
 
-  const [loading, setLoading] =
+  const [
+    loading,
+    setLoading,
+  ] =
     useState(true);
 
 
   async function loadCurrentUser() {
-    const token = getToken();
+    /*
+     * getValidToken() verifica localmente
+     * se existe token e se ainda não expirou.
+     *
+     * Se não houver sessão válida não é
+     * feita qualquer chamada ao Render.
+     */
+    const token =
+      getValidToken();
 
     if (!token) {
       setUser(null);
@@ -65,14 +85,23 @@ export function AuthProvider({
 
     try {
       const currentUser =
-        await getCurrentUser(token);
+        await getCurrentUser(
+          token,
+        );
 
-      setUser(currentUser);
+      setUser(
+        currentUser,
+      );
     } catch {
       clearToken();
-      setUser(null);
+
+      setUser(
+        null,
+      );
     } finally {
-      setLoading(false);
+      setLoading(
+        false,
+      );
     }
   }
 
@@ -96,44 +125,93 @@ export function AuthProvider({
       response.access_token,
     );
 
-    const currentUser =
-      await getCurrentUser(
-        response.access_token,
+    try {
+      const currentUser =
+        await getCurrentUser(
+          response.access_token,
+        );
+
+      setUser(
+        currentUser,
+      );
+    } catch (error) {
+      /*
+       * Se por alguma razão o backend
+       * rejeitar o token acabado de emitir,
+       * não deixamos uma sessão inválida
+       * guardada no navegador.
+       */
+      clearToken();
+
+      setUser(
+        null,
       );
 
-    setUser(currentUser);
+      throw error;
+    }
   }
 
 
   function logout() {
-    setUser(null);
+    setUser(
+      null,
+    );
+
     logoutRequest();
   }
 
 
   async function refreshUser() {
-    const currentUser =
-      await getCurrentUser();
+    const token =
+      getValidToken();
 
-    setUser(currentUser);
+    if (!token) {
+      setUser(null);
+
+      throw new Error(
+        "Sessão não encontrada.",
+      );
+    }
+
+    try {
+      const currentUser =
+        await getCurrentUser(
+          token,
+        );
+
+      setUser(
+        currentUser,
+      );
+    } catch (error) {
+      clearToken();
+
+      setUser(
+        null,
+      );
+
+      throw error;
+    }
   }
 
 
-  const value = useMemo(
-    () => ({
-      user,
-      loading,
-      isAuthenticated:
-        Boolean(user),
-      login,
-      logout,
-      refreshUser,
-    }),
-    [
-      user,
-      loading,
-    ],
-  );
+  const value =
+    useMemo(
+      () => ({
+        user,
+        loading,
+
+        isAuthenticated:
+          Boolean(user),
+
+        login,
+        logout,
+        refreshUser,
+      }),
+      [
+        user,
+        loading,
+      ],
+    );
 
 
   return (
@@ -146,9 +224,12 @@ export function AuthProvider({
 }
 
 
-export function useAuth(): AuthContextValue {
+export function useAuth():
+AuthContextValue {
   const context =
-    useContext(AuthContext);
+    useContext(
+      AuthContext,
+    );
 
   if (!context) {
     throw new Error(
