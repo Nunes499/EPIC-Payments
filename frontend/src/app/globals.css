@@ -1,3 +1,5 @@
+@import "../components/settings/CloudflareSystem.css";
+
 :root {
   --background-dark: #c9c9c9;
   --background-medium: #e6e6e6;
@@ -2341,4 +2343,3 @@ a {
   }
 }
 
-@import "../components/settings/CloudflareSystem.css";
