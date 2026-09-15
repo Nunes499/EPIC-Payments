@@ -7,7 +7,10 @@ from fastapi import (
     HTTPException,
 )
 from pydantic import BaseModel
-from sqlalchemy import or_, select
+from sqlalchemy import (
+    or_,
+    select,
+)
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import (
@@ -34,16 +37,27 @@ class PaymentReferenceRead(
     BaseModel
 ):
     id: int
+
     member_number: str
     member_name: str
+
     value: float
-    entity: str
-    reference: str
-    easypay_id: str
+
+    entity: str | None
+    reference: str | None
+    easypay_id: str | None
+
+    operation_key: str
+    creation_status: str
+    creation_error: str | None
+    creation_checked_at: datetime | None
+
     payment_status: str
     display_status: str
+
     expires_at: datetime | None
     paid_at: datetime | None
+
     created_by_name: str
     created_at: datetime
     checked_at: datetime | None
@@ -71,7 +85,9 @@ def _parse_datetime(
         return None
 
     try:
-        if text.endswith("Z"):
+        if text.endswith(
+            "Z"
+        ):
             text = (
                 text[:-1]
                 + "+00:00"
@@ -91,6 +107,7 @@ def _parse_datetime(
             )
 
         return parsed
+
     except ValueError:
         pass
 
@@ -108,6 +125,7 @@ def _parse_datetime(
                     tzinfo=timezone.utc
                 )
             )
+
         except ValueError:
             continue
 
@@ -117,6 +135,21 @@ def _parse_datetime(
 def _display_status(
     item: PaymentReference,
 ) -> str:
+    creation_status = (
+        item.creation_status
+        or "created"
+    ).lower()
+
+    # Enquanto a criação não estiver concluída,
+    # o estado da criação tem prioridade sobre
+    # o estado financeiro do pagamento.
+    if creation_status in {
+        "creating",
+        "creation_unknown",
+        "creation_failed",
+    }:
+        return creation_status
+
     raw = (
         item.payment_status
         or "pending"
@@ -125,10 +158,8 @@ def _display_status(
     if raw == "paid":
         return "paid"
 
-    now = (
-        datetime.now(
-            timezone.utc
-        )
+    now = datetime.now(
+        timezone.utc
     )
 
     expires_at = (
@@ -137,7 +168,8 @@ def _display_status(
 
     if (
         expires_at is not None
-        and expires_at.tzinfo is None
+        and expires_at.tzinfo
+        is None
     ):
         expires_at = (
             expires_at.replace(
@@ -148,7 +180,8 @@ def _display_status(
     if (
         expires_at is not None
         and expires_at < now
-        and raw in {
+        and raw
+        in {
             "pending",
             "active",
         }
@@ -163,43 +196,100 @@ def _serialize(
 ) -> PaymentReferenceRead:
     return PaymentReferenceRead(
         id=item.id,
+
         member_number=(
             item.member_number
         ),
+
         member_name=(
             item.member_name
         ),
+
         value=float(
             item.value
         ),
-        entity=item.entity,
-        reference=item.reference,
+
+        entity=(
+            item.entity
+        ),
+
+        reference=(
+            item.reference
+        ),
+
         easypay_id=(
             item.easypay_id
         ),
+
+        operation_key=(
+            item.operation_key
+        ),
+
+        creation_status=(
+            item.creation_status
+        ),
+
+        creation_error=(
+            item.creation_error
+        ),
+
+        creation_checked_at=(
+            item.creation_checked_at
+        ),
+
         payment_status=(
             item.payment_status
         ),
+
         display_status=(
             _display_status(
                 item
             )
         ),
+
         expires_at=(
             item.expires_at
         ),
+
         paid_at=(
             item.paid_at
         ),
+
         created_by_name=(
             item.created_by_name
         ),
+
         created_at=(
             item.created_at
         ),
+
         checked_at=(
             item.checked_at
         ),
+    )
+
+
+def _can_refresh_payment(
+    item: PaymentReference,
+) -> bool:
+    """
+    Só podemos consultar /single/{id} quando
+    a criação da referência está concluída
+    e possuímos um easypay_id.
+    """
+
+    return (
+        (
+            item.creation_status
+            or "created"
+        ).lower()
+        == "created"
+        and bool(
+            (
+                item.easypay_id
+                or ""
+            ).strip()
+        )
     )
 
 
@@ -207,8 +297,21 @@ def _refresh_item(
     db: Session,
     item: PaymentReference,
 ) -> bool:
-    data = get_single_payment(
+    if not _can_refresh_payment(
+        item
+    ):
+        raise EasypayError(
+            "Esta operação ainda não possui "
+            "uma referência Easypay confirmada."
+        )
+
+    easypay_id = (
         item.easypay_id
+        or ""
+    ).strip()
+
+    data = get_single_payment(
+        easypay_id
     )
 
     new_status = str(
@@ -244,9 +347,12 @@ def _refresh_item(
 
     if (
         paid_at is not None
-        and paid_at != item.paid_at
+        and paid_at
+        != item.paid_at
     ):
-        item.paid_at = paid_at
+        item.paid_at = (
+            paid_at
+        )
         changed = True
 
     if (
@@ -321,16 +427,33 @@ def list_payments(
         statement = (
             statement.where(
                 or_(
-                    PaymentReference.member_number.ilike(
+                    PaymentReference
+                    .member_number
+                    .ilike(
                         pattern
                     ),
-                    PaymentReference.member_name.ilike(
+
+                    PaymentReference
+                    .member_name
+                    .ilike(
                         pattern
                     ),
-                    PaymentReference.reference.ilike(
+
+                    PaymentReference
+                    .reference
+                    .ilike(
                         pattern
                     ),
-                    PaymentReference.entity.ilike(
+
+                    PaymentReference
+                    .entity
+                    .ilike(
+                        pattern
+                    ),
+
+                    PaymentReference
+                    .operation_key
+                    .ilike(
                         pattern
                     ),
                 )
@@ -341,8 +464,13 @@ def list_payments(
         db.scalars(
             statement
             .order_by(
-                PaymentReference.created_at.desc(),
-                PaymentReference.id.desc(),
+                PaymentReference
+                .created_at
+                .desc(),
+
+                PaymentReference
+                .id
+                .desc(),
             )
             .limit(
                 safe_limit
@@ -399,6 +527,17 @@ def refresh_payment(
             ),
         )
 
+    if not _can_refresh_payment(
+        item
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Esta operação ainda não possui "
+                "uma referência Easypay confirmada."
+            ),
+        )
+
     try:
         _refresh_item(
             db,
@@ -406,6 +545,7 @@ def refresh_payment(
         )
 
         db.commit()
+
         db.refresh(
             item
         )
@@ -413,12 +553,15 @@ def refresh_payment(
         return _serialize(
             item
         )
+
     except EasypayError as exc:
         db.rollback()
 
         raise HTTPException(
             status_code=502,
-            detail=str(exc),
+            detail=str(
+                exc
+            ),
         ) from exc
 
 
@@ -436,13 +579,32 @@ def refresh_pending(
 ):
     del current_user
 
+    # Só consultamos referências cuja criação
+    # terminou com sucesso e que possuem ID Easypay.
+    #
+    # Operações creation_unknown serão tratadas
+    # por um mecanismo próprio de reconciliação.
     items = list(
         db.scalars(
             select(
                 PaymentReference
             )
             .where(
-                PaymentReference.payment_status.in_(
+                PaymentReference
+                .creation_status
+                == "created"
+            )
+            .where(
+                PaymentReference
+                .easypay_id
+                .is_not(
+                    None
+                )
+            )
+            .where(
+                PaymentReference
+                .payment_status
+                .in_(
                     [
                         "pending",
                         "active",
@@ -450,7 +612,9 @@ def refresh_pending(
                 )
             )
             .order_by(
-                PaymentReference.created_at.desc()
+                PaymentReference
+                .created_at
+                .desc()
             )
             .limit(
                 100
@@ -473,9 +637,11 @@ def refresh_pending(
                 updated += 1
 
             db.commit()
+
         except EasypayError:
             failed += 1
             db.rollback()
+
         except Exception:
             failed += 1
             db.rollback()

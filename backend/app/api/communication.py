@@ -1,6 +1,7 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Literal
+from uuid import uuid4
 
 from fastapi import (
     APIRouter,
@@ -33,6 +34,7 @@ from app.services.communication_report_service import (
 )
 from app.services.easypay_service import (
     EasypayError,
+    EasypayUncertainError,
     create_multibanco_reference,
 )
 from app.services.sms_service import (
@@ -224,32 +226,222 @@ def create_reference(
         get_db
     ),
 ):
+    # =====================================================
+    # 1. IDENTIFICADOR ÚNICO DA OPERAÇÃO EPIC
+    # =====================================================
+
+    operation_key = (
+        "EPIC-"
+        + uuid4().hex
+    )
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+    # =====================================================
+    # 2. REGISTAR PRIMEIRO NO NEON
+    # =====================================================
+    #
+    # A operação passa a existir na nossa base ANTES
+    # de qualquer pedido ser enviado à Easypay.
+    #
+    # Se este commit falhar, a Easypay nem sequer
+    # é contactada.
+
+    item = PaymentReference(
+        member_number=(
+            payload
+            .member_number
+            .strip()
+        ),
+        member_name=(
+            payload
+            .member_name
+            .strip()
+        ),
+        value=payload.value,
+
+        operation_key=(
+            operation_key
+        ),
+
+        creation_status=(
+            "creating"
+        ),
+
+        creation_error=None,
+
+        creation_checked_at=(
+            now
+        ),
+
+        entity=None,
+        reference=None,
+        easypay_id=None,
+
+        payment_status=(
+            "pending"
+        ),
+
+        expires_at=None,
+        paid_at=None,
+
+        created_by_id=(
+            current_user.id
+        ),
+
+        created_by_name=(
+            current_user.name
+        ),
+
+        checked_at=None,
+    )
+
+    try:
+        db.add(
+            item
+        )
+
+        db.commit()
+
+        db.refresh(
+            item
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        # Neste ponto a Easypay AINDA NÃO foi chamada.
+        # Portanto podemos devolver erro com segurança.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Não foi possível registar a operação "
+                "no EPIC Payments. "
+                "Nenhuma referência foi solicitada "
+                "à Easypay."
+            ),
+        ) from exc
+
+    # =====================================================
+    # 3. CHAMAR EASYpay
+    # =====================================================
+
     try:
         result = (
             create_multibanco_reference(
                 value=payload.value,
+
                 member_number=(
                     payload
                     .member_number
                     .strip()
                 ),
+
                 member_name=(
                     payload
                     .member_name
                     .strip()
                 ),
+
                 phone=(
                     payload
                     .phone
                     .strip()
                 ),
+
+                operation_key=(
+                    operation_key
+                ),
             )
         )
+
+    # =====================================================
+    # 4A. RESULTADO INCERTO
+    # =====================================================
+    #
+    # Timeout, interrupção de rede ou resposta inválida.
+    #
+    # NÃO apagamos a operação.
+    # NÃO permitimos assumir que falhou.
+    # NÃO criamos outra referência automaticamente.
+
+    except EasypayUncertainError as exc:
+        try:
+            item.creation_status = (
+                "creation_unknown"
+            )
+
+            item.creation_error = (
+                str(exc)[:500]
+            )
+
+            item.creation_checked_at = (
+                datetime.now(
+                    timezone.utc
+                )
+            )
+
+            db.add(
+                item
+            )
+
+            db.commit()
+
+        except Exception:
+            db.rollback()
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "A Easypay não confirmou o resultado "
+                "da operação. "
+                "O pedido ficou registado para "
+                "reconciliação e não deve ser repetido "
+                "manualmente."
+            ),
+        ) from exc
+
+    # =====================================================
+    # 4B. FALHA CONFIRMADA
+    # =====================================================
+
     except EasypayError as exc:
+        try:
+            item.creation_status = (
+                "creation_failed"
+            )
+
+            item.creation_error = (
+                str(exc)[:500]
+            )
+
+            item.creation_checked_at = (
+                datetime.now(
+                    timezone.utc
+                )
+            )
+
+            db.add(
+                item
+            )
+
+            db.commit()
+
+        except Exception:
+            db.rollback()
+
         raise HTTPException(
             status_code=502,
-            detail=str(exc),
+            detail=str(
+                exc
+            ),
         ) from exc
+
+    # =====================================================
+    # 5. EASYpay RESPONDEU COM SUCESSO
+    # =====================================================
 
     easypay_id = str(
         result.get(
@@ -258,60 +450,213 @@ def create_reference(
         or ""
     ).strip()
 
-    if easypay_id:
-        item = PaymentReference(
-            member_number=(
-                payload
-                .member_number
-                .strip()
-            ),
-            member_name=(
-                payload
-                .member_name
-                .strip()
-            ),
-            value=payload.value,
-            entity=str(
-                result["entity"]
-            ),
-            reference=str(
-                result["reference"]
-            ),
-            easypay_id=easypay_id,
-            payment_status=(
-                "pending"
-            ),
-            expires_at=(
-                _parse_iso_datetime(
-                    str(
-                        result.get(
-                            "expires_at"
-                        )
-                        or ""
-                    )
-                )
-            ),
-            created_by_id=(
-                current_user.id
-            ),
-            created_by_name=(
-                current_user.name
-            ),
+    entity = str(
+        result.get(
+            "entity"
+        )
+        or ""
+    ).strip()
+
+    reference = str(
+        result.get(
+            "reference"
+        )
+        or ""
+    ).strip()
+
+    if (
+        not easypay_id
+        or not entity
+        or not reference
+    ):
+        # Por proteção adicional.
+        # O serviço já valida isto, mas não assumimos
+        # que dados financeiros incompletos são sucesso.
+
+        item.creation_status = (
+            "creation_unknown"
+        )
+
+        item.creation_error = (
+            "A Easypay respondeu sem todos "
+            "os identificadores obrigatórios."
+        )
+
+        item.creation_checked_at = (
+            datetime.now(
+                timezone.utc
+            )
         )
 
         try:
             db.add(
                 item
             )
+
             db.commit()
-        except IntegrityError:
-            db.rollback()
+
         except Exception:
-            # A referência já foi criada na Easypay.
-            # Não devolvemos erro para evitar que o
-            # utilizador crie uma segunda referência
-            # por engano ao repetir o pedido.
             db.rollback()
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "A Easypay respondeu com dados "
+                "incompletos. A operação ficou "
+                "registada para reconciliação."
+            ),
+        )
+
+    # =====================================================
+    # 6. COMPLETAR O MESMO REGISTO NO NEON
+    # =====================================================
+
+    item.entity = (
+        entity
+    )
+
+    item.reference = (
+        reference
+    )
+
+    item.easypay_id = (
+        easypay_id
+    )
+
+    item.expires_at = (
+        _parse_iso_datetime(
+            str(
+                result.get(
+                    "expires_at"
+                )
+                or ""
+            )
+        )
+    )
+
+    item.creation_status = (
+        "created"
+    )
+
+    item.creation_error = None
+
+    item.creation_checked_at = (
+        datetime.now(
+            timezone.utc
+        )
+    )
+
+    try:
+        db.add(
+            item
+        )
+
+        db.commit()
+
+        db.refresh(
+            item
+        )
+
+    except IntegrityError as exc:
+        db.rollback()
+
+        # A Easypay já criou a referência.
+        # Não podemos simplesmente mandar repetir.
+        #
+        # O registo inicial continua no Neon através
+        # da operation_key e poderá ser reconciliado.
+        try:
+            stored_item = db.get(
+                PaymentReference,
+                item.id,
+            )
+
+            if stored_item is not None:
+                stored_item.creation_status = (
+                    "creation_unknown"
+                )
+
+                stored_item.creation_error = (
+                    "A referência foi criada na Easypay, "
+                    "mas ocorreu um conflito ao guardar "
+                    "os identificadores no EPIC Payments."
+                )
+
+                stored_item.creation_checked_at = (
+                    datetime.now(
+                        timezone.utc
+                    )
+                )
+
+                db.add(
+                    stored_item
+                )
+
+                db.commit()
+
+        except Exception:
+            db.rollback()
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "A referência foi criada na Easypay, "
+                "mas necessita de reconciliação no "
+                "EPIC Payments. Não repita o pedido."
+            ),
+        ) from exc
+
+    except Exception as exc:
+        db.rollback()
+
+        # A referência já existe na Easypay.
+        # Recuperamos o registo inicial pelo ID para
+        # preservar o estado de operação incerta.
+
+        try:
+            stored_item = db.get(
+                PaymentReference,
+                item.id,
+            )
+
+            if stored_item is not None:
+                stored_item.creation_status = (
+                    "creation_unknown"
+                )
+
+                stored_item.creation_error = (
+                    "A referência foi criada na Easypay, "
+                    "mas não foi possível concluir a "
+                    "persistência dos identificadores."
+                )
+
+                stored_item.creation_checked_at = (
+                    datetime.now(
+                        timezone.utc
+                    )
+                )
+
+                db.add(
+                    stored_item
+                )
+
+                db.commit()
+
+        except Exception:
+            db.rollback()
+
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "A referência foi criada na Easypay, "
+                "mas o registo necessita de "
+                "reconciliação. Não repita o pedido."
+            ),
+        ) from exc
+
+    # =====================================================
+    # 7. SUCESSO TOTAL
+    # =====================================================
 
     return result
 

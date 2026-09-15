@@ -10,7 +10,10 @@ from sqlalchemy import (
     String,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+)
 
 from app.database.session import Base
 
@@ -43,24 +46,71 @@ class PaymentReference(Base):
         nullable=False,
     )
 
-    entity: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-    )
+    # =====================================================
+    # CONTROLO SEGURO DA CRIAÇÃO EASYpay
+    # =====================================================
 
-    reference: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        unique=True,
-        index=True,
-    )
-
-    easypay_id: Mapped[str] = mapped_column(
+    operation_key: Mapped[str] = mapped_column(
         String(80),
         nullable=False,
         unique=True,
         index=True,
     )
+
+    creation_status: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default="creating",
+        server_default="created",
+        index=True,
+    )
+
+    creation_error: Mapped[
+        str | None
+    ] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+
+    creation_checked_at: Mapped[
+        datetime | None
+    ] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    # Estes campos ainda não existem quando o EPIC
+    # regista inicialmente a operação no Neon.
+    # São preenchidos depois da resposta da Easypay.
+
+    entity: Mapped[
+        str | None
+    ] = mapped_column(
+        String(30),
+        nullable=True,
+    )
+
+    reference: Mapped[
+        str | None
+    ] = mapped_column(
+        String(50),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
+    easypay_id: Mapped[
+        str | None
+    ] = mapped_column(
+        String(80),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
+    # =====================================================
+    # ESTADO DO PAGAMENTO
+    # =====================================================
 
     payment_status: Mapped[str] = mapped_column(
         String(30),
@@ -69,19 +119,29 @@ class PaymentReference(Base):
         index=True,
     )
 
-    expires_at: Mapped[datetime | None] = mapped_column(
+    expires_at: Mapped[
+        datetime | None
+    ] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         index=True,
     )
 
-    paid_at: Mapped[datetime | None] = mapped_column(
+    paid_at: Mapped[
+        datetime | None
+    ] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
         index=True,
     )
 
-    created_by_id: Mapped[int | None] = mapped_column(
+    # =====================================================
+    # AUDITORIA
+    # =====================================================
+
+    created_by_id: Mapped[
+        int | None
+    ] = mapped_column(
         ForeignKey(
             "users.id",
             ondelete="SET NULL",
@@ -103,7 +163,9 @@ class PaymentReference(Base):
         index=True,
     )
 
-    checked_at: Mapped[datetime | None] = mapped_column(
+    checked_at: Mapped[
+        datetime | None
+    ] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )

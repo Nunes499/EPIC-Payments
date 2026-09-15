@@ -20,18 +20,42 @@ export type PaymentStatus =
   | "voided";
 
 
+export type PaymentCreationStatus =
+  | "creating"
+  | "created"
+  | "creation_failed"
+  | "creation_unknown";
+
+
 export type PaymentReferenceItem = {
   id: number;
+
   member_number: string;
   member_name: string;
+
   value: number;
-  entity: string;
-  reference: string;
-  easypay_id: string;
+
+  entity: string | null;
+  reference: string | null;
+  easypay_id: string | null;
+
+  operation_key: string;
+
+  creation_status:
+    PaymentCreationStatus;
+
+  creation_error:
+    string | null;
+
+  creation_checked_at:
+    string | null;
+
   payment_status: string;
   display_status: string;
+
   expires_at: string | null;
   paid_at: string | null;
+
   created_by_name: string;
   created_at: string;
   checked_at: string | null;
@@ -69,7 +93,8 @@ async function getErrorMessage(
 
     if (
       data &&
-      typeof data.detail === "string"
+      typeof data.detail ===
+        "string"
     ) {
       return data.detail;
     }
@@ -94,7 +119,9 @@ export async function getPayments(
     new URLSearchParams({
       status_filter:
         statusFilter,
+
       search,
+
       limit: "500",
     });
 
@@ -103,10 +130,12 @@ export async function getPayments(
       `${API_URL}/payments?${params.toString()}`,
       {
         method: "GET",
+
         headers: {
           Authorization:
             `Bearer ${token}`,
         },
+
         cache: "no-store",
       },
     );
@@ -137,6 +166,7 @@ export async function refreshPayment(
       `${API_URL}/payments/${paymentId}/refresh`,
       {
         method: "POST",
+
         headers: {
           Authorization:
             `Bearer ${token}`,
@@ -167,6 +197,7 @@ Promise<PaymentRefreshSummary> {
       `${API_URL}/payments/refresh-pending`,
       {
         method: "POST",
+
         headers: {
           Authorization:
             `Bearer ${token}`,
