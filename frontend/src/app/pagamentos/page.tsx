@@ -15,6 +15,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -167,6 +168,7 @@ function StatusBadge({
         <XCircle
           size={14}
         />
+
         {statusLabel(
           normalized
         )}
@@ -234,6 +236,17 @@ export default function PagamentosPage() {
     setLastUpdateMessage,
   ] = useState("");
 
+  /*
+   * Impede que a sincronização automática
+   * seja iniciada mais de uma vez durante
+   * a mesma montagem da página.
+   *
+   * Isto também protege o desenvolvimento
+   * contra execuções duplicadas de effects.
+   */
+  const automaticRefreshStarted =
+    useRef(false);
+
 
   const load = useCallback(
     async () => {
@@ -269,6 +282,13 @@ export default function PagamentosPage() {
   );
 
 
+  /*
+   * Carregamento normal da página.
+   *
+   * Este pedido lê imediatamente os dados
+   * persistidos no Neon e não fica à espera
+   * da consulta à Easypay.
+   */
   useEffect(() => {
     const timer =
       window.setTimeout(
@@ -283,6 +303,82 @@ export default function PagamentosPage() {
         timer
       );
   }, [load, search]);
+
+
+  /*
+   * Sincronização automática Easypay.
+   *
+   * É executada uma única vez quando a página
+   * é aberta.
+   *
+   * A tabela não fica bloqueada à espera desta
+   * operação. Primeiro mostramos os dados do
+   * Neon e depois verificamos as referências
+   * pendentes em segundo plano.
+   */
+  useEffect(() => {
+    if (
+      automaticRefreshStarted.current
+    ) {
+      return;
+    }
+
+    automaticRefreshStarted.current =
+      true;
+
+    let cancelled = false;
+
+    async function refreshAutomatically() {
+      try {
+        const result =
+          await refreshPendingPayments();
+
+        if (cancelled) {
+          return;
+        }
+
+        /*
+         * Só fazemos uma segunda leitura
+         * do Neon quando a Easypay encontrou
+         * efetivamente alguma alteração.
+         */
+        if (
+          result.updated > 0
+        ) {
+          const data =
+            await getPayments(
+              "all",
+              "",
+            );
+
+          if (cancelled) {
+            return;
+          }
+
+          setItems(
+            data
+          );
+        }
+      } catch {
+        /*
+         * A atualização automática é silenciosa.
+         *
+         * Se a Easypay estiver temporariamente
+         * indisponível, continuamos a mostrar
+         * os últimos dados persistidos no Neon.
+         *
+         * O botão "Atualizar estados" continua
+         * disponível para uma tentativa manual.
+         */
+      }
+    }
+
+    void refreshAutomatically();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
 
   const counts =
@@ -375,6 +471,7 @@ export default function PagamentosPage() {
     setRefreshingId(
       item.id
     );
+
     setError("");
 
     try {
@@ -648,6 +745,7 @@ export default function PagamentosPage() {
             <CheckCircle2
               size={16}
             />
+
             {lastUpdateMessage}
           </div>
         ) : null}
@@ -661,6 +759,7 @@ export default function PagamentosPage() {
             <CircleAlert
               size={17}
             />
+
             {error}
           </div>
         ) : null}
@@ -716,33 +815,43 @@ export default function PagamentosPage() {
                     <th>
                       Nº SÓCIO
                     </th>
+
                     <th>
                       NOME
                     </th>
+
                     <th>
                       VALOR
                     </th>
+
                     <th>
                       ENTIDADE
                     </th>
+
                     <th>
                       REFERÊNCIA
                     </th>
+
                     <th>
                       CRIADA EM
                     </th>
+
                     <th>
                       VALIDADE
                     </th>
+
                     <th>
                       ESTADO
                     </th>
+
                     <th>
                       PAGO EM
                     </th>
+
                     <th>
                       COLABORADOR
                     </th>
+
                     <th />
                   </tr>
                 </thead>
@@ -778,7 +887,7 @@ export default function PagamentosPage() {
                         </td>
 
                         <td>
-                          {item.entity}
+                          {item.entity || "—"}
                         </td>
 
                         <td
@@ -786,7 +895,7 @@ export default function PagamentosPage() {
                             styles.reference
                           }
                         >
-                          {item.reference}
+                          {item.reference || "—"}
                         </td>
 
                         <td>
