@@ -497,3 +497,185 @@ def get_single_payment(
         )
 
     return data
+
+def find_single_payment_by_key(
+    operation_key: str,
+) -> dict[str, Any] | None:
+    """
+    Procura na Easypay uma operação Single através
+    da operation_key criada pelo EPIC Payments.
+
+    Retorna:
+    - dict: quando existe exatamente uma operação;
+    - None: quando nenhuma operação foi encontrada.
+
+    Se forem encontradas várias operações com a mesma
+    key, não escolhemos nenhuma automaticamente.
+    """
+
+    _, _, base_url = (
+        _credentials()
+    )
+
+    clean_operation_key = (
+        str(
+            operation_key
+        )
+        .strip()
+    )
+
+    if not clean_operation_key:
+        raise EasypayError(
+            "A operação EPIC não possui "
+            "identificador interno."
+        )
+
+    url = (
+        f"{base_url}/single"
+    )
+
+    params = {
+        "key": (
+            clean_operation_key
+        ),
+        "records_per_page": 10,
+    }
+
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=_headers(),
+            timeout=20,
+        )
+
+    except requests.Timeout as exc:
+        raise EasypayUncertainError(
+            "A Easypay demorou demasiado "
+            "a responder durante a reconciliação."
+        ) from exc
+
+    except requests.RequestException as exc:
+        raise EasypayUncertainError(
+            "Não foi possível comunicar com a "
+            "Easypay durante a reconciliação."
+        ) from exc
+
+    try:
+        payload = (
+            response.json()
+        )
+
+    except ValueError as exc:
+        raise EasypayUncertainError(
+            "A Easypay devolveu uma resposta "
+            "inválida durante a reconciliação "
+            f"(HTTP {response.status_code})."
+        ) from exc
+
+    if not response.ok:
+        if isinstance(
+            payload,
+            dict,
+        ):
+            detail = (
+                _error_detail(
+                    response,
+                    payload,
+                )
+            )
+        else:
+            detail = (
+                "Erro devolvido pela Easypay."
+            )
+
+        raise EasypayError(
+            "Easypay HTTP "
+            f"{response.status_code}: "
+            f"{detail}"
+        )
+
+    if not isinstance(
+        payload,
+        dict,
+    ):
+        raise EasypayUncertainError(
+            "A Easypay devolveu um formato "
+            "inesperado durante a reconciliação."
+        )
+
+    data = payload.get(
+        "data"
+    )
+
+    if data is None:
+        raise EasypayUncertainError(
+            "A resposta de pesquisa da Easypay "
+            "não contém a lista de operações."
+        )
+
+    if not isinstance(
+        data,
+        list,
+    ):
+        raise EasypayUncertainError(
+            "A Easypay devolveu uma lista de "
+            "operações num formato inesperado."
+        )
+
+    # Não confiamos apenas no filtro remoto.
+    # Confirmamos novamente a key de cada resultado.
+    matches: list[
+        dict[str, Any]
+    ] = []
+
+    for item in data:
+        if not isinstance(
+            item,
+            dict,
+        ):
+            continue
+
+        remote_key = str(
+            item.get(
+                "key"
+            )
+            or ""
+        ).strip()
+
+        if (
+            remote_key
+            == clean_operation_key
+        ):
+            matches.append(
+                item
+            )
+
+    if not matches:
+        return None
+
+    if len(matches) > 1:
+        raise EasypayUncertainError(
+            "Foram encontradas várias operações "
+            "Easypay com a mesma chave EPIC. "
+            "É necessária verificação manual."
+        )
+
+    result = (
+        matches[0]
+    )
+
+    easypay_id = str(
+        result.get(
+            "id"
+        )
+        or ""
+    ).strip()
+
+    if not easypay_id:
+        raise EasypayUncertainError(
+            "A operação encontrada na Easypay "
+            "não possui identificador."
+        )
+
+    return result

@@ -23,9 +23,10 @@ from app.models import (
 )
 from app.services.easypay_service import (
     EasypayError,
+    EasypayUncertainError,
+    find_single_payment_by_key,
     get_single_payment,
 )
-
 
 router = APIRouter(
     prefix="/payments",
@@ -268,6 +269,217 @@ def _serialize(
         ),
     )
 
+def _reconcile_unknown_item(
+    db: Session,
+    item: PaymentReference,
+) -> bool:
+    """
+    Tenta recuperar uma operação cuja criação ficou
+    com resultado incerto.
+
+    A pesquisa é feita exclusivamente através da
+    operation_key persistida no Neon e enviada
+    anteriormente para a Easypay.
+    """
+
+    if (
+        item.creation_status
+        != "creation_unknown"
+    ):
+        return False
+
+    operation_key = (
+        item.operation_key
+        or ""
+    ).strip()
+
+    if not operation_key:
+        raise EasypayError(
+            "A operação não possui "
+            "operation_key para reconciliação."
+        )
+
+    data = (
+        find_single_payment_by_key(
+            operation_key
+        )
+    )
+
+    item.creation_checked_at = (
+        datetime.now(
+            timezone.utc
+        )
+    )
+
+    # A Easypay ainda não devolve nenhuma operação
+    # com esta key.
+    #
+    # Não marcamos automaticamente como falhada:
+    # mantemos creation_unknown para uma nova
+    # verificação posterior.
+    if data is None:
+        item.creation_error = (
+            "Nenhuma operação Easypay foi encontrada "
+            "com esta chave na última reconciliação."
+        )
+
+        db.add(
+            item
+        )
+
+        return False
+
+    # Proteção adicional: mesmo tendo pesquisado
+    # pela key, confirmamos que o resultado pertence
+    # exatamente à nossa operação.
+    remote_key = str(
+        data.get(
+            "key"
+        )
+        or ""
+    ).strip()
+
+    if (
+        remote_key
+        != operation_key
+    ):
+        raise EasypayUncertainError(
+            "A operação encontrada na Easypay "
+            "não corresponde à chave EPIC."
+        )
+
+    easypay_id = str(
+        data.get(
+            "id"
+        )
+        or ""
+    ).strip()
+
+    method = data.get(
+        "method"
+    )
+
+    if not isinstance(
+        method,
+        dict,
+    ):
+        raise EasypayUncertainError(
+            "A operação encontrada não possui "
+            "dados válidos do método Multibanco."
+        )
+
+    entity = str(
+        method.get(
+            "entity"
+        )
+        or ""
+    ).strip()
+
+    reference = str(
+        method.get(
+            "reference"
+        )
+        or ""
+    ).strip()
+
+    if (
+        not easypay_id
+        or not entity
+        or not reference
+    ):
+        raise EasypayUncertainError(
+            "A operação encontrada na Easypay "
+            "não contém todos os identificadores "
+            "necessários."
+        )
+
+    payment_status = str(
+        data.get(
+            "payment_status"
+        )
+        or method.get(
+            "status"
+        )
+        or "pending"
+    ).lower()
+
+    expires_at = (
+        _parse_datetime(
+            data.get(
+                "expiration_time"
+            )
+        )
+    )
+
+    # Algumas respostas Easypay também incluem
+    # expiration_time dentro de multibanco.
+    if expires_at is None:
+        multibanco = data.get(
+            "multibanco"
+        )
+
+        if isinstance(
+            multibanco,
+            dict,
+        ):
+            expires_at = (
+                _parse_datetime(
+                    multibanco.get(
+                        "expiration_time"
+                    )
+                )
+            )
+
+    paid_at = (
+        _parse_datetime(
+            data.get(
+                "paid_at"
+            )
+        )
+    )
+
+    item.easypay_id = (
+        easypay_id
+    )
+
+    item.entity = (
+        entity
+    )
+
+    item.reference = (
+        reference
+    )
+
+    item.payment_status = (
+        payment_status
+    )
+
+    item.expires_at = (
+        expires_at
+    )
+
+    if paid_at is not None:
+        item.paid_at = (
+            paid_at
+        )
+
+    item.creation_status = (
+        "created"
+    )
+
+    item.creation_error = None
+
+    item.checked_at = (
+        datetime.now(
+            timezone.utc
+        )
+    )
+
+    db.add(
+        item
+    )
+
+    return True
 
 def _can_refresh_payment(
     item: PaymentReference,
@@ -645,6 +857,142 @@ def refresh_pending(
         except Exception:
             failed += 1
             db.rollback()
+
+    return RefreshSummary(
+        checked=checked,
+        updated=updated,
+        failed=failed,
+    )
+
+@router.post(
+    "/reconcile-unknown",
+    response_model=RefreshSummary,
+)
+def reconcile_unknown(
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+):
+    """
+    Tenta reconciliar operações cuja criação
+    na Easypay ficou com resultado incerto.
+
+    Esta rota nunca cria uma nova referência.
+    Apenas procura na Easypay pela operation_key
+    que já está persistida no Neon.
+    """
+
+    del current_user
+
+    items = list(
+        db.scalars(
+            select(
+                PaymentReference
+            )
+            .where(
+                PaymentReference
+                .creation_status
+                == "creation_unknown"
+            )
+            .order_by(
+                PaymentReference
+                .created_at
+                .asc()
+            )
+            .limit(
+                100
+            )
+        ).all()
+    )
+
+    checked = 0
+    updated = 0
+    failed = 0
+
+    for item in items:
+        try:
+            checked += 1
+
+            if _reconcile_unknown_item(
+                db,
+                item,
+            ):
+                updated += 1
+
+            db.commit()
+
+        except (
+            EasypayError,
+            EasypayUncertainError,
+        ) as exc:
+            db.rollback()
+            failed += 1
+
+            # Depois do rollback voltamos a obter
+            # o registo antes de guardar a informação
+            # da tentativa de reconciliação.
+            try:
+                stored_item = db.get(
+                    PaymentReference,
+                    item.id,
+                )
+
+                if stored_item is not None:
+                    stored_item.creation_error = (
+                        str(exc)[:500]
+                    )
+
+                    stored_item.creation_checked_at = (
+                        datetime.now(
+                            timezone.utc
+                        )
+                    )
+
+                    db.add(
+                        stored_item
+                    )
+
+                    db.commit()
+
+            except Exception:
+                db.rollback()
+
+        except Exception as exc:
+            db.rollback()
+            failed += 1
+
+            try:
+                stored_item = db.get(
+                    PaymentReference,
+                    item.id,
+                )
+
+                if stored_item is not None:
+                    stored_item.creation_error = (
+                        (
+                            "Erro interno durante "
+                            "a reconciliação: "
+                            f"{exc}"
+                        )[:500]
+                    )
+
+                    stored_item.creation_checked_at = (
+                        datetime.now(
+                            timezone.utc
+                        )
+                    )
+
+                    db.add(
+                        stored_item
+                    )
+
+                    db.commit()
+
+            except Exception:
+                db.rollback()
 
     return RefreshSummary(
         checked=checked,
