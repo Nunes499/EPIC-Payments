@@ -1,10 +1,16 @@
 from datetime import datetime, timezone
+import secrets
 from typing import Literal
 
 from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    status,
+)
+from fastapi.security import (
+    HTTPBasic,
+    HTTPBasicCredentials,
 )
 from pydantic import BaseModel
 from sqlalchemy import (
@@ -16,6 +22,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import (
     get_current_user,
 )
+from app.core.config import settings
 from app.database.session import get_db
 from app.models import (
     PaymentReference,
@@ -31,6 +38,11 @@ from app.services.easypay_service import (
 router = APIRouter(
     prefix="/payments",
     tags=["Payments"],
+)
+
+
+webhook_security = HTTPBasic(
+    auto_error=False,
 )
 
 
@@ -70,6 +82,174 @@ class RefreshSummary(
     checked: int
     updated: int
     failed: int
+
+
+class EasypayWebhookTransaction(
+    BaseModel
+):
+    id: str = ""
+    key: str = ""
+    type: str = ""
+    date: str = ""
+
+
+class EasypayTransactionWebhook(
+    BaseModel
+):
+    id: str
+    key: str = ""
+    transaction: (
+        EasypayWebhookTransaction
+        | None
+    ) = None
+
+
+class EasypayWebhookResponse(
+    BaseModel
+):
+    status: str
+    payment_id: int | None = None
+    payment_status: str | None = None
+
+
+def _verify_webhook_credentials(
+    credentials: HTTPBasicCredentials | None,
+) -> None:
+    expected_username = (
+        settings
+        .easypay_webhook_username
+        .strip()
+    )
+
+    expected_password = (
+        settings
+        .easypay_webhook_password
+        .strip()
+    )
+
+    if (
+        not expected_username
+        or not expected_password
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_503_SERVICE_UNAVAILABLE
+            ),
+            detail=(
+                "O webhook Easypay ainda não está "
+                "configurado no EPIC Payments."
+            ),
+        )
+
+    if credentials is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=(
+                "Autenticação do webhook em falta."
+            ),
+            headers={
+                "WWW-Authenticate": "Basic",
+            },
+        )
+
+    username_ok = secrets.compare_digest(
+        credentials.username,
+        expected_username,
+    )
+
+    password_ok = secrets.compare_digest(
+        credentials.password,
+        expected_password,
+    )
+
+    if not (
+        username_ok
+        and password_ok
+    ):
+        raise HTTPException(
+            status_code=(
+                status.HTTP_401_UNAUTHORIZED
+            ),
+            detail=(
+                "Credenciais do webhook inválidas."
+            ),
+            headers={
+                "WWW-Authenticate": "Basic",
+            },
+        )
+
+
+def _find_webhook_payment(
+    db: Session,
+    payload: EasypayTransactionWebhook,
+) -> PaymentReference | None:
+    easypay_id = (
+        payload.id
+        or ""
+    ).strip()
+
+    if easypay_id:
+        item = db.scalar(
+            select(
+                PaymentReference
+            )
+            .where(
+                PaymentReference
+                .easypay_id
+                == easypay_id
+            )
+            .limit(1)
+        )
+
+        if item is not None:
+            return item
+
+    candidate_keys: list[str] = []
+
+    payload_key = (
+        payload.key
+        or ""
+    ).strip()
+
+    if payload_key:
+        candidate_keys.append(
+            payload_key
+        )
+
+    if payload.transaction is not None:
+        transaction_key = (
+            payload.transaction.key
+            or ""
+        ).strip()
+
+        if (
+            transaction_key
+            and transaction_key
+            not in candidate_keys
+        ):
+            candidate_keys.append(
+                transaction_key
+            )
+
+    for operation_key in candidate_keys:
+        item = db.scalar(
+            select(
+                PaymentReference
+            )
+            .where(
+                PaymentReference
+                .operation_key
+                == operation_key
+            )
+            .limit(1)
+        )
+
+        if item is not None:
+            return item
+
+    return None
 
 
 def _parse_datetime(
@@ -588,6 +768,154 @@ def _refresh_item(
     )
 
     return changed
+
+
+@router.post(
+    "/easypay-webhook",
+    response_model=EasypayWebhookResponse,
+)
+def easypay_transaction_webhook(
+    payload: EasypayTransactionWebhook,
+    credentials: (
+        HTTPBasicCredentials
+        | None
+    ) = Depends(
+        webhook_security
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+):
+    """
+    Recebe notificações de transação da Easypay.
+
+    O JSON recebido nunca é usado como prova de
+    pagamento. Depois de identificar a referência,
+    o EPIC Payments consulta diretamente a API
+    Easypay através do easypay_id já persistido.
+
+    A operação é idempotente: notificações repetidas
+    apenas voltam a confirmar o mesmo pagamento.
+    """
+
+    _verify_webhook_credentials(
+        credentials
+    )
+
+    item = _find_webhook_payment(
+        db,
+        payload,
+    )
+
+    if item is None:
+        # A notificação é válida, mas não pertence
+        # a uma referência conhecida pelo EPIC.
+        #
+        # Respondemos 200 para evitar reenvios
+        # intermináveis da mesma notificação.
+        return EasypayWebhookResponse(
+            status="ignored",
+        )
+
+    if not _can_refresh_payment(
+        item
+    ):
+        # Se a criação estiver incerta, tentamos
+        # primeiro recuperar a operação pela
+        # operation_key já persistida.
+        if (
+            item.creation_status
+            == "creation_unknown"
+        ):
+            try:
+                reconciled = (
+                    _reconcile_unknown_item(
+                        db,
+                        item,
+                    )
+                )
+
+                db.commit()
+
+                if reconciled:
+                    db.refresh(
+                        item
+                    )
+
+            except (
+                EasypayError,
+                EasypayUncertainError,
+            ) as exc:
+                db.rollback()
+
+                raise HTTPException(
+                    status_code=(
+                        status.HTTP_502_BAD_GATEWAY
+                    ),
+                    detail=str(
+                        exc
+                    ),
+                ) from exc
+
+        if not _can_refresh_payment(
+            item
+        ):
+            return EasypayWebhookResponse(
+                status="ignored",
+                payment_id=item.id,
+                payment_status=(
+                    item.payment_status
+                ),
+            )
+
+    try:
+        _refresh_item(
+            db,
+            item,
+        )
+
+        db.commit()
+
+        db.refresh(
+            item
+        )
+
+    except EasypayError as exc:
+        db.rollback()
+
+        # Não devolvemos 200 quando não conseguimos
+        # confirmar a notificação diretamente na
+        # Easypay. Isto permite que a entrega possa
+        # ser novamente tentada.
+        raise HTTPException(
+            status_code=(
+                status.HTTP_502_BAD_GATEWAY
+            ),
+            detail=str(
+                exc
+            ),
+        ) from exc
+
+    except Exception as exc:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "Não foi possível processar "
+                "a notificação Easypay."
+            ),
+        ) from exc
+
+    return EasypayWebhookResponse(
+        status="processed",
+        payment_id=item.id,
+        payment_status=(
+            item.payment_status
+        ),
+    )
 
 
 @router.get(
