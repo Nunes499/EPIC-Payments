@@ -1,3 +1,6 @@
+from io import BytesIO
+from urllib.parse import quote
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,7 +9,10 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import (
+    FileResponse,
+    StreamingResponse,
+)
 from sqlalchemy.orm import Session
 
 from app.crud.cedis_file import (
@@ -20,8 +26,10 @@ from app.schemas.cedis_file import (
 )
 from app.services.cedis_service import (
     build_cedis_preview,
+    get_cedis_file_contents,
     get_existing_cedis_file,
     get_existing_cedis_file_path,
+    is_r2_file_path,
     save_cedis_file,
 )
 
@@ -100,12 +108,20 @@ def preview_cedis_base(
     """
     Permite visualizar os dados da Base CEDIS
     diretamente na interface do EPIC Payments.
+
+    A leitura funciona tanto para versões antigas
+    armazenadas localmente como para versões
+    armazenadas no Cloudflare R2.
     """
 
     if limit < 1:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="O limite deve ser superior a zero.",
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=(
+                "O limite deve ser superior a zero."
+            ),
         )
 
     cedis_file = get_existing_cedis_file(
@@ -121,7 +137,6 @@ def preview_cedis_base(
 
 @router.get(
     "/{file_id}/download",
-    response_class=FileResponse,
 )
 def download_cedis_base(
     file_id: int,
@@ -130,6 +145,14 @@ def download_cedis_base(
     """
     Descarrega uma versão da Base CEDIS
     mantendo o nome original do ficheiro.
+
+    Versões antigas:
+        são servidas através do ficheiro local.
+
+    Versões Cloudflare R2:
+        são obtidas diretamente do R2 e enviadas
+        ao utilizador sem necessidade de criar
+        uma cópia permanente no disco do servidor.
     """
 
     cedis_file = get_existing_cedis_file(
@@ -137,15 +160,80 @@ def download_cedis_base(
         file_id=file_id,
     )
 
-    file_path = get_existing_cedis_file_path(
-        cedis_file
+    media_type = (
+        cedis_file.mime_type
+        or "application/vnd.ms-excel"
+    )
+
+    filename = (
+        cedis_file.original_filename
+        or f"cedis_{cedis_file.id}.xls"
+    )
+
+    # =====================================================
+    # CLOUDFLARE R2
+    # =====================================================
+
+    if is_r2_file_path(
+        cedis_file.file_path
+    ):
+        try:
+            contents = (
+                get_cedis_file_contents(
+                    cedis_file
+                )
+            )
+
+        except HTTPException:
+            raise
+
+        except Exception as exc:
+            raise HTTPException(
+                status_code=(
+                    status.HTTP_502_BAD_GATEWAY
+                ),
+                detail=(
+                    "Não foi possível obter "
+                    "a Base CEDIS do "
+                    "Cloudflare R2."
+                ),
+            ) from exc
+
+        encoded_filename = quote(
+            filename
+        )
+
+        return StreamingResponse(
+            BytesIO(
+                contents
+            ),
+            media_type=media_type,
+            headers={
+                "Content-Disposition": (
+                    "attachment; "
+                    f"filename*=UTF-8''{encoded_filename}"
+                ),
+                "Content-Length": str(
+                    len(contents)
+                ),
+                "Cache-Control": (
+                    "private, no-store"
+                ),
+            },
+        )
+
+    # =====================================================
+    # ARMAZENAMENTO LOCAL LEGADO
+    # =====================================================
+
+    file_path = (
+        get_existing_cedis_file_path(
+            cedis_file
+        )
     )
 
     return FileResponse(
         path=file_path,
-        filename=cedis_file.original_filename,
-        media_type=(
-            cedis_file.mime_type
-            or "application/vnd.ms-excel"
-        ),
+        filename=filename,
+        media_type=media_type,
     )

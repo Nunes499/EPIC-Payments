@@ -623,6 +623,10 @@ def build_cedis_preview(
 
     return {
         "file": cedis_file,
-        "total_records": total_records,
-        "records": records,
+        "total_rows": total_records,
+        "preview_rows": records,
+        "columns": [
+            clean_cell_value(column)
+            for column in dataframe.columns
+        ],
     }
