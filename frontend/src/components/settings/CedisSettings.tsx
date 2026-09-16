@@ -44,6 +44,17 @@ function formatFileSize(
 }
 
 
+function isOnlineCedisFile(
+  file: ApiCedisFile,
+): boolean {
+  return Boolean(
+    file.file_path
+      ?.trim()
+      .startsWith("r2://"),
+  );
+}
+
+
 function formatDateTime(
   value: string,
 ): string {
@@ -481,11 +492,29 @@ export default function CedisSettings() {
 
                     {file.is_active ? (
                       <span className="cedis-history-active">
-                        Ativa
+                        Ativa · Cloudflare R2
+                      </span>
+                    ) : isOnlineCedisFile(
+                        file
+                      ) ? (
+                      <span>
+                        Anterior · Disponível online
                       </span>
                     ) : (
-                      <span>
-                        Anterior
+                      <span
+                        title="Esta versão pertence ao armazenamento local anterior e o ficheiro físico já não está disponível."
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          color: "#a16207",
+                          fontWeight: 800,
+                        }}
+                      >
+                        <AlertTriangle
+                          size={12}
+                        />
+                        Ficheiro histórico indisponível
                       </span>
                     )}
                   </div>
