@@ -1,8 +1,3 @@
-import {
-  getToken,
-} from "@/services/auth";
-
-
 export type ApiBankMovement = {
   sequence: number;
   original_member_reference: string;
@@ -25,14 +20,23 @@ export type ApiBankMovement = {
   collection_date: string | null;
   bank_reference: string | null;
 
-  recovery_file_1_id?: number | null;
-  recovery_file_2_id?: number | null;
+  recovery_file_1_id?:
+    number | null;
 
-  recovery_f1_reason_code?: string | null;
-  recovery_f1_reason_description?: string | null;
+  recovery_file_2_id?:
+    number | null;
 
-  recovery_f2_reason_code?: string | null;
-  recovery_f2_reason_description?: string | null;
+  recovery_f1_reason_code?:
+    string | null;
+
+  recovery_f1_reason_description?:
+    string | null;
+
+  recovery_f2_reason_code?:
+    string | null;
+
+  recovery_f2_reason_description?:
+    string | null;
 
   recovery_status?:
     | "RECUPERADA_COM_SUCESSO"
@@ -74,7 +78,8 @@ export type ApiCalendarFile = {
     | "xml"
     | "report";
 
-  file_category: ApiBankFileCategory;
+  file_category:
+    ApiBankFileCategory;
 
   recovery_part:
     | 1
@@ -106,8 +111,11 @@ export type ApiBankFileProcessing = {
   message_id: string | null;
   original_message_id: string | null;
 
-  declared_transactions: number | null;
-  declared_total_amount: string | null;
+  declared_transactions:
+    number | null;
+
+  declared_total_amount:
+    string | null;
 
   parsed_transactions: number;
   parsed_total_amount: string;
@@ -169,34 +177,6 @@ export type UploadCalendarFileOptions = {
 };
 
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
-
-
-function requireToken(): string {
-  const token =
-    getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
-
-  return token;
-}
-
-
-function authorizationHeaders():
-Record<string, string> {
-  return {
-    Authorization:
-      `Bearer ${requireToken()}`,
-  };
-}
-
-
 async function parseError(
   response: Response,
 ): Promise<string> {
@@ -229,18 +209,18 @@ export async function listCalendarFiles(
 ): Promise<ApiCalendarFile[]> {
   const response =
     await fetch(
-      `${API_URL}/files/calendar/${calendarDate}`,
+      `/api/backend/files/calendar/${calendarDate}`,
       {
         method: "GET",
-        headers:
-          authorizationHeaders(),
         cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -250,21 +230,23 @@ export async function listCalendarFiles(
 
 export async function listYearSummary(
   year: number,
-): Promise<ApiCalendarDaySummary[]> {
+): Promise<
+  ApiCalendarDaySummary[]
+> {
   const response =
     await fetch(
-      `${API_URL}/files/year/${year}`,
+      `/api/backend/files/year/${year}`,
       {
         method: "GET",
-        headers:
-          authorizationHeaders(),
         cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -275,7 +257,8 @@ export async function listYearSummary(
 export async function uploadCalendarFile(
   calendarDate: string,
   file: File,
-  options: UploadCalendarFileOptions = {},
+  options:
+    UploadCalendarFileOptions = {},
 ): Promise<ApiCalendarFile> {
   const formData =
     new FormData();
@@ -321,18 +304,19 @@ export async function uploadCalendarFile(
 
   const response =
     await fetch(
-      `${API_URL}/files/calendar/${calendarDate}`,
+      `/api/backend/files/calendar/${calendarDate}`,
       {
         method: "POST",
-        headers:
-          authorizationHeaders(),
         body: formData,
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -345,17 +329,18 @@ export async function deleteCalendarFile(
 ): Promise<void> {
   const response =
     await fetch(
-      `${API_URL}/files/${fileId}`,
+      `/api/backend/files/${fileId}`,
       {
         method: "DELETE",
-        headers:
-          authorizationHeaders(),
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 }
@@ -366,18 +351,18 @@ export async function processCalendarFile(
 ): Promise<ApiBankFileProcessing> {
   const response =
     await fetch(
-      `${API_URL}/files/${fileId}/process`,
+      `/api/backend/files/${fileId}/process`,
       {
         method: "GET",
-        headers:
-          authorizationHeaders(),
         cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -391,18 +376,18 @@ export async function processRecoveryConsolidation(
 ): Promise<ApiRecoveryConsolidation> {
   const response =
     await fetch(
-      `${API_URL}/files/${f1FileId}/recovery-consolidation?f2_file_id=${f2FileId}`,
+      `/api/backend/files/${f1FileId}/recovery-consolidation?f2_file_id=${f2FileId}`,
       {
         method: "GET",
-        headers:
-          authorizationHeaders(),
         cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -415,17 +400,18 @@ export async function downloadCalendarFile(
 ): Promise<void> {
   const response =
     await fetch(
-      `${API_URL}/files/${file.id}/download`,
+      `/api/backend/files/${file.id}/download`,
       {
         method: "GET",
-        headers:
-          authorizationHeaders(),
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response,
+      ),
     );
   }
 
@@ -495,30 +481,46 @@ export async function previewCalendarFile(
         <style>
           body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            color: #111111;
+            font-family:
+              Arial,
+              sans-serif;
+            background:
+              #f5f5f5;
+            color:
+              #111111;
           }
 
           .loading {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 12px;
+            min-height:
+              100vh;
+            display:
+              flex;
+            align-items:
+              center;
+            justify-content:
+              center;
+            flex-direction:
+              column;
+            gap:
+              12px;
           }
 
           .brand {
-            color: #ef2733;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
+            color:
+              #ef2733;
+            font-size:
+              12px;
+            font-weight:
+              800;
+            letter-spacing:
+              0.12em;
           }
 
           .message {
-            font-size: 16px;
-            font-weight: 700;
+            font-size:
+              16px;
+            font-weight:
+              700;
           }
         </style>
       </head>
@@ -542,17 +544,20 @@ export async function previewCalendarFile(
   try {
     const response =
       await fetch(
-        `${API_URL}/files/${file.id}/download`,
+        `/api/backend/files/${file.id}/download`,
         {
-          method: "GET",
-          headers:
-            authorizationHeaders(),
+          method:
+            "GET",
+          cache:
+            "no-store",
         },
       );
 
     if (!response.ok) {
       throw new Error(
-        await parseError(response),
+        await parseError(
+          response,
+        ),
       );
     }
 

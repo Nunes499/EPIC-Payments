@@ -10,12 +10,9 @@ import {
 } from "react";
 
 import {
-  clearToken,
   getCurrentUser,
-  getValidToken,
   login as loginRequest,
   logout as logoutRequest,
-  setToken,
   type AuthUser,
 } from "@/services/auth";
 
@@ -67,34 +64,21 @@ export function AuthProvider({
 
 
   async function loadCurrentUser() {
-    /*
-     * getValidToken() verifica localmente
-     * se existe token e se ainda não expirou.
-     *
-     * Se não houver sessão válida não é
-     * feita qualquer chamada ao Render.
-     */
-    const token =
-      getValidToken();
-
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
-
     try {
+      /*
+       * getCurrentUser() usa agora o
+       * cookie HttpOnly. Se este browser
+       * ainda tiver a sessão antiga em
+       * localStorage, o próprio serviço
+       * trata primeiro da migração.
+       */
       const currentUser =
-        await getCurrentUser(
-          token,
-        );
+        await getCurrentUser();
 
       setUser(
         currentUser,
       );
     } catch {
-      clearToken();
-
       setUser(
         null,
       );
@@ -115,37 +99,34 @@ export function AuthProvider({
     username: string,
     password: string,
   ) {
-    const response =
-      await loginRequest(
-        username,
-        password,
-      );
-
-    setToken(
-      response.access_token,
+    /*
+     * O endpoint de login cria o cookie
+     * HttpOnly. O JWT nunca é entregue
+     * ao JavaScript.
+     */
+    await loginRequest(
+      username,
+      password,
     );
 
     try {
       const currentUser =
-        await getCurrentUser(
-          response.access_token,
-        );
+        await getCurrentUser();
 
       setUser(
         currentUser,
       );
     } catch (error) {
-      /*
-       * Se por alguma razão o backend
-       * rejeitar o token acabado de emitir,
-       * não deixamos uma sessão inválida
-       * guardada no navegador.
-       */
-      clearToken();
-
       setUser(
         null,
       );
+
+      /*
+       * Se o backend rejeitar a sessão
+       * acabada de criar, eliminamos
+       * também o cookie no Worker.
+       */
+      logoutRequest();
 
       throw error;
     }
@@ -162,29 +143,14 @@ export function AuthProvider({
 
 
   async function refreshUser() {
-    const token =
-      getValidToken();
-
-    if (!token) {
-      setUser(null);
-
-      throw new Error(
-        "Sessão não encontrada.",
-      );
-    }
-
     try {
       const currentUser =
-        await getCurrentUser(
-          token,
-        );
+        await getCurrentUser();
 
       setUser(
         currentUser,
       );
     } catch (error) {
-      clearToken();
-
       setUser(
         null,
       );

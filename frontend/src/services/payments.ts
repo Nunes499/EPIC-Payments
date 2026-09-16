@@ -1,13 +1,3 @@
-import {
-  getToken,
-} from "@/services/auth";
-
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8000";
-
-
 export type PaymentStatus =
   | "pending"
   | "paid"
@@ -69,20 +59,6 @@ export type PaymentRefreshSummary = {
 };
 
 
-function requireToken(): string {
-  const token =
-    getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
-
-  return token;
-}
-
-
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -112,9 +88,6 @@ export async function getPayments(
 ): Promise<
   PaymentReferenceItem[]
 > {
-  const token =
-    requireToken();
-
   const params =
     new URLSearchParams({
       status_filter:
@@ -127,15 +100,9 @@ export async function getPayments(
 
   const response =
     await fetch(
-      `${API_URL}/payments?${params.toString()}`,
+      `/api/backend/payments?${params.toString()}`,
       {
         method: "GET",
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-
         cache: "no-store",
       },
     );
@@ -158,19 +125,12 @@ export async function refreshPayment(
 ): Promise<
   PaymentReferenceItem
 > {
-  const token =
-    requireToken();
-
   const response =
     await fetch(
-      `${API_URL}/payments/${paymentId}/refresh`,
+      `/api/backend/payments/${paymentId}/refresh`,
       {
         method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+        cache: "no-store",
       },
     );
 
@@ -189,19 +149,12 @@ export async function refreshPayment(
 
 export async function refreshPendingPayments():
 Promise<PaymentRefreshSummary> {
-  const token =
-    requireToken();
-
   const response =
     await fetch(
-      `${API_URL}/payments/refresh-pending`,
+      "/api/backend/payments/refresh-pending",
       {
         method: "POST",
-
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
+        cache: "no-store",
       },
     );
 

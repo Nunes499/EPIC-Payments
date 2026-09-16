@@ -1,8 +1,3 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8000";
-
-
 export type UserRole =
   | "admin"
   | "collaborator";
@@ -27,16 +22,27 @@ type LoginResponse = {
 };
 
 
-type JwtPayload = {
-  exp?: number;
-};
-
-
-const TOKEN_KEY =
+const LEGACY_TOKEN_KEY =
   "epic_payments_access_token";
 
+/*
+ * Valor de compatibilidade temporário.
+ *
+ * O JWT verdadeiro já não é exposto ao
+ * JavaScript. Mantemos estas funções até
+ * terminarmos de atualizar os restantes
+ * services que ainda importam getToken().
+ */
+const COOKIE_SESSION_MARKER =
+  "__epic_http_only_session__";
 
-export function getToken():
+
+let legacyMigrationPromise:
+  Promise<void> | null =
+    null;
+
+
+function getLegacyToken():
 string | null {
   if (
     typeof window ===
@@ -45,23 +51,13 @@ string | null {
     return null;
   }
 
-  return localStorage.getItem(
-    TOKEN_KEY,
+  return window.localStorage.getItem(
+    LEGACY_TOKEN_KEY,
   );
 }
 
 
-export function setToken(
-  token: string,
-): void {
-  localStorage.setItem(
-    TOKEN_KEY,
-    token,
-  );
-}
-
-
-export function clearToken():
+function clearLegacyToken():
 void {
   if (
     typeof window ===
@@ -70,124 +66,9 @@ void {
     return;
   }
 
-  localStorage.removeItem(
-    TOKEN_KEY,
+  window.localStorage.removeItem(
+    LEGACY_TOKEN_KEY,
   );
-}
-
-
-function decodeJwtPayload(
-  token: string,
-): JwtPayload | null {
-  try {
-    const parts =
-      token.split(".");
-
-    if (parts.length !== 3) {
-      return null;
-    }
-
-    const payloadPart =
-      parts[1]
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
-
-    const padding =
-      payloadPart.length % 4;
-
-    const paddedPayload =
-      padding === 0
-        ? payloadPart
-        : payloadPart.padEnd(
-            payloadPart.length +
-              (4 - padding),
-            "=",
-          );
-
-    const decoded =
-      atob(
-        paddedPayload,
-      );
-
-    const json =
-      decodeURIComponent(
-        Array.from(decoded)
-          .map(
-            (character) =>
-              `%${character
-                .charCodeAt(0)
-                .toString(16)
-                .padStart(
-                  2,
-                  "0",
-                )}`,
-          )
-          .join(""),
-      );
-
-    return JSON.parse(
-      json,
-    ) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-
-export function isTokenExpired(
-  token: string,
-): boolean {
-  const payload =
-    decodeJwtPayload(
-      token,
-    );
-
-  /*
-   * Se não conseguirmos interpretar
-   * o token, consideramo-lo inválido.
-   */
-  if (
-    !payload ||
-    typeof payload.exp !==
-      "number"
-  ) {
-    return true;
-  }
-
-  const now =
-    Math.floor(
-      Date.now() / 1000,
-    );
-
-  /*
-   * Margem de 10 segundos para evitar
-   * iniciar uma chamada com um token
-   * prestes a expirar.
-   */
-  return (
-    payload.exp <=
-    now + 10
-  );
-}
-
-
-export function getValidToken():
-string | null {
-  const token =
-    getToken();
-
-  if (!token) {
-    return null;
-  }
-
-  if (
-    isTokenExpired(token)
-  ) {
-    clearToken();
-    return null;
-  }
-
-  return token;
 }
 
 
@@ -211,34 +92,155 @@ async function getErrorMessage(
 }
 
 
+async function migrateLegacySession():
+Promise<void> {
+  const legacyToken =
+    getLegacyToken();
+
+  if (!legacyToken) {
+    return;
+  }
+
+  if (
+    legacyMigrationPromise
+  ) {
+    return (
+      legacyMigrationPromise
+    );
+  }
+
+  legacyMigrationPromise =
+    (async () => {
+      const response =
+        await fetch(
+          "/api/session/migrate",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body:
+              JSON.stringify({
+                token:
+                  legacyToken,
+              }),
+            cache:
+              "no-store",
+          },
+        );
+
+      /*
+       * Token inválido/expirado:
+       * deixa de fazer sentido mantê-lo
+       * no browser.
+       */
+      if (
+        response.status === 400 ||
+        response.status === 401
+      ) {
+        clearLegacyToken();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          await getErrorMessage(
+            response,
+            "Não foi possível migrar a sessão existente.",
+          ),
+        );
+      }
+
+      /*
+       * Só apagamos o JWT antigo depois
+       * de o Worker confirmar que o cookie
+       * HttpOnly foi criado.
+       */
+      clearLegacyToken();
+    })();
+
+  try {
+    await legacyMigrationPromise;
+  } finally {
+    legacyMigrationPromise =
+      null;
+  }
+}
+
+
+/*
+ * =====================================================
+ * COMPATIBILIDADE TEMPORÁRIA
+ * =====================================================
+ *
+ * Estas três funções continuam exportadas
+ * apenas porque alguns services antigos
+ * ainda as importam.
+ *
+ * Nenhuma delas devolve o JWT verdadeiro.
+ */
+export function getToken():
+string | null {
+  return COOKIE_SESSION_MARKER;
+}
+
+
+export function setToken(
+  _token: string,
+): void {
+  clearLegacyToken();
+}
+
+
+export function clearToken():
+void {
+  clearLegacyToken();
+}
+
+
+export function isTokenExpired(
+  token: string,
+): boolean {
+  return (
+    token !==
+    COOKIE_SESSION_MARKER
+  );
+}
+
+
+export function getValidToken():
+string | null {
+  return COOKIE_SESSION_MARKER;
+}
+
+
+/*
+ * =====================================================
+ * AUTENTICAÇÃO VIA COOKIE HTTPONLY
+ * =====================================================
+ */
+
 export async function login(
   username: string,
   password: string,
 ): Promise<LoginResponse> {
-  const formData =
-    new URLSearchParams();
-
-  formData.set(
-    "username",
-    username,
-  );
-
-  formData.set(
-    "password",
-    password,
-  );
-
   const response =
     await fetch(
-      `${API_URL}/auth/login`,
+      "/api/session/login",
       {
         method: "POST",
         headers: {
           "Content-Type":
-            "application/x-www-form-urlencoded",
+            "application/json",
         },
         body:
-          formData.toString(),
+          JSON.stringify({
+            username,
+            password,
+          }),
+        cache:
+          "no-store",
       },
     );
 
@@ -251,49 +253,39 @@ export async function login(
     );
   }
 
-  return response.json();
+  /*
+   * Mantemos o formato antigo apenas
+   * enquanto o AuthProvider ainda espera
+   * access_token.
+   *
+   * Isto NÃO é um JWT.
+   */
+  return {
+    access_token:
+      COOKIE_SESSION_MARKER,
+    token_type:
+      "cookie",
+  };
 }
 
 
 export async function getCurrentUser(
-  token?: string,
+  _token?: string,
 ): Promise<AuthUser> {
-  const accessToken =
-    token ??
-    getValidToken();
-
-  if (!accessToken) {
-    throw new Error(
-      "Sessão não encontrada.",
-    );
-  }
-
   /*
-   * Também validamos tokens recebidos
-   * diretamente, por exemplo logo após
-   * o login.
+   * Se este browser ainda tiver o JWT da
+   * versão anterior, convertemo-lo primeiro
+   * para o novo cookie HttpOnly.
    */
-  if (
-    isTokenExpired(
-      accessToken,
-    )
-  ) {
-    clearToken();
-
-    throw new Error(
-      "Sessão expirada.",
-    );
-  }
+  await migrateLegacySession();
 
   const response =
     await fetch(
-      `${API_URL}/auth/me`,
+      "/api/backend/auth/me",
       {
-        headers: {
-          Authorization:
-            `Bearer ${accessToken}`,
-        },
-        cache: "no-store",
+        method: "GET",
+        cache:
+          "no-store",
       },
     );
 
@@ -301,11 +293,16 @@ export async function getCurrentUser(
     if (
       response.status === 401
     ) {
-      clearToken();
+      clearLegacyToken();
     }
 
     throw new Error(
-      "Não foi possível obter o utilizador.",
+      await getErrorMessage(
+        response,
+        response.status === 401
+          ? "Sessão não encontrada ou expirada."
+          : "Não foi possível obter o utilizador.",
+      ),
     );
   }
 
@@ -317,25 +314,14 @@ export async function changeMyPassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<void> {
-  const token =
-    getValidToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada.",
-    );
-  }
-
   const response =
     await fetch(
-      `${API_URL}/auth/me/password`,
+      "/api/backend/auth/me/password",
       {
         method: "PUT",
         headers: {
           "Content-Type":
             "application/json",
-          Authorization:
-            `Bearer ${token}`,
         },
         body:
           JSON.stringify({
@@ -344,6 +330,8 @@ export async function changeMyPassword(
             new_password:
               newPassword,
           }),
+        cache:
+          "no-store",
       },
     );
 
@@ -361,22 +349,13 @@ export async function changeMyPassword(
 async function getPhotoObjectUrl(
   endpoint: string,
 ): Promise<string> {
-  const token =
-    getValidToken();
-
-  if (!token) {
-    return "";
-  }
-
   const response =
     await fetch(
-      `${API_URL}${endpoint}`,
+      `/api/backend${endpoint}`,
       {
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-        cache: "no-store",
+        method: "GET",
+        cache:
+          "no-store",
       },
     );
 
@@ -387,14 +366,11 @@ async function getPhotoObjectUrl(
   }
 
   if (!response.ok) {
-    if (
-      response.status === 401
-    ) {
-      clearToken();
-    }
-
     throw new Error(
-      "Não foi possível carregar a fotografia.",
+      await getErrorMessage(
+        response,
+        "Não foi possível carregar a fotografia.",
+      ),
     );
   }
 
@@ -442,15 +418,6 @@ async function uploadPhoto(
   endpoint: string,
   photo: File,
 ): Promise<void> {
-  const token =
-    getValidToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada.",
-    );
-  }
-
   const formData =
     new FormData();
 
@@ -461,24 +428,17 @@ async function uploadPhoto(
 
   const response =
     await fetch(
-      `${API_URL}${endpoint}`,
+      `/api/backend${endpoint}`,
       {
         method: "PUT",
-        headers: {
-          Authorization:
-            `Bearer ${token}`,
-        },
-        body: formData,
+        body:
+          formData,
+        cache:
+          "no-store",
       },
     );
 
   if (!response.ok) {
-    if (
-      response.status === 401
-    ) {
-      clearToken();
-    }
-
     throw new Error(
       await getErrorMessage(
         response,
@@ -514,41 +474,26 @@ export async function resetUserPassword(
   userId: number,
   newPassword: string,
 ): Promise<void> {
-  const token =
-    getValidToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada.",
-    );
-  }
-
   const response =
     await fetch(
-      `${API_URL}/users/${userId}/password`,
+      `/api/backend/users/${userId}/password`,
       {
         method: "PUT",
         headers: {
           "Content-Type":
             "application/json",
-          Authorization:
-            `Bearer ${token}`,
         },
         body:
           JSON.stringify({
             new_password:
               newPassword,
           }),
+        cache:
+          "no-store",
       },
     );
 
   if (!response.ok) {
-    if (
-      response.status === 401
-    ) {
-      clearToken();
-    }
-
     throw new Error(
       await getErrorMessage(
         response,
@@ -561,13 +506,33 @@ export async function resetUserPassword(
 
 export function logout():
 void {
-  clearToken();
+  clearLegacyToken();
 
   if (
-    typeof window !==
+    typeof window ===
     "undefined"
   ) {
-    window.location.href =
-      "/login";
+    return;
   }
+
+  /*
+   * keepalive ajuda o pedido a terminar
+   * mesmo quando a navegação para /login
+   * começa logo a seguir.
+   */
+  void fetch(
+    "/api/session/logout",
+    {
+      method: "POST",
+      cache:
+        "no-store",
+      keepalive:
+        true,
+    },
+  ).finally(
+    () => {
+      window.location.href =
+        "/login";
+    },
+  );
 }

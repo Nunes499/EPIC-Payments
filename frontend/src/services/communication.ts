@@ -1,12 +1,7 @@
-import { getToken } from "@/services/auth";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8001";
-
 export type SmsMessageType =
   | "informative"
   | "returned";
+
 
 export type MultibancoReferenceRequest = {
   member_number: string;
@@ -14,6 +9,7 @@ export type MultibancoReferenceRequest = {
   phone: string;
   value: number;
 };
+
 
 export type MultibancoReferenceResponse = {
   status: string;
@@ -25,6 +21,7 @@ export type MultibancoReferenceResponse = {
   idempotency_key: string;
   payment_reference_id: number;
 };
+
 
 export type CommunicationSmsRequest = {
   phone: string;
@@ -38,6 +35,7 @@ export type CommunicationSmsRequest = {
   member_number?: string;
   member_name?: string;
 };
+
 
 export type SmsHistoryItem = {
   id: number;
@@ -56,6 +54,7 @@ export type SmsHistoryItem = {
   sent_at: string;
 };
 
+
 export type CommunicationSmsResponse = {
   status: "sent";
   sms_id: string;
@@ -63,6 +62,7 @@ export type CommunicationSmsResponse = {
   message: string;
   sms_history_id: number;
 };
+
 
 export type CommunicationReportRow = {
   member_number: string;
@@ -78,6 +78,7 @@ export type CommunicationReportRow = {
   reason: string;
 };
 
+
 export type CommunicationReportRequest = {
   calendar_date: string;
   source_file_id: number | null;
@@ -85,6 +86,7 @@ export type CommunicationReportRequest = {
   cedis_filename: string;
   rows: CommunicationReportRow[];
 };
+
 
 export type CommunicationReportResponse = {
   id: number;
@@ -101,6 +103,7 @@ export type CommunicationReportResponse = {
   uploaded_at: string;
 };
 
+
 export type CommunicationRowState = {
   source_file_id: number;
   sequence: number;
@@ -111,18 +114,26 @@ export type CommunicationRowState = {
   amount: string;
   reason: string;
 
-  payment_reference_id: number | null;
+  payment_reference_id:
+    number | null;
+
   entity: string;
   reference: string;
   reference_expires_at: string;
   easypay_id: string;
 
-  sms_history_id: number | null;
-  sms_status: "pending" | "sent";
+  sms_history_id:
+    number | null;
+
+  sms_status:
+    | "pending"
+    | "sent";
+
   sms_id: string;
 
   updated_at: string;
 };
+
 
 export type CommunicationRowStateUpdate = {
   member_number?: string | null;
@@ -131,8 +142,10 @@ export type CommunicationRowStateUpdate = {
   phone?: string | null;
   amount?: string | null;
   reason?: string | null;
-  payment_reference_id?: number | null;
-  sms_history_id?: number | null;
+  payment_reference_id?:
+    number | null;
+  sms_history_id?:
+    number | null;
 
   // Compatibilidade temporária para migrar o estado antigo
   // do localStorage para os registos oficiais do Neon.
@@ -140,16 +153,19 @@ export type CommunicationRowStateUpdate = {
   sms_id?: string | null;
 };
 
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
 ): Promise<string> {
   try {
-    const data = await response.json();
+    const data =
+      await response.json();
 
     if (
       data &&
-      typeof data.detail === "string"
+      typeof data.detail ===
+        "string"
     ) {
       return data.detail;
     }
@@ -160,34 +176,30 @@ async function getErrorMessage(
   return fallback;
 }
 
-function requireToken(): string {
-  const token = getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
-
-  return token;
-}
 
 export async function createMultibancoReference(
-  payload: MultibancoReferenceRequest,
-): Promise<MultibancoReferenceResponse> {
-  const token = requireToken();
-
-  const response = await fetch(
-    `${API_URL}/communication/multibanco-reference`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  payload:
+    MultibancoReferenceRequest,
+): Promise<
+  MultibancoReferenceResponse
+> {
+  const response =
+    await fetch(
+      "/api/backend/communication/multibanco-reference",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body:
+          JSON.stringify(
+            payload,
+          ),
+        cache:
+          "no-store",
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -201,22 +213,30 @@ export async function createMultibancoReference(
   return response.json();
 }
 
-export async function sendCommunicationSms(
-  payload: CommunicationSmsRequest,
-): Promise<CommunicationSmsResponse> {
-  const token = requireToken();
 
-  const response = await fetch(
-    `${API_URL}/communication/sms`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+export async function sendCommunicationSms(
+  payload:
+    CommunicationSmsRequest,
+): Promise<
+  CommunicationSmsResponse
+> {
+  const response =
+    await fetch(
+      "/api/backend/communication/sms",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body:
+          JSON.stringify(
+            payload,
+          ),
+        cache:
+          "no-store",
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -230,22 +250,30 @@ export async function sendCommunicationSms(
   return response.json();
 }
 
-export async function attachCommunicationReport(
-  payload: CommunicationReportRequest,
-): Promise<CommunicationReportResponse> {
-  const token = requireToken();
 
-  const response = await fetch(
-    `${API_URL}/communication/report`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+export async function attachCommunicationReport(
+  payload:
+    CommunicationReportRequest,
+): Promise<
+  CommunicationReportResponse
+> {
+  const response =
+    await fetch(
+      "/api/backend/communication/report",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body:
+          JSON.stringify(
+            payload,
+          ),
+        cache:
+          "no-store",
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -259,6 +287,7 @@ export async function attachCommunicationReport(
   return response.json();
 }
 
+
 export async function getSmsHistory(
   source:
     | "communication"
@@ -266,24 +295,21 @@ export async function getSmsHistory(
       "create_reference",
   limit = 10,
 ): Promise<SmsHistoryItem[]> {
-  const token = requireToken();
-
   const params =
     new URLSearchParams({
       source,
-      limit: String(limit),
+      limit:
+        String(limit),
     });
 
-  const response = await fetch(
-    `${API_URL}/communication/sms-history?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
+  const response =
+    await fetch(
+      `/api/backend/communication/sms-history?${params.toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
       },
-      cache: "no-store",
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -297,21 +323,20 @@ export async function getSmsHistory(
   return response.json();
 }
 
+
 export async function getCommunicationRows(
   sourceFileId: number,
-): Promise<CommunicationRowState[]> {
-  const token = requireToken();
-
-  const response = await fetch(
-    `${API_URL}/communication/rows/${sourceFileId}`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
+): Promise<
+  CommunicationRowState[]
+> {
+  const response =
+    await fetch(
+      `/api/backend/communication/rows/${sourceFileId}`,
+      {
+        method: "GET",
+        cache: "no-store",
       },
-      cache: "no-store",
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(
@@ -325,24 +350,30 @@ export async function getCommunicationRows(
   return response.json();
 }
 
+
 export async function saveCommunicationRow(
   sourceFileId: number,
   sequence: number,
-  payload: CommunicationRowStateUpdate,
+  payload:
+    CommunicationRowStateUpdate,
 ): Promise<CommunicationRowState> {
-  const token = requireToken();
-
-  const response = await fetch(
-    `${API_URL}/communication/rows/${sourceFileId}/${sequence}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+  const response =
+    await fetch(
+      `/api/backend/communication/rows/${sourceFileId}/${sequence}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body:
+          JSON.stringify(
+            payload,
+          ),
+        cache:
+          "no-store",
       },
-      body: JSON.stringify(payload),
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(

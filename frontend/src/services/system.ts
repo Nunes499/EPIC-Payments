@@ -1,10 +1,3 @@
-import { getToken } from "@/services/auth";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8000";
-
-
 export type R2Metrics = {
   bucket_name: string;
   object_count: number;
@@ -40,11 +33,13 @@ async function getErrorMessage(
   fallback: string,
 ): Promise<string> {
   try {
-    const data = await response.json();
+    const data =
+      await response.json();
 
     if (
       data &&
-      typeof data.detail === "string"
+      typeof data.detail ===
+        "string"
     ) {
       return data.detail;
     }
@@ -56,25 +51,16 @@ async function getErrorMessage(
 }
 
 
-export async function getCloudflareMetrics(): Promise<CloudflareMetrics> {
-  const token = getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
-
-  const response = await fetch(
-    `${API_URL}/system/cloudflare-metrics`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
+export async function getCloudflareMetrics():
+Promise<CloudflareMetrics> {
+  const response =
+    await fetch(
+      "/api/backend/system/cloudflare-metrics",
+      {
+        method: "GET",
+        cache: "no-store",
       },
-      cache: "no-store",
-    },
-  );
+    );
 
   if (!response.ok) {
     throw new Error(

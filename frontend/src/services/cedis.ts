@@ -10,6 +10,7 @@ export type ApiCedisFile = {
   uploaded_at: string;
 };
 
+
 export type ApiCedisPreviewRow = {
   member_number: string | null;
   name: string | null;
@@ -19,17 +20,14 @@ export type ApiCedisPreviewRow = {
   age: number | null;
 };
 
+
 export type ApiCedisPreviewResponse = {
   file: ApiCedisFile;
   total_rows: number;
-  preview_rows: ApiCedisPreviewRow[];
+  preview_rows:
+    ApiCedisPreviewRow[];
   columns: string[];
 };
-
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
 
 
 async function parseError(
@@ -47,24 +45,23 @@ async function parseError(
     }
 
     return (
-      "Ocorreu um erro ao comunicar "
-      + "com o servidor."
+      "Ocorreu um erro ao comunicar " +
+      "com o servidor."
     );
   } catch {
     return (
-      "Ocorreu um erro ao comunicar "
-      + "com o servidor."
+      "Ocorreu um erro ao comunicar " +
+      "com o servidor."
     );
   }
 }
 
 
-export async function getActiveCedisFile(): Promise<
-  ApiCedisFile | null
-> {
+export async function getActiveCedisFile():
+Promise<ApiCedisFile | null> {
   const response =
     await fetch(
-      `${API_URL}/cedis/active`,
+      "/api/backend/cedis/active",
       {
         method: "GET",
         cache: "no-store",
@@ -74,7 +71,7 @@ export async function getActiveCedisFile(): Promise<
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -83,12 +80,11 @@ export async function getActiveCedisFile(): Promise<
 }
 
 
-export async function getCedisHistory(): Promise<
-  ApiCedisFile[]
-> {
+export async function getCedisHistory():
+Promise<ApiCedisFile[]> {
   const response =
     await fetch(
-      `${API_URL}/cedis/history`,
+      "/api/backend/cedis/history",
       {
         method: "GET",
         cache: "no-store",
@@ -98,7 +94,7 @@ export async function getCedisHistory(): Promise<
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -120,17 +116,18 @@ export async function uploadCedisFile(
 
   const response =
     await fetch(
-      `${API_URL}/cedis/upload`,
+      "/api/backend/cedis/upload",
       {
         method: "POST",
         body: formData,
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -144,16 +141,17 @@ export async function restoreCedisFile(
 ): Promise<ApiCedisFile> {
   const response =
     await fetch(
-      `${API_URL}/cedis/${fileId}/restore`,
+      `/api/backend/cedis/${fileId}/restore`,
       {
         method: "POST",
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -168,7 +166,7 @@ export async function getCedisPreview(
 ): Promise<ApiCedisPreviewResponse> {
   const response =
     await fetch(
-      `${API_URL}/cedis/${fileId}/preview?limit=${limit}`,
+      `/api/backend/cedis/${fileId}/preview?limit=${limit}`,
       {
         method: "GET",
         cache: "no-store",
@@ -178,7 +176,7 @@ export async function getCedisPreview(
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -192,16 +190,17 @@ export async function downloadCedisFile(
 ): Promise<void> {
   const response =
     await fetch(
-      `${API_URL}/cedis/${file.id}/download`,
+      `/api/backend/cedis/${file.id}/download`,
       {
         method: "GET",
+        cache: "no-store",
       },
     );
 
   if (!response.ok) {
     throw new Error(
       await parseError(
-        response
+        response,
       ),
     );
   }
@@ -216,7 +215,7 @@ export async function downloadCedisFile(
 
   const anchor =
     document.createElement(
-      "a"
+      "a",
     );
 
   anchor.href =
