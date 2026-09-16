@@ -36,15 +36,25 @@ async function parseError(
   response: Response,
 ): Promise<string> {
   try {
-    const data = await response.json();
+    const data =
+      await response.json();
 
-    if (typeof data.detail === "string") {
+    if (
+      typeof data.detail ===
+        "string"
+    ) {
       return data.detail;
     }
 
-    return "Ocorreu um erro ao comunicar com o servidor.";
+    return (
+      "Ocorreu um erro ao comunicar "
+      + "com o servidor."
+    );
   } catch {
-    return "Ocorreu um erro ao comunicar com o servidor.";
+    return (
+      "Ocorreu um erro ao comunicar "
+      + "com o servidor."
+    );
   }
 }
 
@@ -52,17 +62,20 @@ async function parseError(
 export async function getActiveCedisFile(): Promise<
   ApiCedisFile | null
 > {
-  const response = await fetch(
-    `${API_URL}/cedis/active`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/cedis/active`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response
+      ),
     );
   }
 
@@ -73,17 +86,20 @@ export async function getActiveCedisFile(): Promise<
 export async function getCedisHistory(): Promise<
   ApiCedisFile[]
 > {
-  const response = await fetch(
-    `${API_URL}/cedis/history`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/cedis/history`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response
+      ),
     );
   }
 
@@ -94,24 +110,51 @@ export async function getCedisHistory(): Promise<
 export async function uploadCedisFile(
   file: File,
 ): Promise<ApiCedisFile> {
-  const formData = new FormData();
+  const formData =
+    new FormData();
 
   formData.append(
     "upload",
     file,
   );
 
-  const response = await fetch(
-    `${API_URL}/cedis/upload`,
-    {
-      method: "POST",
-      body: formData,
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/cedis/upload`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function restoreCedisFile(
+  fileId: number,
+): Promise<ApiCedisFile> {
+  const response =
+    await fetch(
+      `${API_URL}/cedis/${fileId}/restore`,
+      {
+        method: "POST",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await parseError(
+        response
+      ),
     );
   }
 
@@ -123,17 +166,20 @@ export async function getCedisPreview(
   fileId: number,
   limit = 100,
 ): Promise<ApiCedisPreviewResponse> {
-  const response = await fetch(
-    `${API_URL}/cedis/${fileId}/preview?limit=${limit}`,
-    {
-      method: "GET",
-      cache: "no-store",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/cedis/${fileId}/preview?limit=${limit}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response
+      ),
     );
   }
 
@@ -144,16 +190,19 @@ export async function getCedisPreview(
 export async function downloadCedisFile(
   file: ApiCedisFile,
 ): Promise<void> {
-  const response = await fetch(
-    `${API_URL}/cedis/${file.id}/download`,
-    {
-      method: "GET",
-    },
-  );
+  const response =
+    await fetch(
+      `${API_URL}/cedis/${file.id}/download`,
+      {
+        method: "GET",
+      },
+    );
 
   if (!response.ok) {
     throw new Error(
-      await parseError(response),
+      await parseError(
+        response
+      ),
     );
   }
 
@@ -166,7 +215,9 @@ export async function downloadCedisFile(
     );
 
   const anchor =
-    document.createElement("a");
+    document.createElement(
+      "a"
+    );
 
   anchor.href =
     objectUrl;

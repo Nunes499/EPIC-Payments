@@ -7,6 +7,7 @@ import {
   Eye,
   FileSpreadsheet,
   History,
+  RotateCcw,
   Upload,
 } from "lucide-react";
 import {
@@ -20,6 +21,7 @@ import {
   getActiveCedisFile,
   getCedisHistory,
   getCedisPreview,
+  restoreCedisFile,
   uploadCedisFile,
   type ApiCedisFile,
   type ApiCedisPreviewResponse,
@@ -124,6 +126,21 @@ export default function CedisSettings() {
   );
 
 
+  const [
+    message,
+    setMessage,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
+    restoringId,
+    setRestoringId,
+  ] = useState<number | null>(
+    null,
+  );
+
+
   async function loadData() {
     setIsLoading(true);
     setError(null);
@@ -163,17 +180,16 @@ export default function CedisSettings() {
   }, []);
 
 
-  async function handlePreview() {
-    if (!activeFile) {
-      return;
-    }
-
+  async function handlePreview(
+    file: ApiCedisFile,
+  ) {
     setError(null);
+    setMessage(null);
 
     try {
       const data =
         await getCedisPreview(
-          activeFile.id,
+          file.id,
           100,
         );
 
@@ -194,20 +210,84 @@ export default function CedisSettings() {
   }
 
 
-  async function handleDownload() {
-    if (!activeFile) {
-      return;
-    }
+  async function handleDownload(
+    file: ApiCedisFile,
+  ) {
+    setError(null);
+    setMessage(null);
 
     try {
       await downloadCedisFile(
-        activeFile,
+        file,
       );
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Não foi possível descarregar a base.",
+      );
+    }
+  }
+
+
+  async function handleRestore(
+    file: ApiCedisFile,
+  ) {
+    if (
+      file.is_active
+      || !isOnlineCedisFile(
+        file
+      )
+      || restoringId !== null
+    ) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Restaurar a versão #${file.id} (${file.original_filename})?\n\n`
+        + "O EPIC Payments criará uma NOVA versão ativa. "
+        + "A base atual e esta versão histórica serão preservadas.",
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRestoringId(
+      file.id
+    );
+    setError(null);
+    setMessage(null);
+
+    try {
+      const restored =
+        await restoreCedisFile(
+          file.id,
+        );
+
+      setPreview(
+        null
+      );
+
+      setIsPreviewOpen(
+        false
+      );
+
+      await loadData();
+
+      setMessage(
+        `Versão #${file.id} restaurada com sucesso como nova versão #${restored.id}.`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível restaurar esta versão.",
+      );
+    } finally {
+      setRestoringId(
+        null
       );
     }
   }
@@ -221,6 +301,7 @@ export default function CedisSettings() {
     );
 
     setError(null);
+    setMessage(null);
 
     try {
       await uploadCedisFile(
@@ -269,6 +350,26 @@ export default function CedisSettings() {
       {error ? (
         <div className="cedis-error">
           {error}
+        </div>
+      ) : null}
+
+
+      {message ? (
+        <div
+          style={{
+            marginBottom: "14px",
+            border:
+              "1px solid rgba(34, 139, 94, 0.22)",
+            borderRadius: "10px",
+            background:
+              "rgba(34, 139, 94, 0.08)",
+            padding: "11px 13px",
+            color: "#176b46",
+            fontSize: "13px",
+            fontWeight: 800,
+          }}
+        >
+          {message}
         </div>
       ) : null}
 
@@ -353,7 +454,9 @@ export default function CedisSettings() {
             <button
               type="button"
               onClick={() =>
-                void handlePreview()
+                void handlePreview(
+                  activeFile
+                )
               }
             >
               <Eye size={17} />
@@ -363,7 +466,9 @@ export default function CedisSettings() {
             <button
               type="button"
               onClick={() =>
-                void handleDownload()
+                void handleDownload(
+                  activeFile
+                )
               }
             >
               <Download size={17} />
@@ -466,60 +571,198 @@ export default function CedisSettings() {
         {history.length ? (
           <div className="cedis-history-list">
             {history.map(
-              (file) => (
-                <div
-                  key={file.id}
-                  className="cedis-history-row"
-                >
-                  <div>
-                    <strong>
-                      {file.original_filename}
-                    </strong>
+              (file) => {
+                const isOnline =
+                  isOnlineCedisFile(
+                    file
+                  );
 
-                    <span>
-                      {formatDateTime(
-                        file.uploaded_at,
-                      )}
-                    </span>
-                  </div>
+                const canUseHistory =
+                  !file.is_active
+                  && isOnline;
 
-                  <div className="cedis-history-meta">
-                    <span>
-                      {formatFileSize(
-                        file.file_size,
-                      )}
-                    </span>
+                return (
+                  <div
+                    key={file.id}
+                    className="cedis-history-row"
+                    style={{
+                      alignItems: "center",
+                      gap: "14px",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {file.original_filename}
+                      </strong>
 
-                    {file.is_active ? (
-                      <span className="cedis-history-active">
-                        Ativa · Cloudflare R2
-                      </span>
-                    ) : isOnlineCedisFile(
-                        file
-                      ) ? (
                       <span>
-                        Anterior · Disponível online
+                        {formatDateTime(
+                          file.uploaded_at,
+                        )}
                       </span>
-                    ) : (
-                      <span
-                        title="Esta versão pertence ao armazenamento local anterior e o ficheiro físico já não está disponível."
+                    </div>
+
+                    <div className="cedis-history-meta">
+                      <span>
+                        {formatFileSize(
+                          file.file_size,
+                        )}
+                      </span>
+
+                      {file.is_active ? (
+                        <span className="cedis-history-active">
+                          Ativa · Cloudflare R2
+                        </span>
+                      ) : isOnline ? (
+                        <span>
+                          Anterior · Disponível online
+                        </span>
+                      ) : (
+                        <span
+                          title="Esta versão pertence ao armazenamento local anterior e o ficheiro físico já não está disponível."
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                            color: "#a16207",
+                            fontWeight: 800,
+                          }}
+                        >
+                          <AlertTriangle
+                            size={12}
+                          />
+                          Ficheiro histórico indisponível
+                        </span>
+                      )}
+                    </div>
+
+                    {canUseHistory ? (
+                      <div
                         style={{
-                          display: "inline-flex",
+                          display: "flex",
                           alignItems: "center",
-                          gap: "5px",
-                          color: "#a16207",
-                          fontWeight: 800,
+                          justifyContent: "flex-end",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                          minWidth: "320px",
                         }}
                       >
-                        <AlertTriangle
-                          size={12}
-                        />
-                        Ficheiro histórico indisponível
-                      </span>
-                    )}
+                        <button
+                          type="button"
+                          title={`Visualizar versão #${file.id}`}
+                          onClick={() =>
+                            void handlePreview(
+                              file
+                            )
+                          }
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            minHeight: "34px",
+                            padding: "0 12px",
+                            border:
+                              "1px solid rgba(50, 88, 118, 0.18)",
+                            borderRadius: "9px",
+                            background:
+                              "rgba(255, 255, 255, 0.82)",
+                            color: "#16384f",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            boxShadow:
+                              "0 1px 2px rgba(22, 56, 79, 0.06)",
+                          }}
+                        >
+                          <Eye size={14} />
+                          Visualizar
+                        </button>
+
+                        <button
+                          type="button"
+                          title={`Descarregar versão #${file.id}`}
+                          onClick={() =>
+                            void handleDownload(
+                              file
+                            )
+                          }
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            minHeight: "34px",
+                            padding: "0 12px",
+                            border:
+                              "1px solid rgba(50, 88, 118, 0.18)",
+                            borderRadius: "9px",
+                            background:
+                              "rgba(255, 255, 255, 0.82)",
+                            color: "#16384f",
+                            fontSize: "12px",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                            boxShadow:
+                              "0 1px 2px rgba(22, 56, 79, 0.06)",
+                          }}
+                        >
+                          <Download size={14} />
+                          Descarregar
+                        </button>
+
+                        <button
+                          type="button"
+                          title={`Restaurar versão #${file.id} como nova versão`}
+                          disabled={
+                            restoringId !== null
+                          }
+                          onClick={() =>
+                            void handleRestore(
+                              file
+                            )
+                          }
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "6px",
+                            minHeight: "34px",
+                            padding: "0 12px",
+                            border:
+                              "1px solid rgba(0, 135, 185, 0.24)",
+                            borderRadius: "9px",
+                            background:
+                              restoringId === file.id
+                                ? "rgba(0, 135, 185, 0.08)"
+                                : "rgba(229, 247, 253, 0.92)",
+                            color: "#006b91",
+                            fontSize: "12px",
+                            fontWeight: 900,
+                            cursor:
+                              restoringId !== null
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity:
+                              restoringId !== null
+                              && restoringId !== file.id
+                                ? 0.55
+                                : 1,
+                            boxShadow:
+                              "0 1px 2px rgba(0, 107, 145, 0.06)",
+                          }}
+                        >
+                          <RotateCcw size={14} />
+                          {restoringId
+                            === file.id
+                            ? "A restaurar..."
+                            : "Restaurar"}
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ),
+                );
+              },
             )}
           </div>
         ) : (

@@ -541,6 +541,138 @@ async def save_cedis_file(
 
 
 # =========================================================
+# RESTAURAR VERSÃO ANTERIOR
+# =========================================================
+
+def restore_cedis_file(
+    db: Session,
+    *,
+    file_id: int,
+    uploaded_by_id: int | None = None,
+) -> CedisFile:
+    """
+    Restaura uma versão anterior criando uma NOVA versão.
+
+    A versão de origem permanece intacta no histórico.
+    O conteúdo é novamente validado, copiado para um novo
+    objeto no Cloudflare R2 e só depois registado como a
+    nova Base CEDIS ativa.
+    """
+
+    source_file = get_existing_cedis_file(
+        db,
+        file_id=file_id,
+    )
+
+    if source_file.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Esta versão já é a Base CEDIS ativa."
+            ),
+        )
+
+    if not is_r2_file_path(
+        source_file.file_path
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Esta versão histórica não está disponível "
+                "no Cloudflare R2 e não pode ser restaurada."
+            ),
+        )
+
+    contents = get_cedis_file_contents(
+        source_file
+    )
+
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "O ficheiro desta versão histórica "
+                "não está disponível."
+            ),
+        )
+
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                "O ficheiro excede o limite máximo de 25 MB."
+            ),
+        )
+
+    extension = Path(
+        source_file.original_filename
+    ).suffix.lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        extension = Path(
+            source_file.stored_filename
+        ).suffix.lower()
+
+    if extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Formato da Base CEDIS não suportado."
+            ),
+        )
+
+    dataframe = read_cedis_excel_bytes(
+        contents,
+        extension=extension,
+    )
+
+    validate_cedis_dataframe(
+        dataframe
+    )
+
+    stored_filename = (
+        f"{uuid4().hex}{extension}"
+    )
+
+    object_key = build_cedis_r2_object_key(
+        stored_filename=stored_filename,
+    )
+
+    upload_bytes_to_r2(
+        object_key=object_key,
+        contents=contents,
+        content_type=source_file.mime_type,
+    )
+
+    try:
+        restored_file = create_cedis_file(
+            db,
+            original_filename=(
+                source_file.original_filename
+            ),
+            stored_filename=stored_filename,
+            mime_type=source_file.mime_type,
+            file_size=len(contents),
+            file_path=build_r2_file_path(
+                object_key
+            ),
+            uploaded_by_id=uploaded_by_id,
+        )
+
+        return restored_file
+
+    except Exception:
+        try:
+            delete_object_from_r2(
+                object_key=object_key,
+            )
+        except Exception:
+            pass
+
+        raise
+
+
+# =========================================================
 # PREVIEW
 # =========================================================
 

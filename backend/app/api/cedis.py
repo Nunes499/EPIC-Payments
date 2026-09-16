@@ -30,6 +30,7 @@ from app.services.cedis_service import (
     get_existing_cedis_file,
     get_existing_cedis_file_path,
     is_r2_file_path,
+    restore_cedis_file,
     save_cedis_file,
 )
 
@@ -47,11 +48,6 @@ router = APIRouter(
 def get_active_base(
     db: Session = Depends(get_db),
 ):
-    """
-    Devolve a versão atualmente ativa
-    da Base de Dados CEDIS.
-    """
-
     return get_active_cedis_file(db)
 
 
@@ -62,11 +58,6 @@ def get_active_base(
 def list_cedis_history(
     db: Session = Depends(get_db),
 ):
-    """
-    Devolve todas as versões da Base CEDIS,
-    da mais recente para a mais antiga.
-    """
-
     return get_cedis_history(db)
 
 
@@ -79,19 +70,25 @@ async def upload_cedis_base(
     upload: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    """
-    Recebe uma nova Base CEDIS.
-
-    O ficheiro é validado antes de substituir
-    a versão atualmente ativa.
-
-    Se a validação falhar, a base ativa
-    permanece inalterada.
-    """
-
     return await save_cedis_file(
         db,
         upload=upload,
+        uploaded_by_id=None,
+    )
+
+
+@router.post(
+    "/{file_id}/restore",
+    response_model=CedisFileRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def restore_cedis_base(
+    file_id: int,
+    db: Session = Depends(get_db),
+):
+    return restore_cedis_file(
+        db,
+        file_id=file_id,
         uploaded_by_id=None,
     )
 
@@ -105,23 +102,10 @@ def preview_cedis_base(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    """
-    Permite visualizar os dados da Base CEDIS
-    diretamente na interface do EPIC Payments.
-
-    A leitura funciona tanto para versões antigas
-    armazenadas localmente como para versões
-    armazenadas no Cloudflare R2.
-    """
-
     if limit < 1:
         raise HTTPException(
-            status_code=(
-                status.HTTP_400_BAD_REQUEST
-            ),
-            detail=(
-                "O limite deve ser superior a zero."
-            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="O limite deve ser superior a zero.",
         )
 
     cedis_file = get_existing_cedis_file(
@@ -142,19 +126,6 @@ def download_cedis_base(
     file_id: int,
     db: Session = Depends(get_db),
 ):
-    """
-    Descarrega uma versão da Base CEDIS
-    mantendo o nome original do ficheiro.
-
-    Versões antigas:
-        são servidas através do ficheiro local.
-
-    Versões Cloudflare R2:
-        são obtidas diretamente do R2 e enviadas
-        ao utilizador sem necessidade de criar
-        uma cópia permanente no disco do servidor.
-    """
-
     cedis_file = get_existing_cedis_file(
         db,
         file_id=file_id,
@@ -170,32 +141,21 @@ def download_cedis_base(
         or f"cedis_{cedis_file.id}.xls"
     )
 
-    # =====================================================
-    # CLOUDFLARE R2
-    # =====================================================
-
     if is_r2_file_path(
         cedis_file.file_path
     ):
         try:
-            contents = (
-                get_cedis_file_contents(
-                    cedis_file
-                )
+            contents = get_cedis_file_contents(
+                cedis_file
             )
-
         except HTTPException:
             raise
-
         except Exception as exc:
             raise HTTPException(
-                status_code=(
-                    status.HTTP_502_BAD_GATEWAY
-                ),
+                status_code=status.HTTP_502_BAD_GATEWAY,
                 detail=(
                     "Não foi possível obter "
-                    "a Base CEDIS do "
-                    "Cloudflare R2."
+                    "a Base CEDIS do Cloudflare R2."
                 ),
             ) from exc
 
@@ -204,9 +164,7 @@ def download_cedis_base(
         )
 
         return StreamingResponse(
-            BytesIO(
-                contents
-            ),
+            BytesIO(contents),
             media_type=media_type,
             headers={
                 "Content-Disposition": (
@@ -216,20 +174,12 @@ def download_cedis_base(
                 "Content-Length": str(
                     len(contents)
                 ),
-                "Cache-Control": (
-                    "private, no-store"
-                ),
+                "Cache-Control": "private, no-store",
             },
         )
 
-    # =====================================================
-    # ARMAZENAMENTO LOCAL LEGADO
-    # =====================================================
-
-    file_path = (
-        get_existing_cedis_file_path(
-            cedis_file
-        )
+    file_path = get_existing_cedis_file_path(
+        cedis_file
     )
 
     return FileResponse(
