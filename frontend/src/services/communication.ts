@@ -23,6 +23,7 @@ export type MultibancoReferenceResponse = {
   expires_at: string;
   easypay_id: string;
   idempotency_key: string;
+  payment_reference_id: number;
 };
 
 export type CommunicationSmsRequest = {
@@ -60,6 +61,7 @@ export type CommunicationSmsResponse = {
   sms_id: string;
   phone: string;
   message: string;
+  sms_history_id: number;
 };
 
 export type CommunicationReportRow = {
@@ -97,6 +99,45 @@ export type CommunicationReportResponse = {
   file_size: number | null;
   file_path: string;
   uploaded_at: string;
+};
+
+export type CommunicationRowState = {
+  source_file_id: number;
+  sequence: number;
+  member_number: string;
+  member_name: string;
+  age: number | null;
+  phone: string;
+  amount: string;
+  reason: string;
+
+  payment_reference_id: number | null;
+  entity: string;
+  reference: string;
+  reference_expires_at: string;
+  easypay_id: string;
+
+  sms_history_id: number | null;
+  sms_status: "pending" | "sent";
+  sms_id: string;
+
+  updated_at: string;
+};
+
+export type CommunicationRowStateUpdate = {
+  member_number?: string | null;
+  member_name?: string | null;
+  age?: number | null;
+  phone?: string | null;
+  amount?: string | null;
+  reason?: string | null;
+  payment_reference_id?: number | null;
+  sms_history_id?: number | null;
+
+  // Compatibilidade temporária para migrar o estado antigo
+  // do localStorage para os registos oficiais do Neon.
+  easypay_id?: string | null;
+  sms_id?: string | null;
 };
 
 async function getErrorMessage(
@@ -218,7 +259,6 @@ export async function attachCommunicationReport(
   return response.json();
 }
 
-
 export async function getSmsHistory(
   source:
     | "communication"
@@ -250,6 +290,65 @@ export async function getSmsHistory(
       await getErrorMessage(
         response,
         "Não foi possível carregar o histórico de SMS.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+export async function getCommunicationRows(
+  sourceFileId: number,
+): Promise<CommunicationRowState[]> {
+  const token = requireToken();
+
+  const response = await fetch(
+    `${API_URL}/communication/rows/${sourceFileId}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível carregar o estado da Comunicação.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+export async function saveCommunicationRow(
+  sourceFileId: number,
+  sequence: number,
+  payload: CommunicationRowStateUpdate,
+): Promise<CommunicationRowState> {
+  const token = requireToken();
+
+  const response = await fetch(
+    `${API_URL}/communication/rows/${sourceFileId}/${sequence}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível guardar o estado da Comunicação.",
       ),
     );
   }

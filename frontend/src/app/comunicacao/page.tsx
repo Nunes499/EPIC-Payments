@@ -30,7 +30,10 @@ import {
 import {
   attachCommunicationReport,
   createMultibancoReference,
+  getCommunicationRows,
+  saveCommunicationRow,
   sendCommunicationSms,
+  type CommunicationRowState,
 } from "@/services/communication";
 
 import {
@@ -62,6 +65,7 @@ type CommunicationRow = {
   bankReasonDescription: string;
   bankReference: string;
 
+  paymentReferenceId: number | null;
   entity: string;
   reference: string;
   referenceExpiresAt: string;
@@ -70,10 +74,12 @@ type CommunicationRow = {
   creatingReference: boolean;
   referenceError: string;
 
+  smsHistoryId: number | null;
   smsStatus: SmsStatus;
   smsId: string;
   sendingSms: boolean;
   smsError: string;
+
   reason: string;
 
   isMinor: boolean;
@@ -201,9 +207,12 @@ function normalizePhoneForDisplay(
 }
 
 
-
 function escapeHtml(
-  value: string | number | null | undefined,
+  value:
+    | string
+    | number
+    | null
+    | undefined,
 ): string {
   return String(
     value ?? "",
@@ -226,522 +235,6 @@ function formatReportTimestamp(): string {
   ).format(
     new Date(),
   );
-}
-
-
-type CommunicationReportThemeOptions = {
-  generatedByName: string;
-  generatedAt: string;
-  processingDate: string;
-  filename: string;
-};
-
-function applyCommunicationReportTheme(
-  html: string,
-  options: CommunicationReportThemeOptions,
-): string {
-  const generatedByName =
-    escapeHtml(options.generatedByName || "—");
-
-  const generatedAt =
-    escapeHtml(options.generatedAt || "—");
-
-  const processingDate =
-    escapeHtml(options.processingDate || "—");
-
-  const filename =
-    escapeHtml(options.filename || "Ficheiro bancário");
-
-  const approvedHeader = `
-    <section class="header epic-report-header">
-      <div class="epic-header-main">
-        <img
-          class="epic-report-logo"
-          src="/branding/logo-epic-payments-all-white.png"
-          alt="EPIC Payments"
-        />
-
-        <div class="epic-header-title">
-          <h1>Relatório de Comunicação</h1>
-          <div class="subtitle">
-            Mensalidades não cobradas e respetivo estado de comunicação.
-          </div>
-        </div>
-      </div>
-
-      <div class="epic-generated-meta">
-        <div class="epic-generated-block">
-          <span>GERADO EM</span>
-          <strong>${generatedAt}</strong>
-        </div>
-
-        <div class="epic-generated-block">
-          <span>COLABORADOR</span>
-          <strong>${generatedByName}</strong>
-        </div>
-      </div>
-    </section>
-  `;
-
-  const processingPanel = `
-    <section class="epic-processing-panel">
-      <div class="epic-processing-item">
-        <span>DATA DO PROCESSAMENTO</span>
-        <strong>${processingDate}</strong>
-      </div>
-
-      <div class="epic-processing-item">
-        <span>FICHEIRO BANCÁRIO</span>
-        <strong>${filename}</strong>
-      </div>
-    </section>
-  `;
-
-  const footer = `
-    <div class="footer epic-report-footer">
-      EPIC PAYMENTS · RELATÓRIO DE COMUNICAÇÃO · PÁGINA 1 DE 1
-    </div>
-  `;
-
-  const approvedCss = `
-    <style id="epic-approved-report-theme">
-      :root {
-        --epic-navy: #0d3450;
-        --epic-navy-deep: #092d4a;
-        --epic-blue: #0e5a8a;
-        --epic-blue-soft: #edf6fc;
-        --epic-border: #d8e5ee;
-        --epic-text: #17293a;
-        --epic-muted: #6c7f90;
-        --epic-green: #17734b;
-        --epic-green-soft: #e8f7ef;
-        --epic-red: #c44343;
-        --epic-red-soft: #fceeee;
-      }
-
-      body {
-        padding: 28px !important;
-        color: var(--epic-text) !important;
-        background: #eef3f7 !important;
-        font-family:
-          "Segoe UI Variable",
-          "Segoe UI",
-          Arial,
-          Helvetica,
-          sans-serif !important;
-      }
-
-      .toolbar,
-      .report-success {
-        max-width: 794px !important;
-      }
-
-      .toolbar-button {
-        border-radius: 10px !important;
-      }
-
-      .print-button,
-      .attach-button {
-        color: #fff !important;
-        background: var(--epic-navy) !important;
-        box-shadow:
-          0 5px 14px rgba(13, 52, 80, .14) !important;
-      }
-
-      .print-button:hover,
-      .attach-button:hover:not(:disabled) {
-        background: #154b70 !important;
-      }
-
-      .attach-button.created {
-        color: #17613f !important;
-        background: #e9f6ef !important;
-        border: 1px solid #b8dec8 !important;
-        box-shadow: none !important;
-      }
-
-      .report {
-        width: 794px !important;
-        max-width: 794px !important;
-        min-height: 1123px !important;
-        margin: 0 auto !important;
-        padding: 0 28px 28px !important;
-        overflow: hidden !important;
-        background: #fff !important;
-        border: 1px solid #d9e3ea !important;
-        border-radius: 16px !important;
-        box-shadow:
-          0 14px 38px rgba(19, 49, 70, .10) !important;
-      }
-
-      .epic-report-header {
-        min-height: 235px !important;
-        margin: 0 -28px 24px !important;
-        padding: 30px 34px 27px !important;
-        display: grid !important;
-        grid-template-columns: minmax(0, 1fr) 185px !important;
-        align-items: end !important;
-        gap: 30px !important;
-        color: #fff !important;
-        border: 0 !important;
-        background:
-          linear-gradient(
-            135deg,
-            var(--epic-navy-deep) 0%,
-            var(--epic-navy) 55%,
-            #124568 100%
-          ) !important;
-        position: relative !important;
-      }
-
-      .epic-report-header::after {
-        content: "" !important;
-        position: absolute !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        height: 3px !important;
-        background:
-          linear-gradient(
-            90deg,
-            #0c70b3,
-            #4aa8df,
-            #0c70b3
-          ) !important;
-      }
-
-      .epic-header-main {
-        min-width: 0 !important;
-      }
-
-      .epic-report-logo {
-        width: 172px !important;
-        height: auto !important;
-        display: block !important;
-        object-fit: contain !important;
-        margin: 0 0 42px !important;
-      }
-
-      .epic-header-title h1 {
-        margin: 0 0 7px !important;
-        color: #fff !important;
-        font-size: 31px !important;
-        line-height: 1.08 !important;
-        font-weight: 760 !important;
-        letter-spacing: -.7px !important;
-      }
-
-      .epic-header-title .subtitle {
-        color: #d7e7f1 !important;
-        font-size: 12px !important;
-        line-height: 1.5 !important;
-      }
-
-      .epic-generated-meta {
-        margin-bottom: 2px !important;
-        padding-left: 22px !important;
-        display: grid !important;
-        gap: 18px !important;
-        border-left:
-          1px solid rgba(188, 216, 233, .55) !important;
-      }
-
-      .epic-generated-block {
-        display: grid !important;
-        gap: 4px !important;
-      }
-
-      .epic-generated-block span {
-        color: #bad1df !important;
-        font-size: 8px !important;
-        font-weight: 700 !important;
-        letter-spacing: 1.2px !important;
-      }
-
-      .epic-generated-block strong {
-        color: #fff !important;
-        font-size: 11px !important;
-        font-weight: 750 !important;
-      }
-
-      .epic-processing-panel {
-        display: grid !important;
-        grid-template-columns: .8fr 1.7fr !important;
-        margin-bottom: 18px !important;
-        border: 1px solid #cddfea !important;
-        border-radius: 11px !important;
-        overflow: hidden !important;
-        background: #fff !important;
-      }
-
-      .epic-processing-item {
-        min-height: 74px !important;
-        padding: 16px 18px !important;
-        display: grid !important;
-        align-content: center !important;
-        gap: 5px !important;
-      }
-
-      .epic-processing-item + .epic-processing-item {
-        border-left: 1px solid #dce7ee !important;
-      }
-
-      .epic-processing-item span {
-        color: #607689 !important;
-        font-size: 8px !important;
-        font-weight: 850 !important;
-        letter-spacing: .55px !important;
-      }
-
-      .epic-processing-item strong {
-        color: #12283b !important;
-        font-size: 14px !important;
-        font-weight: 800 !important;
-      }
-
-      .summary {
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 12px !important;
-        margin-bottom: 20px !important;
-      }
-
-      .summary-card {
-        min-height: 98px !important;
-        padding: 16px !important;
-        display: grid !important;
-        align-content: center !important;
-        border-radius: 11px !important;
-        box-shadow: none !important;
-      }
-
-      .summary-card:nth-child(1) {
-        border: 1px solid #c8ddec !important;
-        background:
-          linear-gradient(145deg, #f7fbfe, #eaf5fc) !important;
-      }
-
-      .summary-card:nth-child(2) {
-        border: 1px solid #c9e6d7 !important;
-        background:
-          linear-gradient(145deg, #f7fcf9, #e8f7ef) !important;
-      }
-
-      .summary-card:nth-child(3) {
-        border: 1px solid #efd1d1 !important;
-        background:
-          linear-gradient(145deg, #fffafa, #fceeee) !important;
-      }
-
-      .summary-label {
-        margin-bottom: 8px !important;
-        color: #5e7487 !important;
-        font-size: 8px !important;
-        letter-spacing: .65px !important;
-      }
-
-      .summary-value {
-        color: #10283c !important;
-        font-size: 27px !important;
-        line-height: 1 !important;
-      }
-
-      table {
-        border: 1px solid #d8e3eb !important;
-        border-radius: 10px !important;
-        overflow: hidden !important;
-      }
-
-      th {
-        padding: 10px 6px !important;
-        color: #fff !important;
-        background: var(--epic-navy) !important;
-        border-bottom: 0 !important;
-        font-size: 7.4px !important;
-        letter-spacing: .15px !important;
-      }
-
-      td {
-        padding: 10px 6px !important;
-        color: #243748 !important;
-        border-bottom: 1px solid #e4ebf0 !important;
-        font-size: 8.2px !important;
-        line-height: 1.25 !important;
-      }
-
-      tbody tr:nth-child(even) td {
-        background: #f8fafc !important;
-      }
-
-      .money {
-        color: #152a3c !important;
-        font-weight: 800 !important;
-      }
-
-      .status {
-        padding: 4px 7px !important;
-        font-size: 7.4px !important;
-      }
-
-      .sent {
-        color: var(--epic-green) !important;
-        background: var(--epic-green-soft) !important;
-      }
-
-      .not-sent {
-        color: var(--epic-red) !important;
-        background: var(--epic-red-soft) !important;
-      }
-
-      .epic-report-note {
-        margin-top: 22px !important;
-        padding: 15px 17px !important;
-        color: #667b8d !important;
-        background: #f7fafc !important;
-        border: 1px solid #dce6ed !important;
-        border-radius: 10px !important;
-        font-size: 9px !important;
-        line-height: 1.5 !important;
-      }
-
-      .epic-report-note strong {
-        color: #19334a !important;
-      }
-
-      .epic-report-footer {
-        margin-top: 58px !important;
-        padding-top: 15px !important;
-        color: #778a99 !important;
-        border-top: 1px solid #dde6ec !important;
-        font-size: 7.5px !important;
-        text-align: right !important;
-        letter-spacing: .35px !important;
-      }
-
-      @media print {
-        @page {
-          size: A4 portrait !important;
-          margin: 0 !important;
-        }
-
-        html,
-        body {
-          width: 210mm !important;
-          min-height: 297mm !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-
-        .toolbar,
-        .report-success {
-          display: none !important;
-        }
-
-        .report {
-          width: 210mm !important;
-          max-width: 210mm !important;
-          min-height: 297mm !important;
-          margin: 0 !important;
-          padding: 0 7mm 7mm !important;
-          border: 0 !important;
-          border-radius: 0 !important;
-          box-shadow: none !important;
-        }
-
-        .epic-report-header {
-          min-height: 58mm !important;
-          margin: 0 -7mm 6mm !important;
-          padding: 8mm 9mm 7mm !important;
-          grid-template-columns: minmax(0, 1fr) 49mm !important;
-          gap: 7mm !important;
-          break-inside: avoid !important;
-        }
-
-        .epic-report-logo {
-          width: 45mm !important;
-          margin-bottom: 10mm !important;
-        }
-
-        .epic-header-title h1 {
-          font-size: 22pt !important;
-        }
-
-        .epic-processing-panel {
-          margin-bottom: 5mm !important;
-          break-inside: avoid !important;
-        }
-
-        .epic-processing-item {
-          min-height: 19mm !important;
-          padding: 4mm 5mm !important;
-        }
-
-        .summary {
-          gap: 3mm !important;
-          margin-bottom: 5mm !important;
-          break-inside: avoid !important;
-        }
-
-        .summary-card {
-          min-height: 25mm !important;
-          padding: 4mm !important;
-        }
-
-        table {
-          width: 100% !important;
-          table-layout: fixed !important;
-        }
-
-        thead {
-          display: table-header-group !important;
-        }
-
-        tr {
-          break-inside: avoid !important;
-        }
-
-        .epic-report-note {
-          margin-top: 5mm !important;
-          padding: 4mm !important;
-          break-inside: avoid !important;
-        }
-
-        .epic-report-footer {
-          margin-top: 9mm !important;
-        }
-      }
-    </style>
-  `;
-
-  let themed = html.replace(
-    "</head>",
-    `${approvedCss}</head>`,
-  );
-
-  themed = themed.replace(
-    /<section class="header">[\s\S]*?<\/section>/,
-    approvedHeader,
-  );
-
-  themed = themed.replace(
-    '<section class="summary">',
-    `${processingPanel}<section class="summary">`,
-  );
-
-  themed = themed.replace(
-    /<div class="footer">[\s\S]*?<\/div>/,
-    `
-      <div class="epic-report-note">
-        <strong>Documento gerado automaticamente pelo EPIC Payments.</strong><br />
-        Os processos sem SMS enviado encontram-se acompanhados da respetiva justificação.
-      </div>
-      ${footer}
-    `,
-  );
-
-  return themed;
 }
 
 
@@ -775,7 +268,9 @@ function movementToRow(
 
     amount:
       formatAmountInput(
-        String(movement.amount ?? ""),
+        String(
+          movement.amount ?? "",
+        ),
       ),
 
     bankReasonCode:
@@ -787,6 +282,7 @@ function movementToRow(
     bankReference:
       movement.bank_reference || "",
 
+    paymentReferenceId: null,
     entity: "",
     reference: "",
     referenceExpiresAt: "",
@@ -795,10 +291,12 @@ function movementToRow(
     creatingReference: false,
     referenceError: "",
 
+    smsHistoryId: null,
     smsStatus: "pending",
     smsId: "",
     sendingSms: false,
     smsError: "",
+
     reason: "",
 
     isMinor:
@@ -807,6 +305,164 @@ function movementToRow(
     cedisMatch:
       movement.cedis_match,
   };
+}
+
+
+function applyStateToRow(
+  baseRow: CommunicationRow,
+  state: CommunicationRowState,
+): CommunicationRow {
+  return {
+    ...baseRow,
+
+    memberNumber:
+      state.member_number ??
+      baseRow.memberNumber,
+
+    name:
+      state.member_name ??
+      baseRow.name,
+
+    age:
+      state.age,
+
+    phone:
+      state.phone ??
+      baseRow.phone,
+
+    amount:
+      state.amount ||
+      baseRow.amount,
+
+    reason:
+      state.reason || "",
+
+    paymentReferenceId:
+      state.payment_reference_id,
+
+    entity:
+      state.entity || "",
+
+    reference:
+      state.reference || "",
+
+    referenceExpiresAt:
+      state.reference_expires_at || "",
+
+    easypayId:
+      state.easypay_id || "",
+
+    smsHistoryId:
+      state.sms_history_id,
+
+    smsStatus:
+      state.sms_status || "pending",
+
+    smsId:
+      state.sms_id || "",
+
+    isMinor:
+      state.age !== null
+        ? state.age < 18
+        : baseRow.isMinor,
+
+    creatingReference: false,
+    referenceError: "",
+    sendingSms: false,
+    smsError: "",
+  };
+}
+
+
+function mergeLegacyRow(
+  baseRow: CommunicationRow,
+  savedRow: Partial<CommunicationRow>,
+): CommunicationRow {
+  const age =
+    savedRow.age ??
+    baseRow.age;
+
+  return {
+    ...baseRow,
+
+    memberNumber:
+      savedRow.memberNumber ??
+      baseRow.memberNumber,
+
+    name:
+      savedRow.name ??
+      baseRow.name,
+
+    age,
+
+    phone:
+      savedRow.phone ??
+      baseRow.phone,
+
+    amount:
+      savedRow.amount ??
+      baseRow.amount,
+
+    entity:
+      savedRow.entity || "",
+
+    reference:
+      savedRow.reference || "",
+
+    referenceExpiresAt:
+      savedRow.referenceExpiresAt || "",
+
+    easypayId:
+      savedRow.easypayId || "",
+
+    smsStatus:
+      savedRow.smsStatus ||
+      "pending",
+
+    smsId:
+      savedRow.smsId || "",
+
+    reason:
+      savedRow.reason || "",
+
+    isMinor:
+      age !== null
+        ? age < 18
+        : baseRow.isMinor,
+
+    creatingReference: false,
+    referenceError: "",
+    sendingSms: false,
+    smsError: "",
+  };
+}
+
+
+function hasMeaningfulLegacyState(
+  baseRow: CommunicationRow,
+  savedRow: Partial<CommunicationRow>,
+): boolean {
+  return (
+    (savedRow.memberNumber ?? baseRow.memberNumber) !==
+      baseRow.memberNumber ||
+    (savedRow.name ?? baseRow.name) !==
+      baseRow.name ||
+    (savedRow.age ?? baseRow.age) !==
+      baseRow.age ||
+    (savedRow.phone ?? baseRow.phone) !==
+      baseRow.phone ||
+    (savedRow.amount ?? baseRow.amount) !==
+      baseRow.amount ||
+    Boolean(
+      savedRow.reason?.trim(),
+    ) ||
+    Boolean(
+      savedRow.easypayId?.trim(),
+    ) ||
+    Boolean(
+      savedRow.smsId?.trim(),
+    )
+  );
 }
 
 
@@ -849,6 +505,13 @@ export default function ComunicacaoPage() {
   );
 
   const [
+    persistenceError,
+    setPersistenceError,
+  ] = useState<string | null>(
+    null,
+  );
+
+  const [
     filename,
     setFilename,
   ] = useState("");
@@ -857,12 +520,6 @@ export default function ComunicacaoPage() {
     cedisFilename,
     setCedisFilename,
   ] = useState("");
-
-  const [
-    communicationLoaded,
-    setCommunicationLoaded,
-  ] = useState(false);
-
 
   const [
     attachingReport,
@@ -899,12 +556,20 @@ export default function ComunicacaoPage() {
 
       setLoading(true);
       setError(null);
+      setPersistenceError(null);
 
       try {
-        const data =
-          await processCalendarFile(
+        const [
+          data,
+          storedStates,
+        ] = await Promise.all([
+          processCalendarFile(
             fileId,
-          );
+          ),
+          getCommunicationRows(
+            fileId,
+          ),
+        ]);
 
         if (cancelled) {
           return;
@@ -926,139 +591,197 @@ export default function ComunicacaoPage() {
               ),
           );
 
-        const storageKey =
+        const stateBySequence =
+          new Map(
+            storedStates.map(
+              (state) => [
+                state.sequence,
+                state,
+              ],
+            ),
+          );
+
+        const legacyStorageKey =
           `epic-communication:${fileId}`;
 
-        const reportStorageKey =
-          `epic-communication-report:${fileId}`;
-
-        try {
-          const savedReportName =
-            window.localStorage.getItem(
-              reportStorageKey,
-            );
-
-          if (savedReportName) {
-            setAttachedReportName(
-              savedReportName,
-            );
-          }
-        } catch {
-          // A Comunicação continua a funcionar sem armazenamento local.
-        }
-
-        let savedRows:
-          CommunicationRow[] | null =
-            null;
+        let legacyRows:
+          Partial<CommunicationRow>[] =
+            [];
 
         try {
           const saved =
             window.localStorage.getItem(
-              storageKey,
+              legacyStorageKey,
             );
 
           if (saved) {
-            savedRows =
+            const parsed =
               JSON.parse(saved);
+
+            if (
+              Array.isArray(parsed)
+            ) {
+              legacyRows = parsed;
+            }
           }
         } catch {
-          savedRows = null;
+          legacyRows = [];
         }
 
-        const savedById =
+        const legacyById =
           new Map(
-            (savedRows || []).map(
+            legacyRows.map(
               (row) => [
-                row.id,
+                String(row.id || ""),
                 row,
               ],
             ),
           );
 
+        let migrationFailed = false;
+
+        for (const baseRow of baseRows) {
+          if (
+            stateBySequence.has(
+              baseRow.sequence,
+            )
+          ) {
+            continue;
+          }
+
+          const legacyRow =
+            legacyById.get(
+              baseRow.id,
+            );
+
+          if (
+            !legacyRow ||
+            !hasMeaningfulLegacyState(
+              baseRow,
+              legacyRow,
+            )
+          ) {
+            continue;
+          }
+
+          try {
+            const migrated =
+              await saveCommunicationRow(
+                fileId,
+                baseRow.sequence,
+                {
+                  member_number:
+                    legacyRow.memberNumber ??
+                    baseRow.memberNumber,
+
+                  member_name:
+                    legacyRow.name ??
+                    baseRow.name,
+
+                  age:
+                    legacyRow.age ??
+                    baseRow.age,
+
+                  phone:
+                    legacyRow.phone ??
+                    baseRow.phone,
+
+                  amount:
+                    legacyRow.amount ??
+                    baseRow.amount,
+
+                  reason:
+                    legacyRow.reason ??
+                    "",
+
+                  easypay_id:
+                    legacyRow.easypayId ||
+                    null,
+
+                  sms_id:
+                    legacyRow.smsId ||
+                    null,
+                },
+              );
+
+            stateBySequence.set(
+              baseRow.sequence,
+              migrated,
+            );
+          } catch {
+            migrationFailed = true;
+          }
+        }
+
+        if (
+          legacyRows.length > 0 &&
+          !migrationFailed
+        ) {
+          try {
+            window.localStorage.removeItem(
+              legacyStorageKey,
+            );
+          } catch {
+            // A migração já ficou no Neon.
+          }
+        }
+
+        // O nome do relatório nunca foi a fonte oficial.
+        // Eliminamos apenas o antigo cache do browser.
+        try {
+          window.localStorage.removeItem(
+            `epic-communication-report:${fileId}`,
+          );
+        } catch {
+          // O relatório oficial permanece no servidor/R2.
+        }
+
         const restoredRows =
           baseRows.map(
             (baseRow) => {
-              const savedRow =
-                savedById.get(
+              const serverState =
+                stateBySequence.get(
+                  baseRow.sequence,
+                );
+
+              if (serverState) {
+                return applyStateToRow(
+                  baseRow,
+                  serverState,
+                );
+              }
+
+              const legacyRow =
+                legacyById.get(
                   baseRow.id,
                 );
 
-              if (!savedRow) {
-                return baseRow;
+              if (
+                migrationFailed &&
+                legacyRow
+              ) {
+                return mergeLegacyRow(
+                  baseRow,
+                  legacyRow,
+                );
               }
 
-              return {
-                ...baseRow,
-
-                memberNumber:
-                  savedRow.memberNumber ??
-                  baseRow.memberNumber,
-
-                name:
-                  savedRow.name ??
-                  baseRow.name,
-
-                age:
-                  savedRow.age ??
-                  baseRow.age,
-
-                phone:
-                  savedRow.phone ??
-                  baseRow.phone,
-
-                amount:
-                  savedRow.amount ??
-                  baseRow.amount,
-
-                entity:
-                  savedRow.entity || "",
-
-                reference:
-                  savedRow.reference || "",
-
-                referenceExpiresAt:
-                  savedRow.referenceExpiresAt || "",
-
-                easypayId:
-                  savedRow.easypayId || "",
-
-                smsStatus:
-                  savedRow.smsStatus ||
-                  "pending",
-
-                smsId:
-                  savedRow.smsId || "",
-
-                sendingSms:
-                  false,
-
-                smsError:
-                  "",
-
-                reason:
-                  savedRow.reason || "",
-
-                isMinor:
-                  savedRow.isMinor ??
-                  baseRow.isMinor,
-
-                cedisMatch:
-                  baseRow.cedisMatch,
-
-                creatingReference:
-                  false,
-
-                referenceError:
-                  "",
-              };
+              return baseRow;
             },
           );
+
+        if (
+          migrationFailed
+        ) {
+          setPersistenceError(
+            "Alguns dados antigos deste browser não puderam ser migrados para o Neon. " +
+            "O estado antigo foi mantido neste browser para evitar perda de informação.",
+          );
+        }
 
         setRows(
           restoredRows,
         );
-
-        setCommunicationLoaded(true);
 
         setFilename(
           data.filename,
@@ -1090,43 +813,6 @@ export default function ComunicacaoPage() {
       cancelled = true;
     };
   }, [fileId]);
-
-
-  useEffect(() => {
-    if (
-      !communicationLoaded ||
-      !fileId
-    ) {
-      return;
-    }
-
-    const storageKey =
-      `epic-communication:${fileId}`;
-
-    try {
-      window.localStorage.setItem(
-        storageKey,
-        JSON.stringify(
-          rows.map(
-            (row) => ({
-              ...row,
-              creatingReference: false,
-              referenceError: "",
-              sendingSms: false,
-              smsError: "",
-            }),
-          ),
-        ),
-      );
-    } catch {
-      // Se o browser impedir armazenamento local,
-      // a Comunicação continua a funcionar normalmente.
-    }
-  }, [
-    rows,
-    fileId,
-    communicationLoaded,
-  ]);
 
 
   useEffect(() => {
@@ -1207,10 +893,96 @@ export default function ComunicacaoPage() {
   }
 
 
+  async function persistEditableRow(
+    row: CommunicationRow,
+    changes: Partial<CommunicationRow> = {},
+  ) {
+    if (!fileId) {
+      return;
+    }
+
+    const updated = {
+      ...row,
+      ...changes,
+    };
+
+    try {
+      setPersistenceError(null);
+
+      await saveCommunicationRow(
+        fileId,
+        row.sequence,
+        {
+          member_number:
+            updated.memberNumber,
+
+          member_name:
+            updated.name,
+
+          age:
+            updated.age,
+
+          phone:
+            updated.phone,
+
+          amount:
+            updated.amount,
+
+          reason:
+            updated.reason,
+        },
+      );
+    } catch (saveError) {
+      setPersistenceError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Não foi possível guardar as alterações da Comunicação.",
+      );
+    }
+  }
+
+
+  async function persistAllEditableRows() {
+    if (!fileId) {
+      return;
+    }
+
+    await Promise.all(
+      rows.map(
+        (row) =>
+          saveCommunicationRow(
+            fileId,
+            row.sequence,
+            {
+              member_number:
+                row.memberNumber,
+
+              member_name:
+                row.name,
+
+              age:
+                row.age,
+
+              phone:
+                row.phone,
+
+              amount:
+                row.amount,
+
+              reason:
+                row.reason,
+            },
+          ),
+      ),
+    );
+  }
+
+
   async function handleCreateReference(
     row: CommunicationRow,
   ) {
     if (
+      !fileId ||
       row.creatingReference ||
       row.entity ||
       row.reference
@@ -1274,33 +1046,95 @@ export default function ComunicacaoPage() {
     );
 
     try {
+      await persistEditableRow(
+        row,
+        {
+          memberNumber,
+          name: memberName,
+          amount:
+            amount.toFixed(2),
+        },
+      );
+
       const result =
-  await createMultibancoReference({
-    member_number:
-      memberNumber,
-    member_name:
-      memberName,
-    phone:
-      row.phone.trim(),
-    value:
-      amount,
-  });
+        await createMultibancoReference({
+          member_number:
+            memberNumber,
+
+          member_name:
+            memberName,
+
+          phone:
+            row.phone.trim(),
+
+          value:
+            amount,
+        });
+
+      const state =
+        await saveCommunicationRow(
+          fileId,
+          row.sequence,
+          {
+            member_number:
+              memberNumber,
+
+            member_name:
+              memberName,
+
+            age:
+              row.age,
+
+            phone:
+              row.phone.trim(),
+
+            amount:
+              result.value.toFixed(2),
+
+            reason:
+              row.reason,
+
+            payment_reference_id:
+              result.payment_reference_id,
+          },
+        );
 
       updateRow(
         row.id,
         {
-          entity:
-            result.entity,
-          reference:
-            result.reference,
-          referenceExpiresAt:
-            result.expires_at,
-          easypayId:
-            result.easypay_id,
+          memberNumber:
+            state.member_number,
+
+          name:
+            state.member_name,
+
+          age:
+            state.age,
+
+          phone:
+            state.phone,
+
           amount:
-            result.value.toFixed(2),
+            state.amount,
+
+          paymentReferenceId:
+            state.payment_reference_id,
+
+          entity:
+            state.entity,
+
+          reference:
+            state.reference,
+
+          referenceExpiresAt:
+            state.reference_expires_at,
+
+          easypayId:
+            state.easypay_id,
+
           creatingReference:
             false,
+
           referenceError:
             "",
         },
@@ -1311,6 +1145,7 @@ export default function ComunicacaoPage() {
         {
           creatingReference:
             false,
+
           referenceError:
             createError instanceof Error
               ? createError.message
@@ -1325,6 +1160,7 @@ export default function ComunicacaoPage() {
     row: CommunicationRow,
   ) {
     if (
+      !fileId ||
       row.sendingSms ||
       row.smsStatus === "sent"
     ) {
@@ -1388,26 +1224,60 @@ export default function ComunicacaoPage() {
     );
 
     try {
+      await persistEditableRow(
+        row,
+      );
+
       const result =
         await sendCommunicationSms({
           phone:
             row.phone.trim(),
+
           entity:
             row.entity.trim(),
+
           reference:
             row.reference.trim(),
+
           value:
             amount,
+
+          source:
+            "communication",
+
+          member_number:
+            row.memberNumber,
+
+          member_name:
+            row.name,
         });
+
+      const state =
+        await saveCommunicationRow(
+          fileId,
+          row.sequence,
+          {
+            sms_history_id:
+              result.sms_history_id,
+          },
+        );
 
       updateRow(
         row.id,
         {
           sendingSms: false,
-          smsStatus: "sent",
+
+          smsHistoryId:
+            state.sms_history_id,
+
+          smsStatus:
+            state.sms_status,
+
           smsId:
-            result.sms_id,
-          smsError: "",
+            state.sms_id,
+
+          smsError:
+            "",
         },
       );
     } catch (sendError) {
@@ -1416,6 +1286,7 @@ export default function ComunicacaoPage() {
         {
           sendingSms: false,
           smsStatus: "failed",
+
           smsError:
             sendError instanceof Error
               ? sendError.message
@@ -1426,11 +1297,11 @@ export default function ComunicacaoPage() {
   }
 
 
-
   async function handleAttachReport() {
     if (
       !reportReady ||
       !calendarDate ||
+      !fileId ||
       attachingReport
     ) {
       return;
@@ -1453,6 +1324,10 @@ export default function ComunicacaoPage() {
     );
 
     try {
+      // Antes de gerar o PDF oficial,
+      // garantimos que o estado editável já está no Neon.
+      await persistAllEditableRows();
+
       const result =
         await attachCommunicationReport({
           calendar_date:
@@ -1502,15 +1377,6 @@ export default function ComunicacaoPage() {
       setAttachedReportName(
         result.original_filename,
       );
-
-      try {
-        window.localStorage.setItem(
-          `epic-communication-report:${fileId}`,
-          result.original_filename,
-        );
-      } catch {
-        // O relatório já foi criado no servidor.
-      }
 
       reportWindowRef.current?.postMessage(
         {
@@ -1613,12 +1479,8 @@ export default function ComunicacaoPage() {
               : "Não enviado";
 
           const reasonText =
-            smsSent
-              ? (
-                  row.reason.trim() ||
-                  "—"
-                )
-              : row.reason.trim();
+            row.reason.trim() ||
+            "—";
 
           return `
             <tr>
@@ -1633,7 +1495,7 @@ export default function ComunicacaoPage() {
                   ${statusLabel}
                 </span>
               </td>
-              <td>${escapeHtml(reasonText || "—")}</td>
+              <td>${escapeHtml(reasonText)}</td>
             </tr>
           `;
         },
@@ -1646,156 +1508,224 @@ export default function ComunicacaoPage() {
         <head>
           <meta charset="utf-8" />
           <title>Relatório de Comunicação - ${escapeHtml(formatDate(calendarDate))}</title>
+
           <style>
             * {
               box-sizing: border-box;
             }
 
+            :root {
+              --epic-navy: #0d3450;
+              --epic-navy-deep: #092d4a;
+              --epic-blue: #0e5a8a;
+              --epic-border: #d8e5ee;
+              --epic-text: #17293a;
+              --epic-muted: #6c7f90;
+              --epic-green: #17734b;
+              --epic-green-soft: #e8f7ef;
+              --epic-red: #c44343;
+              --epic-red-soft: #fceeee;
+            }
+
             body {
               margin: 0;
-              padding: 34px;
-              color: #171717;
-              background: #f4f4f4;
-              font-family: Arial, Helvetica, sans-serif;
+              padding: 28px;
+              color: var(--epic-text);
+              background: #eef3f7;
+              font-family:
+                "Segoe UI Variable",
+                "Segoe UI",
+                Arial,
+                Helvetica,
+                sans-serif;
+            }
+
+            .toolbar,
+            .report-success {
+              width: 794px;
+              max-width: 794px;
+              margin: 0 auto 14px;
             }
 
             .toolbar {
-              max-width: 1180px;
-              margin: 0 auto 16px;
               display: flex;
               justify-content: flex-end;
               gap: 10px;
             }
 
             .toolbar-button {
-              min-height: 42px;
-              border-radius: 9px;
-              padding: 10px 17px;
-              font-size: 13px;
+              min-height: 40px;
+              border: 0;
+              border-radius: 10px;
+              padding: 9px 15px;
+              color: #fff;
+              background: var(--epic-navy);
+              font-size: 12px;
               font-weight: 800;
               cursor: pointer;
             }
 
-            .print-button {
-              border: 0;
-              color: #fff;
-              background: #97000a;
+            .toolbar-button:hover:not(:disabled) {
+              background: #154b70;
             }
 
-            .attach-button {
-              border: 0;
-              color: #fff;
-              background: #97000a;
-              box-shadow:
-                0 5px 14px rgba(151, 0, 10, .16);
-            }
-
-            .attach-button:hover:not(:disabled) {
-              background: #b0000c;
-              transform: translateY(-1px);
-            }
-
-            .attach-button:disabled {
+            .toolbar-button:disabled {
               opacity: .68;
               cursor: not-allowed;
             }
 
             .attach-button.created {
               opacity: 1;
-              color: #7c0a12;
-              background: #f7dfe1;
-              border: 1px solid #e6a8ad;
-              box-shadow: none;
+              color: #17613f;
+              background: #e9f6ef;
+              border: 1px solid #b8dec8;
             }
 
             .report-success {
               display: none;
-              max-width: 1180px;
-              margin: 0 auto 16px;
-              padding: 14px 16px;
-              border: 1px solid #b9dfc4;
+              padding: 13px 15px;
+              color: #17613f;
+              background: #e9f6ef;
+              border: 1px solid #b8dec8;
               border-radius: 10px;
-              color: #176b37;
-              background: #eef9f1;
-              font-size: 13px;
-              font-weight: 700;
+              font-size: 12px;
               line-height: 1.45;
             }
 
-            .report-success strong {
-              display: block;
-              margin-bottom: 3px;
-              font-size: 14px;
-            }
-
             .report {
-              max-width: 1180px;
+              width: 794px;
+              min-height: 1123px;
               margin: 0 auto;
-              padding: 34px;
+              padding: 0 28px 28px;
+              overflow: hidden;
               background: #fff;
-              border: 1px solid #dedede;
-              border-radius: 14px;
-              box-shadow: 0 8px 28px rgba(0, 0, 0, .06);
+              border: 1px solid #d9e3ea;
+              border-radius: 16px;
+              box-shadow:
+                0 14px 38px rgba(19, 49, 70, .10);
             }
 
             .header {
-              display: flex;
-              justify-content: space-between;
-              gap: 24px;
-              padding-bottom: 22px;
-              margin-bottom: 22px;
-              border-bottom: 3px solid #9d0009;
+              min-height: 235px;
+              margin: 0 -28px 24px;
+              padding: 30px 34px 27px;
+              display: grid;
+              grid-template-columns:
+                minmax(0, 1fr) 185px;
+              align-items: end;
+              gap: 30px;
+              color: #fff;
+              background:
+                linear-gradient(
+                  135deg,
+                  var(--epic-navy-deep) 0%,
+                  var(--epic-navy) 55%,
+                  #124568 100%
+                );
             }
 
-            .brand {
-              color: #9d0009;
-              font-size: 11px;
-              font-weight: 900;
-              letter-spacing: 1.6px;
+            .logo {
+              width: 172px;
+              margin-bottom: 42px;
             }
 
             h1 {
-              margin: 6px 0 4px;
-              font-size: 28px;
+              margin: 0 0 7px;
+              color: #fff;
+              font-size: 31px;
+              line-height: 1.08;
             }
 
-            .subtitle,
-            .meta {
-              color: #777;
+            .subtitle {
+              color: #d7e7f1;
               font-size: 12px;
-              line-height: 1.55;
             }
 
-            .meta {
-              text-align: right;
+            .generated-meta {
+              padding-left: 22px;
+              display: grid;
+              gap: 18px;
+              border-left:
+                1px solid rgba(188,216,233,.55);
+            }
+
+            .generated-meta span,
+            .processing-item span {
+              display: block;
+              color: #bad1df;
+              font-size: 8px;
+              font-weight: 800;
+              letter-spacing: 1px;
+            }
+
+            .generated-meta strong {
+              display: block;
+              margin-top: 4px;
+              color: #fff;
+              font-size: 11px;
+            }
+
+            .processing-panel {
+              display: grid;
+              grid-template-columns:
+                .8fr 1.7fr;
+              margin-bottom: 18px;
+              border: 1px solid #cddfea;
+              border-radius: 11px;
+              overflow: hidden;
+            }
+
+            .processing-item {
+              min-height: 74px;
+              padding: 16px 18px;
+              display: grid;
+              align-content: center;
+              gap: 5px;
+            }
+
+            .processing-item + .processing-item {
+              border-left:
+                1px solid #dce7ee;
+            }
+
+            .processing-item span {
+              color: #607689;
+            }
+
+            .processing-item strong {
+              color: #12283b;
+              font-size: 14px;
             }
 
             .summary {
               display: grid;
-              grid-template-columns: repeat(3, 1fr);
+              grid-template-columns:
+                repeat(3, 1fr);
               gap: 12px;
-              margin-bottom: 22px;
+              margin-bottom: 20px;
             }
 
             .summary-card {
-              padding: 14px 16px;
-              border: 1px solid #e2e2e2;
-              border-radius: 10px;
-              background: #fafafa;
+              min-height: 98px;
+              padding: 16px;
+              display: grid;
+              align-content: center;
+              border: 1px solid #dbe6ed;
+              border-radius: 11px;
+              background: #f7fbfe;
             }
 
             .summary-label {
-              display: block;
-              margin-bottom: 5px;
-              color: #777;
-              font-size: 9px;
-              font-weight: 900;
-              letter-spacing: .8px;
-              text-transform: uppercase;
+              margin-bottom: 8px;
+              color: #5e7487;
+              font-size: 8px;
+              font-weight: 800;
+              letter-spacing: .65px;
             }
 
             .summary-value {
-              font-size: 22px;
+              color: #10283c;
+              font-size: 27px;
               font-weight: 900;
             }
 
@@ -1803,24 +1733,29 @@ export default function ComunicacaoPage() {
               width: 100%;
               border-collapse: collapse;
               table-layout: fixed;
+              border: 1px solid #d8e3eb;
             }
 
             th {
-              padding: 10px 7px;
-              color: #555;
-              background: #efefef;
-              border-bottom: 1px solid #d9d9d9;
-              font-size: 9px;
+              padding: 10px 6px;
+              color: #fff;
+              background: var(--epic-navy);
+              font-size: 7.4px;
               text-align: left;
-              text-transform: uppercase;
             }
 
             td {
-              padding: 10px 7px;
-              border-bottom: 1px solid #ededed;
-              font-size: 10px;
+              padding: 10px 6px;
+              color: #243748;
+              border-bottom:
+                1px solid #e4ebf0;
+              font-size: 8.2px;
               vertical-align: top;
               overflow-wrap: anywhere;
+            }
+
+            tbody tr:nth-child(even) td {
+              background: #f8fafc;
             }
 
             .money {
@@ -1832,59 +1767,96 @@ export default function ComunicacaoPage() {
               display: inline-block;
               padding: 4px 7px;
               border-radius: 999px;
-              font-size: 9px;
-              font-weight: 900;
+              font-size: 7.4px;
+              font-weight: 800;
               white-space: nowrap;
             }
 
             .sent {
-              color: #176b37;
-              background: #e7f5eb;
+              color: var(--epic-green);
+              background: var(--epic-green-soft);
             }
 
             .not-sent {
-              color: #a00008;
-              background: #fff0f1;
+              color: var(--epic-red);
+              background: var(--epic-red-soft);
+            }
+
+            .report-note {
+              margin-top: 22px;
+              padding: 15px 17px;
+              color: #667b8d;
+              background: #f7fafc;
+              border: 1px solid #dce6ed;
+              border-radius: 10px;
+              font-size: 9px;
+              line-height: 1.5;
             }
 
             .footer {
-              margin-top: 24px;
-              padding-top: 14px;
-              border-top: 1px solid #e1e1e1;
-              color: #888;
-              font-size: 9px;
-              text-align: center;
+              margin-top: 58px;
+              padding-top: 15px;
+              color: #778a99;
+              border-top:
+                1px solid #dde6ec;
+              font-size: 7.5px;
+              text-align: right;
             }
 
             @media print {
               @page {
-                size: A4 landscape;
-                margin: 10mm;
+                size: A4 portrait;
+                margin: 0;
               }
 
+              html,
               body {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0;
                 padding: 0;
                 background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
 
-              .toolbar {
+              .toolbar,
+              .report-success {
                 display: none;
               }
 
               .report {
-                max-width: none;
-                padding: 0;
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0;
+                padding: 0 7mm 7mm;
                 border: 0;
                 border-radius: 0;
                 box-shadow: none;
               }
 
-              thead {
-                display: table-header-group;
+              .header {
+                min-height: 58mm;
+                margin: 0 -7mm 6mm;
+                padding: 8mm 9mm 7mm;
+                grid-template-columns:
+                  minmax(0, 1fr) 49mm;
+                gap: 7mm;
               }
 
+              .logo {
+                width: 45mm;
+                margin-bottom: 10mm;
+              }
+
+              .processing-panel,
+              .summary,
               tr {
                 break-inside: avoid;
+              }
+
+              thead {
+                display: table-header-group;
               }
             }
           </style>
@@ -1893,7 +1865,7 @@ export default function ComunicacaoPage() {
         <body>
           <div class="toolbar">
             <button
-              class="toolbar-button print-button"
+              class="toolbar-button"
               onclick="window.print()"
             >
               Imprimir / Guardar PDF
@@ -1924,49 +1896,95 @@ export default function ComunicacaoPage() {
             <strong>Relatório guardado com sucesso.</strong>
             O relatório foi anexado ao dia
             ${escapeHtml(formatDate(calendarDate))}
-            no Calendário. Pode fechar esta janela e verificar o relatório
-            junto ao respetivo dia.
+            no Calendário.
           </div>
 
           <main class="report">
             <section class="header">
               <div>
-                <div class="brand">EPIC PAYMENTS</div>
-                <h1>Relatório de Comunicação</h1>
+                <img
+                  class="logo"
+                  src="/branding/logo-epic-payments-all-white.png"
+                  alt="EPIC Payments"
+                />
+
+                <h1>
+                  Relatório de Comunicação
+                </h1>
+
                 <div class="subtitle">
                   Mensalidades não cobradas e respetivo estado de comunicação.
                 </div>
               </div>
 
-              <div class="meta">
-                <strong>Processamento:</strong>
-                ${escapeHtml(formatDate(calendarDate))}
-                <br />
-                <strong>Ficheiro:</strong>
-                ${escapeHtml(filename || "Ficheiro bancário")}
-                <br />
-                <strong>CEDIS:</strong>
-                ${escapeHtml(cedisFilename || "—")}
-                <br />
-                <strong>Gerado em:</strong>
-                ${escapeHtml(generatedAt)}
+              <div class="generated-meta">
+                <div>
+                  <span>GERADO EM</span>
+                  <strong>
+                    ${escapeHtml(generatedAt)}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>COLABORADOR</span>
+                  <strong>
+                    ${escapeHtml(generatedByName)}
+                  </strong>
+                </div>
+              </div>
+            </section>
+
+            <section class="processing-panel">
+              <div class="processing-item">
+                <span>
+                  DATA DO PROCESSAMENTO
+                </span>
+
+                <strong>
+                  ${escapeHtml(formatDate(calendarDate))}
+                </strong>
+              </div>
+
+              <div class="processing-item">
+                <span>
+                  FICHEIRO BANCÁRIO
+                </span>
+
+                <strong>
+                  ${escapeHtml(filename || "Ficheiro bancário")}
+                </strong>
               </div>
             </section>
 
             <section class="summary">
               <div class="summary-card">
-                <span class="summary-label">Processos</span>
-                <span class="summary-value">${rows.length}</span>
+                <span class="summary-label">
+                  PROCESSOS
+                </span>
+
+                <span class="summary-value">
+                  ${rows.length}
+                </span>
               </div>
 
               <div class="summary-card">
-                <span class="summary-label">SMS enviados</span>
-                <span class="summary-value">${sentCount}</span>
+                <span class="summary-label">
+                  SMS ENVIADOS
+                </span>
+
+                <span class="summary-value">
+                  ${sentCount}
+                </span>
               </div>
 
               <div class="summary-card">
-                <span class="summary-label">Não enviados / justificados</span>
-                <span class="summary-value">${rows.length - sentCount}</span>
+                <span class="summary-label">
+                  NÃO ENVIADOS / JUSTIFICADOS
+                </span>
+
+                <span class="summary-value">
+                  ${rows.length - sentCount}
+                </span>
               </div>
             </section>
 
@@ -2000,8 +2018,16 @@ export default function ComunicacaoPage() {
               </tbody>
             </table>
 
+            <div class="report-note">
+              <strong>
+                Documento gerado automaticamente pelo EPIC Payments.
+              </strong>
+              <br />
+              Os processos sem SMS enviado encontram-se acompanhados da respetiva justificação.
+            </div>
+
             <div class="footer">
-              EPIC Payments · Relatório de Comunicação
+              EPIC PAYMENTS · RELATÓRIO DE COMUNICAÇÃO
             </div>
           </main>
 
@@ -2023,7 +2049,8 @@ export default function ComunicacaoPage() {
                   "EPIC_REPORT_ATTACHING"
                 ) {
                   button.disabled = true;
-                  button.style.cursor = "wait";
+                  button.style.cursor =
+                    "wait";
                   button.textContent =
                     "A guardar relatório...";
                 }
@@ -2033,7 +2060,8 @@ export default function ComunicacaoPage() {
                   "EPIC_REPORT_ATTACHED"
                 ) {
                   button.disabled = true;
-                  button.style.cursor = "default";
+                  button.style.cursor =
+                    "default";
                   button.classList.add(
                     "created"
                   );
@@ -2041,7 +2069,8 @@ export default function ComunicacaoPage() {
                     "Relatório guardado";
 
                   button.title =
-                    event.data?.filename || "";
+                    event.data?.filename ||
+                    "";
 
                   const success =
                     document.getElementById(
@@ -2059,7 +2088,8 @@ export default function ComunicacaoPage() {
                   "EPIC_REPORT_ATTACH_ERROR"
                 ) {
                   button.disabled = false;
-                  button.style.cursor = "pointer";
+                  button.style.cursor =
+                    "pointer";
                   button.classList.remove(
                     "created"
                   );
@@ -2078,25 +2108,9 @@ export default function ComunicacaoPage() {
       </html>
     `;
 
-    const themedHtml =
-      applyCommunicationReportTheme(
-        html,
-        {
-          generatedByName,
-          generatedAt,
-          processingDate:
-            formatDate(
-              calendarDate,
-            ),
-          filename:
-            filename ||
-            "Ficheiro bancário",
-        },
-      );
-
     reportWindow.document.open();
     reportWindow.document.write(
-      themedHtml,
+      html,
     );
     reportWindow.document.close();
     reportWindow.focus();
@@ -2188,6 +2202,16 @@ export default function ComunicacaoPage() {
         {!loading &&
         !error ? (
           <>
+            {persistenceError ? (
+              <section style={warningCardStyle}>
+                <CircleAlert size={18} />
+
+                <span>
+                  {persistenceError}
+                </span>
+              </section>
+            ) : null}
+
             <section style={summaryGridStyle}>
               <SummaryCard
                 icon={
@@ -2264,7 +2288,8 @@ export default function ComunicacaoPage() {
                     )
                   ) {
                     event.preventDefault();
-                    handleGenerateReport();
+
+                    void handleGenerateReport();
                   }
                 }}
                 style={{
@@ -2414,6 +2439,11 @@ export default function ComunicacaoPage() {
                                       },
                                     )
                                   }
+                                  onBlur={() =>
+                                    void persistEditableRow(
+                                      row,
+                                    )
+                                  }
                                   disabled={
                                     row.creatingReference ||
                                     referenceCreated
@@ -2445,6 +2475,7 @@ export default function ComunicacaoPage() {
                               ) : null}
                             </td>
 
+
                             <td style={cellStyle}>
                               <input
                                 value={row.name}
@@ -2457,6 +2488,11 @@ export default function ComunicacaoPage() {
                                     },
                                   )
                                 }
+                                onBlur={() =>
+                                  void persistEditableRow(
+                                    row,
+                                  )
+                                }
                                 disabled={
                                   row.creatingReference ||
                                   referenceCreated
@@ -2467,6 +2503,7 @@ export default function ComunicacaoPage() {
                                 }}
                               />
                             </td>
+
 
                             <td style={cellStyle}>
                               <div style={ageStyle}>
@@ -2490,12 +2527,17 @@ export default function ComunicacaoPage() {
                                             : age,
 
                                         isMinor:
-                                          age !==
-                                            null &&
+                                          age !== null &&
+                                          !Number.isNaN(age) &&
                                           age < 18,
                                       },
                                     );
                                   }}
+                                  onBlur={() =>
+                                    void persistEditableRow(
+                                      row,
+                                    )
+                                  }
                                   style={{
                                     ...editableInputStyle,
                                     textAlign: "center",
@@ -2513,6 +2555,7 @@ export default function ComunicacaoPage() {
                               </div>
                             </td>
 
+
                             <td style={cellStyle}>
                               <input
                                 value={row.phone}
@@ -2525,9 +2568,15 @@ export default function ComunicacaoPage() {
                                     },
                                   )
                                 }
+                                onBlur={() =>
+                                  void persistEditableRow(
+                                    row,
+                                  )
+                                }
                                 style={editableInputStyle}
                               />
                             </td>
+
 
                             <td style={cellStyle}>
                               <div style={amountFieldStyle}>
@@ -2540,22 +2589,34 @@ export default function ComunicacaoPage() {
                                       {
                                         amount:
                                           event.target.value,
+
                                         referenceError:
                                           "",
                                       },
                                     )
                                   }
-                                  onBlur={() =>
+                                  onBlur={() => {
+                                    const formatted =
+                                      formatAmountInput(
+                                        row.amount,
+                                      );
+
                                     updateRow(
                                       row.id,
                                       {
                                         amount:
-                                          formatAmountInput(
-                                            row.amount,
-                                          ),
+                                          formatted,
                                       },
-                                    )
-                                  }
+                                    );
+
+                                    void persistEditableRow(
+                                      row,
+                                      {
+                                        amount:
+                                          formatted,
+                                      },
+                                    );
+                                  }}
                                   disabled={
                                     row.creatingReference ||
                                     referenceCreated
@@ -2565,11 +2626,13 @@ export default function ComunicacaoPage() {
                                     fontWeight: 800,
                                   }}
                                 />
+
                                 <span style={euroStyle}>
                                   €
                                 </span>
                               </div>
                             </td>
+
 
                             <td style={cellStyle}>
                               <input
@@ -2578,10 +2641,12 @@ export default function ComunicacaoPage() {
                                 placeholder="—"
                                 style={{
                                   ...editableInputStyle,
+
                                   background:
                                     referenceCreated
                                       ? "#f1faf4"
                                       : "#f7f7f7",
+
                                   fontWeight:
                                     referenceCreated
                                       ? 800
@@ -2589,6 +2654,7 @@ export default function ComunicacaoPage() {
                                 }}
                               />
                             </td>
+
 
                             <td style={cellStyle}>
                               <div style={referenceCellStyle}>
@@ -2598,10 +2664,12 @@ export default function ComunicacaoPage() {
                                   placeholder="—"
                                   style={{
                                     ...editableInputStyle,
+
                                     background:
                                       referenceCreated
                                         ? "#f1faf4"
                                         : "#f7f7f7",
+
                                     fontWeight:
                                       referenceCreated
                                         ? 800
@@ -2620,11 +2688,13 @@ export default function ComunicacaoPage() {
                               </div>
                             </td>
 
+
                             <td style={cellStyle}>
                               <SmsStatusBadge
                                 status={row.smsStatus}
                               />
                             </td>
+
 
                             <td style={cellStyle}>
                               <div style={reasonFieldStyle}>
@@ -2637,6 +2707,11 @@ export default function ComunicacaoPage() {
                                         reason:
                                           event.target.value,
                                       },
+                                    )
+                                  }
+                                  onBlur={() =>
+                                    void persistEditableRow(
+                                      row,
                                     )
                                   }
                                   placeholder={
@@ -2667,6 +2742,7 @@ export default function ComunicacaoPage() {
                               </div>
                             </td>
 
+
                             <td style={cellStyle}>
                               <div style={actionCellStyle}>
                                 <button
@@ -2682,12 +2758,14 @@ export default function ComunicacaoPage() {
                                   }
                                   style={{
                                     ...generateButtonStyle,
+
                                     ...(
                                       row.creatingReference ||
                                       referenceCreated
                                         ? disabledButtonStyle
                                         : {}
                                     ),
+
                                     ...(
                                       referenceCreated
                                         ? referenceCreatedButtonStyle
@@ -2721,6 +2799,7 @@ export default function ComunicacaoPage() {
                                   )}
                                 </button>
 
+
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -2730,28 +2809,34 @@ export default function ComunicacaoPage() {
                                   }
                                   style={{
                                     ...sendButtonStyle,
+
                                     ...(
                                       row.sendingSms ||
-                                      row.smsStatus === "sent" ||
+                                      row.smsStatus ===
+                                        "sent" ||
                                       !referenceCreated
                                         ? disabledButtonStyle
                                         : {}
                                     ),
+
                                     ...(
-                                      row.smsStatus === "sent"
+                                      row.smsStatus ===
+                                      "sent"
                                         ? sentSmsButtonStyle
                                         : {}
                                     ),
                                   }}
                                   disabled={
                                     row.sendingSms ||
-                                    row.smsStatus === "sent" ||
+                                    row.smsStatus ===
+                                      "sent" ||
                                     !referenceCreated
                                   }
                                   title={
                                     !referenceCreated
                                       ? "Crie primeiro a referência Multibanco."
-                                      : row.smsStatus === "sent"
+                                      : row.smsStatus ===
+                                          "sent"
                                         ? "SMS enviado com sucesso."
                                         : "Enviar SMS individual para este sócio."
                                   }
@@ -2764,7 +2849,8 @@ export default function ComunicacaoPage() {
                                       />
                                       A enviar...
                                     </>
-                                  ) : row.smsStatus === "sent" ? (
+                                  ) : row.smsStatus ===
+                                    "sent" ? (
                                     <>
                                       <CheckCircle2 size={13} />
                                       SMS enviado
@@ -2777,6 +2863,7 @@ export default function ComunicacaoPage() {
                                   )}
                                 </button>
 
+
                                 {row.smsError ? (
                                   <span
                                     style={smsErrorStyle}
@@ -2786,6 +2873,7 @@ export default function ComunicacaoPage() {
                                     {row.smsError}
                                   </span>
                                 ) : null}
+
 
                                 {row.referenceError ? (
                                   <span
@@ -2806,6 +2894,7 @@ export default function ComunicacaoPage() {
                 </table>
               </div>
 
+
               {rows.length === 0 ? (
                 <div style={emptyStateStyle}>
                   <CheckCircle2 size={28} />
@@ -2823,6 +2912,7 @@ export default function ComunicacaoPage() {
                 </div>
               ) : null}
 
+
               <div style={tableFooterStyle}>
                 <span>
                   {rows.length} processos
@@ -2830,8 +2920,7 @@ export default function ComunicacaoPage() {
                 </span>
 
                 <span>
-                  Telemóvel e idade obtidos
-                  através da Base CEDIS ativa.
+                  Estado editável guardado no Neon.
                 </span>
               </div>
             </section>
@@ -2861,9 +2950,12 @@ function SummaryCard({
       <div
         style={{
           ...summaryIconStyle,
-          ...(warning
-            ? summaryWarningIconStyle
-            : {}),
+
+          ...(
+            warning
+              ? summaryWarningIconStyle
+              : {}
+          ),
         }}
       >
         {icon}
@@ -2984,8 +3076,10 @@ const processingStyle: CSSProperties = {
   border: "1px solid rgba(75,107,132,.13)",
   borderRadius: "12px",
   background: "rgba(255,255,255,.76)",
-  boxShadow: "0 5px 18px rgba(18,48,71,.045)",
-  backdropFilter: "blur(14px) saturate(135%)",
+  boxShadow:
+    "0 5px 18px rgba(18,48,71,.045)",
+  backdropFilter:
+    "blur(14px) saturate(135%)",
 };
 
 const processingLabelStyle: CSSProperties = {
@@ -3014,10 +3108,12 @@ const messageCardStyle: CSSProperties = {
   padding: "24px",
   background:
     "linear-gradient(155deg, rgba(255,255,255,.96), rgba(246,251,255,.90))",
-  border: "1px solid rgba(75,107,132,.14)",
+  border:
+    "1px solid rgba(75,107,132,.14)",
   borderRadius: "16px",
   color: "#10233d",
-  boxShadow: "0 10px 28px rgba(18,48,71,.055)",
+  boxShadow:
+    "0 10px 28px rgba(18,48,71,.055)",
 };
 
 const messageTextStyle: CSSProperties = {
@@ -3028,9 +3124,25 @@ const messageTextStyle: CSSProperties = {
 const errorCardStyle: CSSProperties = {
   ...messageCardStyle,
   color: "#b63c43",
-  borderColor: "rgba(214,75,75,.26)",
+  borderColor:
+    "rgba(214,75,75,.26)",
   background:
     "linear-gradient(145deg, rgba(255,240,240,.96), rgba(255,255,255,.96))",
+};
+
+const warningCardStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "9px",
+  padding: "10px 13px",
+  marginBottom: "12px",
+  color: "#855b12",
+  background: "#fff8e8",
+  border:
+    "1px solid rgba(200,136,24,.24)",
+  borderRadius: "11px",
+  fontSize: "10px",
+  lineHeight: 1.4,
 };
 
 const summaryGridStyle: CSSProperties = {
@@ -3049,9 +3161,11 @@ const summaryCardStyle: CSSProperties = {
   padding: "13px 15px",
   background:
     "linear-gradient(155deg, rgba(255,255,255,.96), rgba(247,252,255,.86))",
-  border: "1px solid rgba(75,107,132,.14)",
+  border:
+    "1px solid rgba(75,107,132,.14)",
   borderRadius: "15px",
-  boxShadow: "0 8px 24px rgba(18,48,71,.055)",
+  boxShadow:
+    "0 8px 24px rgba(18,48,71,.055)",
   backdropFilter: "blur(12px)",
 };
 
@@ -3066,14 +3180,16 @@ const summaryIconStyle: CSSProperties = {
   color: "#0878bd",
   background:
     "linear-gradient(145deg, #edf8fe 0%, #dceffb 100%)",
-  border: "1px solid rgba(20,152,229,.16)",
+  border:
+    "1px solid rgba(20,152,229,.16)",
 };
 
 const summaryWarningIconStyle: CSSProperties = {
   color: "#9a6710",
   background:
     "linear-gradient(145deg, #fff7e5 0%, #ffefc7 100%)",
-  border: "1px solid rgba(200,136,24,.20)",
+  border:
+    "1px solid rgba(200,136,24,.20)",
 };
 
 const summaryLabelStyle: CSSProperties = {
@@ -3114,8 +3230,10 @@ const reportCardStyle: CSSProperties = {
   color: "#b83d44",
   background:
     "linear-gradient(155deg, rgba(255,255,255,.98), rgba(255,242,243,.94))",
-  border: "1px solid rgba(214,75,75,.24)",
-  boxShadow: "0 8px 24px rgba(151,54,60,.07)",
+  border:
+    "1px solid rgba(214,75,75,.24)",
+  boxShadow:
+    "0 8px 24px rgba(151,54,60,.07)",
   cursor: "pointer",
 };
 
@@ -3134,7 +3252,8 @@ const reportIconStyle: CSSProperties = {
   borderRadius: "11px",
   background: "#fff0f0",
   color: "#c83e45",
-  border: "1px solid rgba(214,75,75,.18)",
+  border:
+    "1px solid rgba(214,75,75,.18)",
 };
 
 const reportLabelStyle: CSSProperties = {
@@ -3167,10 +3286,13 @@ const actionsBarStyle: CSSProperties = {
   gap: "14px",
   padding: "13px 15px",
   marginBottom: "10px",
-  border: "1px solid rgba(75,107,132,.13)",
+  border:
+    "1px solid rgba(75,107,132,.13)",
   borderRadius: "13px",
-  background: "rgba(255,255,255,.86)",
-  boxShadow: "0 5px 18px rgba(18,48,71,.035)",
+  background:
+    "rgba(255,255,255,.86)",
+  boxShadow:
+    "0 5px 18px rgba(18,48,71,.035)",
   backdropFilter: "blur(12px)",
 };
 
@@ -3195,10 +3317,13 @@ const disabledButtonStyle: CSSProperties = {
 
 const tableCardStyle: CSSProperties = {
   overflow: "hidden",
-  border: "1px solid rgba(75,107,132,.14)",
+  border:
+    "1px solid rgba(75,107,132,.14)",
   borderRadius: "15px",
-  background: "rgba(255,255,255,.95)",
-  boxShadow: "0 10px 28px rgba(18,48,71,.055)",
+  background:
+    "rgba(255,255,255,.95)",
+  boxShadow:
+    "0 10px 28px rgba(18,48,71,.055)",
 };
 
 const tableScrollStyle: CSSProperties = {
@@ -3215,7 +3340,8 @@ const tableStyle: CSSProperties = {
 
 const tableHeaderStyle: CSSProperties = {
   padding: "11px 6px",
-  borderBottom: "1px solid rgba(75,107,132,.12)",
+  borderBottom:
+    "1px solid rgba(75,107,132,.12)",
   background: "#f2f7fb",
   color: "#60758b",
   fontSize: "8px",
@@ -3228,8 +3354,10 @@ const tableHeaderStyle: CSSProperties = {
 };
 
 const rowStyle: CSSProperties = {
-  borderBottom: "1px solid rgba(75,107,132,.095)",
-  background: "rgba(255,255,255,.92)",
+  borderBottom:
+    "1px solid rgba(75,107,132,.095)",
+  background:
+    "rgba(255,255,255,.92)",
 };
 
 const cellStyle: CSSProperties = {
@@ -3246,14 +3374,17 @@ const editableInputStyle: CSSProperties = {
   height: "34px",
   boxSizing: "border-box",
   padding: "0 8px",
-  border: "1px solid rgba(75,107,132,.18)",
+  border:
+    "1px solid rgba(75,107,132,.18)",
   borderRadius: "8px",
-  background: "rgba(255,255,255,.96)",
+  background:
+    "rgba(255,255,255,.96)",
   color: "#203446",
   font: "inherit",
   fontSize: "10px",
   outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(18,48,71,.025)",
+  boxShadow:
+    "inset 0 1px 2px rgba(18,48,71,.025)",
 };
 
 const memberStyle: CSSProperties = {
@@ -3351,7 +3482,8 @@ const generateButtonStyle: CSSProperties = {
   alignItems: "center",
   justifyContent: "center",
   gap: "5px",
-  border: "1px solid rgba(20,152,229,.25)",
+  border:
+    "1px solid rgba(20,152,229,.25)",
   borderRadius: "8px",
   background:
     "linear-gradient(180deg, rgba(255,255,255,.98), rgba(237,248,254,.96))",
@@ -3360,12 +3492,14 @@ const generateButtonStyle: CSSProperties = {
   fontWeight: 850,
   whiteSpace: "nowrap",
   cursor: "pointer",
-  boxShadow: "0 3px 9px rgba(18,79,115,.045)",
+  boxShadow:
+    "0 3px 9px rgba(18,79,115,.045)",
 };
 
 const referenceCreatedButtonStyle: CSSProperties = {
   opacity: 1,
-  border: "1px solid rgba(21,148,103,.24)",
+  border:
+    "1px solid rgba(21,148,103,.24)",
   background:
     "linear-gradient(180deg, #f2fbf6, #e5f6ed)",
   color: "#137c59",
@@ -3373,7 +3507,8 @@ const referenceCreatedButtonStyle: CSSProperties = {
 
 const sendButtonStyle: CSSProperties = {
   ...generateButtonStyle,
-  border: "1px solid rgba(7,109,170,.50)",
+  border:
+    "1px solid rgba(7,109,170,.50)",
   background:
     "linear-gradient(180deg, #159be5 0%, #087ac0 100%)",
   color: "#fff",
@@ -3383,7 +3518,8 @@ const sendButtonStyle: CSSProperties = {
 
 const sentSmsButtonStyle: CSSProperties = {
   opacity: 1,
-  border: "1px solid rgba(21,148,103,.24)",
+  border:
+    "1px solid rgba(21,148,103,.24)",
   background:
     "linear-gradient(180deg, #f2fbf6, #e5f6ed)",
   color: "#137c59",
@@ -3416,7 +3552,8 @@ const sentStatusStyle: CSSProperties = {
   gap: "4px",
   padding: "5px 7px",
   borderRadius: "999px",
-  border: "1px solid rgba(21,148,103,.18)",
+  border:
+    "1px solid rgba(21,148,103,.18)",
   background: "#e8f7f0",
   color: "#137c59",
   fontSize: "8px",
@@ -3426,14 +3563,16 @@ const sentStatusStyle: CSSProperties = {
 
 const failedStatusStyle: CSSProperties = {
   ...sentStatusStyle,
-  border: "1px solid rgba(215,71,71,.20)",
+  border:
+    "1px solid rgba(215,71,71,.20)",
   background: "#fff0f0",
   color: "#c83e45",
 };
 
 const pendingStatusStyle: CSSProperties = {
   ...sentStatusStyle,
-  border: "1px solid rgba(75,107,132,.12)",
+  border:
+    "1px solid rgba(75,107,132,.12)",
   background: "#f1f6f9",
   color: "#657b8d",
 };
@@ -3453,7 +3592,8 @@ const tableFooterStyle: CSSProperties = {
   gap: "16px",
   padding: "10px 14px",
   background: "#f7fbfd",
-  borderTop: "1px solid rgba(75,107,132,.11)",
+  borderTop:
+    "1px solid rgba(75,107,132,.11)",
   color: "#738797",
   fontSize: "8px",
 };

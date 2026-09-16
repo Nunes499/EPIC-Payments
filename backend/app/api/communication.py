@@ -21,11 +21,15 @@ from app.api.dependencies import (
     get_current_user,
 )
 from app.database.session import get_db
+from app.crud.calendar_file import (
+    get_calendar_file_by_id,
+)
 from app.models import (
     PaymentReference,
     SmsHistory,
     User,
 )
+from app.models.communication_row import CommunicationRow
 from app.schemas.calendar_file import (
     CalendarFileRead,
 )
@@ -80,6 +84,7 @@ class MultibancoReferenceRead(
     expires_at: str
     easypay_id: str
     idempotency_key: str
+    payment_reference_id: int
 
 
 class SmsCreate(BaseModel):
@@ -125,6 +130,7 @@ class SmsRead(BaseModel):
     sms_id: str
     phone: str
     message: str
+    sms_history_id: int
 
 
 class SmsHistoryRead(BaseModel):
@@ -174,6 +180,158 @@ class CommunicationReportCreate(
     rows: list[
         CommunicationReportRow
     ]
+
+
+class CommunicationRowUpsert(
+    BaseModel
+):
+    member_number: str | None = Field(
+        default=None,
+        max_length=50,
+    )
+    member_name: str | None = Field(
+        default=None,
+        max_length=200,
+    )
+    age: int | None = None
+    phone: str | None = Field(
+        default=None,
+        max_length=40,
+    )
+    amount: str | None = Field(
+        default=None,
+        max_length=50,
+    )
+    reason: str | None = Field(
+        default=None,
+        max_length=500,
+    )
+    payment_reference_id: int | None = None
+    sms_history_id: int | None = None
+
+    # Compatibilidade temporária para migrar o estado antigo
+    # guardado no localStorage para o Neon. Estes campos não
+    # são persistidos diretamente; servem apenas para resolver
+    # os IDs oficiais já existentes no Neon.
+    easypay_id: str | None = Field(
+        default=None,
+        max_length=80,
+    )
+    sms_id: str | None = Field(
+        default=None,
+        max_length=120,
+    )
+
+
+class CommunicationRowStateRead(
+    BaseModel
+):
+    source_file_id: int
+    sequence: int
+    member_number: str
+    member_name: str
+    age: int | None
+    phone: str
+    amount: str
+    reason: str
+
+    payment_reference_id: int | None
+    entity: str
+    reference: str
+    reference_expires_at: str
+    easypay_id: str
+
+    sms_history_id: int | None
+    sms_status: Literal[
+        "pending",
+        "sent",
+    ]
+    sms_id: str
+
+    updated_at: datetime
+
+
+def _communication_row_to_read(
+    db: Session,
+    item: CommunicationRow,
+) -> CommunicationRowStateRead:
+    payment_reference = None
+    if item.payment_reference_id is not None:
+        payment_reference = db.get(
+            PaymentReference,
+            item.payment_reference_id,
+        )
+
+    sms_history = None
+    if item.sms_history_id is not None:
+        sms_history = db.get(
+            SmsHistory,
+            item.sms_history_id,
+        )
+
+    expires_at = ""
+    if (
+        payment_reference is not None
+        and payment_reference.expires_at is not None
+    ):
+        expires_at = (
+            payment_reference
+            .expires_at
+            .isoformat()
+        )
+
+    return CommunicationRowStateRead(
+        source_file_id=item.source_file_id,
+        sequence=item.sequence,
+        member_number=item.member_number,
+        member_name=item.member_name,
+        age=item.age,
+        phone=item.phone,
+        amount=item.amount,
+        reason=item.reason,
+        payment_reference_id=(
+            item.payment_reference_id
+        ),
+        entity=(
+            payment_reference.entity
+            if (
+                payment_reference is not None
+                and payment_reference.entity
+            )
+            else ""
+        ),
+        reference=(
+            payment_reference.reference
+            if (
+                payment_reference is not None
+                and payment_reference.reference
+            )
+            else ""
+        ),
+        reference_expires_at=expires_at,
+        easypay_id=(
+            payment_reference.easypay_id
+            if (
+                payment_reference is not None
+                and payment_reference.easypay_id
+            )
+            else ""
+        ),
+        sms_history_id=(
+            item.sms_history_id
+        ),
+        sms_status=(
+            "sent"
+            if sms_history is not None
+            else "pending"
+        ),
+        sms_id=(
+            sms_history.sms_id
+            if sms_history is not None
+            else ""
+        ),
+        updated_at=item.updated_at,
+    )
 
 
 def _parse_iso_datetime(
@@ -658,7 +816,27 @@ def create_reference(
     # 7. SUCESSO TOTAL
     # =====================================================
 
-    return result
+    return MultibancoReferenceRead(
+        status=str(
+            result.get("status")
+            or "created"
+        ),
+        entity=entity,
+        reference=reference,
+        value=float(
+            payload.value
+        ),
+        expires_at=str(
+            result.get("expires_at")
+            or ""
+        ),
+        easypay_id=easypay_id,
+        idempotency_key=str(
+            result.get("idempotency_key")
+            or operation_key
+        ),
+        payment_reference_id=item.id,
+    )
 
 
 @router.post(
@@ -730,8 +908,20 @@ def send_sms(
             history
         )
         db.commit()
+        db.refresh(
+            history
+        )
 
-        return result
+        return SmsRead(
+            status=str(
+                result.get("status")
+                or "sent"
+            ),
+            sms_id=result["sms_id"],
+            phone=result["phone"],
+            message=result["message"],
+            sms_history_id=history.id,
+        )
     except SmsupError as exc:
         db.rollback()
 
@@ -821,6 +1011,337 @@ def get_sms_history(
         )
         for item in items
     ]
+
+
+@router.get(
+    "/rows/{source_file_id}",
+    response_model=list[
+        CommunicationRowStateRead
+    ],
+)
+def get_communication_rows(
+    source_file_id: int,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+):
+    del current_user
+
+    # calendar_files vive no D1, não no Neon.
+    # Resolvemos o ID atual do D1 para a chave física
+    # estável do ficheiro (normalmente r2://...).
+    source_file = get_calendar_file_by_id(
+        db,
+        source_file_id,
+    )
+
+    if source_file is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Ficheiro bancário não encontrado."
+            ),
+        )
+
+    source_file_key = (
+        source_file.file_path
+        or ""
+    ).strip()
+
+    if not source_file_key:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "O ficheiro bancário não possui uma "
+                "chave de armazenamento válida."
+            ),
+        )
+
+    items = db.scalars(
+        select(
+            CommunicationRow
+        )
+        .where(
+            CommunicationRow.source_file_key
+            == source_file_key
+        )
+        .order_by(
+            CommunicationRow.sequence.asc()
+        )
+    ).all()
+
+    return [
+        _communication_row_to_read(
+            db,
+            item,
+        )
+        for item in items
+    ]
+
+
+@router.put(
+    "/rows/{source_file_id}/{sequence}",
+    response_model=CommunicationRowStateRead,
+)
+def upsert_communication_row(
+    source_file_id: int,
+    sequence: int,
+    payload: CommunicationRowUpsert,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(
+        get_db
+    ),
+):
+    if sequence < 1:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "A sequência do movimento é inválida."
+            ),
+        )
+
+    # O ID recebido pertence ao calendar_files do D1.
+    # A persistência no Neon usa file_path como chave
+    # estável para sobreviver a uma reconstrução do D1.
+    source_file = get_calendar_file_by_id(
+        db,
+        source_file_id,
+    )
+
+    if source_file is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Ficheiro bancário não encontrado."
+            ),
+        )
+
+    source_file_key = (
+        source_file.file_path
+        or ""
+    ).strip()
+
+    if not source_file_key:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "O ficheiro bancário não possui uma "
+                "chave de armazenamento válida."
+            ),
+        )
+
+    item = db.scalar(
+        select(
+            CommunicationRow
+        )
+        .where(
+            CommunicationRow.source_file_key
+            == source_file_key,
+            CommunicationRow.sequence
+            == sequence,
+        )
+    )
+
+    if item is None:
+        item = CommunicationRow(
+            source_file_id=source_file_id,
+            source_file_key=source_file_key,
+            sequence=sequence,
+            member_number="",
+            member_name="",
+            age=None,
+            phone="",
+            amount="",
+            reason="",
+            updated_by_id=(
+                current_user.id
+            ),
+        )
+    else:
+        # O D1 é reconstruível. Se o mesmo ficheiro voltar
+        # a receber outro ID no D1, atualizamos apenas o ID
+        # informativo; a identidade continua a ser a chave.
+        item.source_file_id = source_file_id
+
+    fields_set = payload.model_fields_set
+
+    if "member_number" in fields_set:
+        item.member_number = (
+            payload.member_number
+            or ""
+        ).strip()
+
+    if "member_name" in fields_set:
+        item.member_name = (
+            payload.member_name
+            or ""
+        ).strip()
+
+    if "age" in fields_set:
+        item.age = payload.age
+
+    if "phone" in fields_set:
+        item.phone = (
+            payload.phone
+            or ""
+        ).strip()
+
+    if "amount" in fields_set:
+        item.amount = (
+            payload.amount
+            or ""
+        ).strip()
+
+    if "reason" in fields_set:
+        item.reason = (
+            payload.reason
+            or ""
+        ).strip()
+
+    if "payment_reference_id" in fields_set:
+        if (
+            payload.payment_reference_id
+            is not None
+        ):
+            payment_reference = db.get(
+                PaymentReference,
+                payload.payment_reference_id,
+            )
+
+            if payment_reference is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "Referência de pagamento "
+                        "não encontrada."
+                    ),
+                )
+
+        item.payment_reference_id = (
+            payload.payment_reference_id
+        )
+
+    if "payment_reference_id" not in fields_set:
+        legacy_easypay_id = (
+            payload.easypay_id
+            or ""
+        ).strip()
+
+        if legacy_easypay_id:
+            payment_reference = db.scalar(
+                select(
+                    PaymentReference
+                )
+                .where(
+                    PaymentReference.easypay_id
+                    == legacy_easypay_id
+                )
+            )
+
+            if payment_reference is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "A referência Easypay do estado "
+                        "antigo não foi encontrada no Neon."
+                    ),
+                )
+
+            item.payment_reference_id = (
+                payment_reference.id
+            )
+
+    if "sms_history_id" in fields_set:
+        if (
+            payload.sms_history_id
+            is not None
+        ):
+            sms_history = db.get(
+                SmsHistory,
+                payload.sms_history_id,
+            )
+
+            if sms_history is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "Histórico de SMS "
+                        "não encontrado."
+                    ),
+                )
+
+        item.sms_history_id = (
+            payload.sms_history_id
+        )
+
+    if "sms_history_id" not in fields_set:
+        legacy_sms_id = (
+            payload.sms_id
+            or ""
+        ).strip()
+
+        if legacy_sms_id:
+            sms_history = db.scalar(
+                select(
+                    SmsHistory
+                )
+                .where(
+                    SmsHistory.sms_id
+                    == legacy_sms_id
+                )
+                .order_by(
+                    SmsHistory.id.desc()
+                )
+            )
+
+            if sms_history is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=(
+                        "O SMS do estado antigo não foi "
+                        "encontrado no Neon."
+                    ),
+                )
+
+            item.sms_history_id = (
+                sms_history.id
+            )
+
+    item.updated_by_id = (
+        current_user.id
+    )
+
+    try:
+        db.add(
+            item
+        )
+        db.commit()
+        db.refresh(
+            item
+        )
+    except IntegrityError as exc:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Já existe um estado de comunicação "
+                "para este movimento."
+            ),
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+    return _communication_row_to_read(
+        db,
+        item,
+    )
 
 
 @router.post(
