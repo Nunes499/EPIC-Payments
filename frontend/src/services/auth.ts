@@ -16,25 +16,8 @@ export type AuthUser = {
 };
 
 
-type LoginResponse = {
-  access_token: string;
-  token_type: string;
-};
-
-
 const LEGACY_TOKEN_KEY =
   "epic_payments_access_token";
-
-/*
- * Valor de compatibilidade temporário.
- *
- * O JWT verdadeiro já não é exposto ao
- * JavaScript. Mantemos estas funções até
- * terminarmos de atualizar os restantes
- * services que ainda importam getToken().
- */
-const COOKIE_SESSION_MARKER =
-  "__epic_http_only_session__";
 
 
 let legacyMigrationPromise:
@@ -127,13 +110,15 @@ Promise<void> {
               }),
             cache:
               "no-store",
+            credentials:
+              "same-origin",
           },
         );
 
       /*
-       * Token inválido/expirado:
-       * deixa de fazer sentido mantê-lo
-       * no browser.
+       * Se o token antigo já estiver inválido
+       * ou expirado, deixa de fazer sentido
+       * mantê-lo no browser.
        */
       if (
         response.status === 400 ||
@@ -153,9 +138,9 @@ Promise<void> {
       }
 
       /*
-       * Só apagamos o JWT antigo depois
-       * de o Worker confirmar que o cookie
-       * HttpOnly foi criado.
+       * Só apagamos o JWT antigo depois de
+       * o servidor confirmar a criação do
+       * novo cookie HttpOnly.
        */
       clearLegacyToken();
     })();
@@ -169,62 +154,10 @@ Promise<void> {
 }
 
 
-/*
- * =====================================================
- * COMPATIBILIDADE TEMPORÁRIA
- * =====================================================
- *
- * Estas três funções continuam exportadas
- * apenas porque alguns services antigos
- * ainda as importam.
- *
- * Nenhuma delas devolve o JWT verdadeiro.
- */
-export function getToken():
-string | null {
-  return COOKIE_SESSION_MARKER;
-}
-
-
-export function setToken(
-  _token: string,
-): void {
-  clearLegacyToken();
-}
-
-
-export function clearToken():
-void {
-  clearLegacyToken();
-}
-
-
-export function isTokenExpired(
-  token: string,
-): boolean {
-  return (
-    token !==
-    COOKIE_SESSION_MARKER
-  );
-}
-
-
-export function getValidToken():
-string | null {
-  return COOKIE_SESSION_MARKER;
-}
-
-
-/*
- * =====================================================
- * AUTENTICAÇÃO VIA COOKIE HTTPONLY
- * =====================================================
- */
-
 export async function login(
   username: string,
   password: string,
-): Promise<LoginResponse> {
+): Promise<void> {
   const response =
     await fetch(
       "/api/session/login",
@@ -241,6 +174,8 @@ export async function login(
           }),
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -254,28 +189,24 @@ export async function login(
   }
 
   /*
-   * Mantemos o formato antigo apenas
-   * enquanto o AuthProvider ainda espera
-   * access_token.
-   *
-   * Isto NÃO é um JWT.
+   * Um login novo tem prioridade sobre
+   * qualquer token antigo que ainda exista
+   * no localStorage. Evita que a migração
+   * antiga substitua o cookie acabado de
+   * criar.
    */
-  return {
-    access_token:
-      COOKIE_SESSION_MARKER,
-    token_type:
-      "cookie",
-  };
+  clearLegacyToken();
 }
 
 
-export async function getCurrentUser(
-  _token?: string,
-): Promise<AuthUser> {
+export async function getCurrentUser():
+Promise<AuthUser> {
   /*
-   * Se este browser ainda tiver o JWT da
-   * versão anterior, convertemo-lo primeiro
-   * para o novo cookie HttpOnly.
+   * Compatibilidade de transição:
+   * browsers que ainda tenham o JWT da
+   * versão anterior convertem-no uma única
+   * vez para cookie HttpOnly e apagam-no
+   * do localStorage.
    */
   await migrateLegacySession();
 
@@ -286,6 +217,8 @@ export async function getCurrentUser(
         method: "GET",
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -332,6 +265,8 @@ export async function changeMyPassword(
           }),
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -356,6 +291,8 @@ async function getPhotoObjectUrl(
         method: "GET",
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -435,6 +372,8 @@ async function uploadPhoto(
           formData,
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -490,6 +429,8 @@ export async function resetUserPassword(
           }),
         cache:
           "no-store",
+        credentials:
+          "same-origin",
       },
     );
 
@@ -526,6 +467,8 @@ void {
       method: "POST",
       cache:
         "no-store",
+      credentials:
+        "same-origin",
       keepalive:
         true,
     },

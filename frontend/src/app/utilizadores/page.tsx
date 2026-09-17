@@ -10,12 +10,12 @@ import {
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
 import {
-  getToken,
   getUserPhotoObjectUrl,
   resetUserPassword,
   revokePhotoObjectUrl,
   uploadUserPhoto,
 } from "@/services/auth";
+
 
 type UserItem = {
   id: number;
@@ -29,113 +29,177 @@ type UserItem = {
   updated_at: string;
 };
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://127.0.0.1:8001";
+
+async function responseError(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const data =
+      await response.json();
+
+    return typeof data?.detail ===
+      "string"
+      ? data.detail
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 
 export default function UtilizadoresPage() {
-  const { user, refreshUser } = useAuth();
+  const {
+    user,
+    refreshUser,
+  } = useAuth();
 
   const [users, setUsers] =
     useState<UserItem[]>([]);
+
   const [loading, setLoading] =
     useState(true);
+
   const [error, setError] =
     useState("");
 
-  const [showCreate, setShowCreate] =
-    useState(false);
-  const [creating, setCreating] =
-    useState(false);
-  const [createError, setCreateError] =
-    useState("");
+  const [
+    showCreate,
+    setShowCreate,
+  ] = useState(false);
+
+  const [
+    creating,
+    setCreating,
+  ] = useState(false);
+
+  const [
+    createError,
+    setCreateError,
+  ] = useState("");
+
   const [name, setName] =
     useState("");
-  const [username, setUsername] =
-    useState("");
+
+  const [
+    username,
+    setUsername,
+  ] = useState("");
+
   const [email, setEmail] =
     useState("");
-  const [password, setPassword] =
-    useState("");
+
+  const [
+    password,
+    setPassword,
+  ] = useState("");
+
   const [role, setRole] =
     useState<
       "admin" | "collaborator"
     >("collaborator");
+
   const [photo, setPhoto] =
-    useState<File | null>(null);
+    useState<File | null>(
+      null,
+    );
 
   const [
     editingUser,
     setEditingUser,
-  ] = useState<UserItem | null>(null);
-  const [editName, setEditName] =
-    useState("");
+  ] =
+    useState<
+      UserItem | null
+    >(null);
+
+  const [
+    editName,
+    setEditName,
+  ] = useState("");
+
   const [
     editUsername,
     setEditUsername,
   ] = useState("");
-  const [editEmail, setEditEmail] =
-    useState("");
-  const [editRole, setEditRole] =
-    useState<UserItem["role"]>(
-      "collaborator",
-    );
+
+  const [
+    editEmail,
+    setEditEmail,
+  ] = useState("");
+
+  const [
+    editRole,
+    setEditRole,
+  ] =
+    useState<
+      UserItem["role"]
+    >("collaborator");
+
   const [
     editIsActive,
     setEditIsActive,
   ] = useState(true);
-  const [editPhoto, setEditPhoto] =
-    useState<File | null>(null);
-  const [savingEdit, setSavingEdit] =
-    useState(false);
-  const [editError, setEditError] =
-    useState("");
+
+  const [
+    editPhoto,
+    setEditPhoto,
+  ] =
+    useState<
+      File | null
+    >(null);
+
+  const [
+    savingEdit,
+    setSavingEdit,
+  ] = useState(false);
+
+  const [
+    editError,
+    setEditError,
+  ] = useState("");
 
   const [
     adminNewPassword,
     setAdminNewPassword,
   ] = useState("");
+
   const [
     passwordMessage,
     setPasswordMessage,
   ] = useState("");
+
   const [
     resettingPassword,
     setResettingPassword,
   ] = useState(false);
 
+
   async function loadUsers() {
-    const token = getToken();
-
-    if (!token) {
-      setError(
-        "Sessão não encontrada.",
-      );
-      setLoading(false);
-      return;
-    }
-
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_URL}/users`,
-        {
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
+      const response =
+        await fetch(
+          "/api/backend/users",
+          {
+            method: "GET",
+            cache:
+              "no-store",
           },
-          cache: "no-store",
-        },
-      );
+        );
 
       if (!response.ok) {
         throw new Error(
-          "Não foi possível carregar os utilizadores.",
+          await responseError(
+            response,
+            "Não foi possível carregar os utilizadores.",
+          ),
         );
       }
 
-      setUsers(await response.json());
+      setUsers(
+        await response.json(),
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -147,65 +211,56 @@ export default function UtilizadoresPage() {
     }
   }
 
+
   useEffect(() => {
     void loadUsers();
   }, []);
+
 
   function resetCreateForm() {
     setName("");
     setUsername("");
     setEmail("");
     setPassword("");
-    setRole("collaborator");
+    setRole(
+      "collaborator",
+    );
     setPhoto(null);
     setCreateError("");
   }
+
 
   function openEdit(
     item: UserItem,
   ) {
     setEditingUser(item);
-    setEditName(item.name);
-    setEditUsername(item.username);
-    setEditEmail(item.email);
-    setEditRole(item.role);
-    setEditIsActive(item.is_active);
+    setEditName(
+      item.name,
+    );
+    setEditUsername(
+      item.username,
+    );
+    setEditEmail(
+      item.email,
+    );
+    setEditRole(
+      item.role,
+    );
+    setEditIsActive(
+      item.is_active,
+    );
     setEditPhoto(null);
     setEditError("");
     setAdminNewPassword("");
     setPasswordMessage("");
   }
 
-  async function responseError(
-    response: Response,
-    fallback: string,
-  ) {
-    try {
-      const data =
-        await response.json();
-
-      return typeof data?.detail ===
-        "string"
-        ? data.detail
-        : fallback;
-    } catch {
-      return fallback;
-    }
-  }
 
   async function handleCreate(
-    event: FormEvent<HTMLFormElement>,
+    event:
+      FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-
-    const token = getToken();
-
-    if (!token) {
-      setCreateError(
-        "Sessão não encontrada.",
-      );
-      return;
-    }
 
     if (!photo) {
       setCreateError(
@@ -225,38 +280,43 @@ export default function UtilizadoresPage() {
         "name",
         name.trim(),
       );
+
       formData.append(
         "username",
         username.trim(),
       );
+
       formData.append(
         "email",
         email.trim(),
       );
+
       formData.append(
         "password",
         password,
       );
+
       formData.append(
         "role",
         role,
       );
+
       formData.append(
         "photo",
         photo,
       );
 
-      const response = await fetch(
-        `${API_URL}/users`,
-        {
-          method: "POST",
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
+      const response =
+        await fetch(
+          "/api/backend/users",
+          {
+            method: "POST",
+            body:
+              formData,
+            cache:
+              "no-store",
           },
-          body: formData,
-        },
-      );
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -267,9 +327,14 @@ export default function UtilizadoresPage() {
         );
       }
 
-      setShowCreate(false);
+      setShowCreate(
+        false,
+      );
+
       resetCreateForm();
+
       setLoading(true);
+
       await loadUsers();
     } catch (err) {
       setCreateError(
@@ -282,15 +347,9 @@ export default function UtilizadoresPage() {
     }
   }
 
+
   async function handleSaveEdit() {
-    if (!editingUser) return;
-
-    const token = getToken();
-
-    if (!token) {
-      setEditError(
-        "Sessão não encontrada.",
-      );
+    if (!editingUser) {
       return;
     }
 
@@ -298,27 +357,32 @@ export default function UtilizadoresPage() {
       setSavingEdit(true);
       setEditError("");
 
-      const response = await fetch(
-        `${API_URL}/users/${editingUser.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type":
-              "application/json",
-            Authorization:
-              `Bearer ${token}`,
+      const response =
+        await fetch(
+          `/api/backend/users/${editingUser.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body:
+              JSON.stringify({
+                name:
+                  editName.trim(),
+                username:
+                  editUsername.trim(),
+                email:
+                  editEmail.trim(),
+                role:
+                  editRole,
+                is_active:
+                  editIsActive,
+              }),
+            cache:
+              "no-store",
           },
-          body: JSON.stringify({
-            name: editName.trim(),
-            username:
-              editUsername.trim(),
-            email: editEmail.trim(),
-            role: editRole,
-            is_active:
-              editIsActive,
-          }),
-        },
-      );
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -337,13 +401,18 @@ export default function UtilizadoresPage() {
       }
 
       if (
-        user?.id === editingUser.id
+        user?.id ===
+        editingUser.id
       ) {
         await refreshUser();
       }
 
-      setEditingUser(null);
+      setEditingUser(
+        null,
+      );
+
       setLoading(true);
+
       await loadUsers();
     } catch (err) {
       setEditError(
@@ -356,11 +425,15 @@ export default function UtilizadoresPage() {
     }
   }
 
+
   async function handlePasswordReset() {
-    if (!editingUser) return;
+    if (!editingUser) {
+      return;
+    }
 
     if (
-      adminNewPassword.length < 8
+      adminNewPassword.length <
+      8
     ) {
       setPasswordMessage(
         "A password deve ter pelo menos 8 caracteres.",
@@ -369,15 +442,23 @@ export default function UtilizadoresPage() {
     }
 
     try {
-      setResettingPassword(true);
-      setPasswordMessage("");
+      setResettingPassword(
+        true,
+      );
+
+      setPasswordMessage(
+        "",
+      );
 
       await resetUserPassword(
         editingUser.id,
         adminNewPassword,
       );
 
-      setAdminNewPassword("");
+      setAdminNewPassword(
+        "",
+      );
+
       setPasswordMessage(
         "Password alterada com sucesso.",
       );
@@ -388,9 +469,12 @@ export default function UtilizadoresPage() {
           : "Erro ao alterar password.",
       );
     } finally {
-      setResettingPassword(false);
+      setResettingPassword(
+        false,
+      );
     }
   }
+
 
   if (
     user &&
@@ -398,28 +482,50 @@ export default function UtilizadoresPage() {
   ) {
     return (
       <AppLayout>
-        <div style={{ padding: "32px" }}>
-          <h2>Acesso reservado</h2>
+        <div
+          style={{
+            padding:
+              "32px",
+          }}
+        >
+          <h2>
+            Acesso reservado
+          </h2>
+
           <p>
-            Esta área está disponível
-            apenas para Administradores.
+            Esta área está
+            disponível apenas para
+            Administradores.
           </p>
         </div>
       </AppLayout>
     );
   }
 
+
   return (
     <AppLayout>
-      <div style={{ padding: "28px" }}>
-        <div style={pageHeaderStyle}>
+      <div
+        style={{
+          padding:
+            "28px",
+        }}
+      >
+        <div
+          style={
+            pageHeaderStyle
+          }
+        >
           <div>
             <h2
               style={{
                 margin: 0,
-                fontSize: "28px",
-                color: "#10233d",
-                letterSpacing: "-0.03em",
+                fontSize:
+                  "28px",
+                color:
+                  "#10233d",
+                letterSpacing:
+                  "-0.03em",
               }}
             >
               Utilizadores
@@ -427,12 +533,16 @@ export default function UtilizadoresPage() {
 
             <p
               style={{
-                margin: "6px 0 0",
-                color: "#6a7e90",
+                margin:
+                  "6px 0 0",
+                color:
+                  "#6a7e90",
               }}
             >
-              Gestão dos Administradores
-              e Colaboradores do sistema.
+              Gestão dos
+              Administradores e
+              Colaboradores do
+              sistema.
             </p>
           </div>
 
@@ -440,9 +550,13 @@ export default function UtilizadoresPage() {
             type="button"
             onClick={() => {
               resetCreateForm();
-              setShowCreate(true);
+              setShowCreate(
+                true,
+              );
             }}
-            style={primaryButton}
+            style={
+              primaryButton
+            }
           >
             + Novo utilizador
           </button>
@@ -450,12 +564,17 @@ export default function UtilizadoresPage() {
 
         {loading && (
           <p>
-            A carregar utilizadores...
+            A carregar
+            utilizadores...
           </p>
         )}
 
         {error && (
-          <div style={errorStyle}>
+          <div
+            style={
+              errorStyle
+            }
+          >
             {error}
           </div>
         )}
@@ -464,91 +583,114 @@ export default function UtilizadoresPage() {
           !error && (
             <div
               style={{
-                display: "grid",
-                gap: "14px",
+                display:
+                  "grid",
+                gap:
+                  "14px",
               }}
             >
-              {users.map((item) => (
-                <div
-                  key={item.id}
-                  style={userRowStyle}
-                >
-                  <UserAvatar
-                    userId={item.id}
-                    name={item.name}
-                    hasPhoto={
-                      item.has_photo
-                    }
-                  />
-
-                  <div>
-                    <strong>
-                      {item.name}
-                    </strong>
-                    <div
-                      style={{
-                        marginTop:
-                          "4px",
-                        color: "#777",
-                        fontSize:
-                          "13px",
-                      }}
-                    >
-                      @{item.username}
-                    </div>
-                  </div>
-
-                  <div>
-                    {item.role ===
-                    "admin"
-                      ? "Administrador"
-                      : "Colaborador"}
-                  </div>
-
-                  <div>
-                    {item.email}
-                  </div>
-
-                  <div>
-                    <span
-                      style={{
-                        padding:
-                          "6px 10px",
-                        borderRadius:
-                          "999px",
-                        fontSize:
-                          "12px",
-                        fontWeight:
-                          700,
-                        background:
-                          item.is_active
-                            ? "#e8f7ed"
-                            : "#f3f3f3",
-                        color:
-                          item.is_active
-                            ? "#16713a"
-                            : "#666",
-                      }}
-                    >
-                      {item.is_active
-                        ? "Ativo"
-                        : "Inativo"}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openEdit(item)
+              {users.map(
+                (item) => (
+                  <div
+                    key={
+                      item.id
                     }
                     style={
-                      secondaryButton
+                      userRowStyle
                     }
                   >
-                    Editar
-                  </button>
-                </div>
-              ))}
+                    <UserAvatar
+                      userId={
+                        item.id
+                      }
+                      name={
+                        item.name
+                      }
+                      hasPhoto={
+                        item.has_photo
+                      }
+                    />
+
+                    <div>
+                      <strong>
+                        {
+                          item.name
+                        }
+                      </strong>
+
+                      <div
+                        style={{
+                          marginTop:
+                            "4px",
+                          color:
+                            "#777",
+                          fontSize:
+                            "13px",
+                        }}
+                      >
+                        @
+                        {
+                          item.username
+                        }
+                      </div>
+                    </div>
+
+                    <div>
+                      {item.role ===
+                      "admin"
+                        ? "Administrador"
+                        : "Colaborador"}
+                    </div>
+
+                    <div>
+                      {
+                        item.email
+                      }
+                    </div>
+
+                    <div>
+                      <span
+                        style={{
+                          padding:
+                            "6px 10px",
+                          borderRadius:
+                            "999px",
+                          fontSize:
+                            "12px",
+                          fontWeight:
+                            700,
+                          background:
+                            item.is_active
+                              ? "#e8f7ed"
+                              : "#f3f3f3",
+                          color:
+                            item.is_active
+                              ? "#16713a"
+                              : "#666",
+                        }}
+                      >
+                        {item.is_active
+                          ? "Ativo"
+                          : "Inativo"}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEdit(
+                          item,
+                        )
+                      }
+                      style={
+                        secondaryButton
+                      }
+                    >
+                      Editar
+                    </button>
+                  </div>
+                ),
+              )}
             </div>
           )}
       </div>
@@ -556,64 +698,107 @@ export default function UtilizadoresPage() {
       {editingUser && (
         <Modal
           title="Editar utilizador"
-          subtitle={editingUser.name}
+          subtitle={
+            editingUser.name
+          }
           onClose={() => {
-            if (!savingEdit) {
-              setEditingUser(null);
+            if (
+              !savingEdit
+            ) {
+              setEditingUser(
+                null,
+              );
             }
           }}
         >
           <div
             style={{
-              display: "grid",
-              gap: "18px",
+              display:
+                "grid",
+              gap:
+                "18px",
             }}
           >
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Nova fotografia
               (opcional)
+
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setEditPhoto(
                     event.target
                       .files?.[0] ??
                       null,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
+
               <span
-                style={helpTextStyle}
+                style={
+                  helpTextStyle
+                }
               >
-                Se não selecionar
-                nenhuma, mantém a
-                fotografia atual.
+                Se não
+                selecionar
+                nenhuma,
+                mantém a
+                fotografia
+                atual.
               </span>
             </label>
 
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Nome
+
               <input
-                value={editName}
-                onChange={(event) =>
+                value={
+                  editName
+                }
+                onChange={(
+                  event,
+                ) =>
                   setEditName(
                     event.target
                       .value,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
             </label>
 
-            <div style={twoColumns}>
+            <div
+              style={
+                twoColumns
+              }
+            >
               <label
-                style={labelStyle}
+                style={
+                  labelStyle
+                }
               >
                 Username
+
                 <input
-                  value={editUsername}
+                  value={
+                    editUsername
+                  }
                   onChange={(
                     event,
                   ) =>
@@ -622,16 +807,24 @@ export default function UtilizadoresPage() {
                         .value,
                     )
                   }
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                 />
               </label>
 
               <label
-                style={labelStyle}
+                style={
+                  labelStyle
+                }
               >
-                Tipo de utilizador
+                Tipo de
+                utilizador
+
                 <select
-                  value={editRole}
+                  value={
+                    editRole
+                  }
                   onChange={(
                     event,
                   ) =>
@@ -641,11 +834,14 @@ export default function UtilizadoresPage() {
                         UserItem["role"],
                     )
                   }
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                 >
                   <option value="collaborator">
                     Colaborador
                   </option>
+
                   <option value="admin">
                     Administrador
                   </option>
@@ -653,55 +849,87 @@ export default function UtilizadoresPage() {
               </label>
             </div>
 
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Email
+
               <input
                 type="email"
-                value={editEmail}
-                onChange={(event) =>
+                value={
+                  editEmail
+                }
+                onChange={(
+                  event,
+                ) =>
                   setEditEmail(
                     event.target
                       .value,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
             </label>
 
             <label
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                fontWeight: 700,
+                display:
+                  "flex",
+                alignItems:
+                  "center",
+                gap:
+                  "10px",
+                fontWeight:
+                  700,
               }}
             >
               <input
                 type="checkbox"
-                checked={editIsActive}
-                onChange={(event) =>
+                checked={
+                  editIsActive
+                }
+                onChange={(
+                  event,
+                ) =>
                   setEditIsActive(
                     event.target
                       .checked,
                   )
                 }
               />
+
               Utilizador ativo
             </label>
 
             {editError && (
-              <div style={errorStyle}>
+              <div
+                style={
+                  errorStyle
+                }
+              >
                 {editError}
               </div>
             )}
 
-            <div style={buttonRow}>
+            <div
+              style={
+                buttonRow
+              }
+            >
               <button
                 type="button"
                 onClick={() =>
-                  setEditingUser(null)
+                  setEditingUser(
+                    null,
+                  )
                 }
-                disabled={savingEdit}
+                disabled={
+                  savingEdit
+                }
                 style={
                   secondaryButton
                 }
@@ -714,8 +942,12 @@ export default function UtilizadoresPage() {
                 onClick={
                   handleSaveEdit
                 }
-                disabled={savingEdit}
-                style={primaryButton}
+                disabled={
+                  savingEdit
+                }
+                style={
+                  primaryButton
+                }
               >
                 {savingEdit
                   ? "A guardar..."
@@ -727,7 +959,8 @@ export default function UtilizadoresPage() {
               style={{
                 borderTop:
                   "1px solid #ededed",
-                paddingTop: "20px",
+                paddingTop:
+                  "20px",
               }}
             >
               <h3
@@ -741,8 +974,10 @@ export default function UtilizadoresPage() {
 
               <div
                 style={{
-                  display: "flex",
-                  gap: "10px",
+                  display:
+                    "flex",
+                  gap:
+                    "10px",
                 }}
               >
                 <input
@@ -750,15 +985,21 @@ export default function UtilizadoresPage() {
                   value={
                     adminNewPassword
                   }
-                  minLength={8}
+                  minLength={
+                    8
+                  }
                   placeholder="Nova password"
-                  onChange={(event) =>
+                  onChange={(
+                    event,
+                  ) =>
                     setAdminNewPassword(
                       event.target
                         .value,
                     )
                   }
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                 />
 
                 <button
@@ -788,7 +1029,9 @@ export default function UtilizadoresPage() {
                       "14px",
                   }}
                 >
-                  {passwordMessage}
+                  {
+                    passwordMessage
+                  }
                 </div>
               )}
             </div>
@@ -802,66 +1045,110 @@ export default function UtilizadoresPage() {
           subtitle="Criar um novo acesso ao sistema."
           onClose={() => {
             if (!creating) {
-              setShowCreate(false);
+              setShowCreate(
+                false,
+              );
+
               resetCreateForm();
             }
           }}
         >
           <form
-            onSubmit={handleCreate}
+            onSubmit={
+              handleCreate
+            }
             style={{
-              display: "grid",
-              gap: "18px",
+              display:
+                "grid",
+              gap:
+                "18px",
             }}
           >
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Fotografia *
+
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 required
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setPhoto(
                     event.target
                       .files?.[0] ??
                       null,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
+
               <span
-                style={helpTextStyle}
+                style={
+                  helpTextStyle
+                }
               >
-                JPG, PNG ou WEBP.
-                Máximo 5 MB.
+                JPG, PNG ou
+                WEBP. Máximo 5
+                MB.
               </span>
             </label>
 
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Nome *
+
               <input
-                value={name}
+                value={
+                  name
+                }
                 required
-                minLength={2}
-                onChange={(event) =>
+                minLength={
+                  2
+                }
+                onChange={(
+                  event,
+                ) =>
                   setName(
                     event.target
                       .value,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
             </label>
 
-            <div style={twoColumns}>
+            <div
+              style={
+                twoColumns
+              }
+            >
               <label
-                style={labelStyle}
+                style={
+                  labelStyle
+                }
               >
                 Username *
+
                 <input
-                  value={username}
+                  value={
+                    username
+                  }
                   required
-                  minLength={3}
+                  minLength={
+                    3
+                  }
                   onChange={(
                     event,
                   ) =>
@@ -870,16 +1157,24 @@ export default function UtilizadoresPage() {
                         .value,
                     )
                   }
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                 />
               </label>
 
               <label
-                style={labelStyle}
+                style={
+                  labelStyle
+                }
               >
-                Tipo de utilizador *
+                Tipo de
+                utilizador *
+
                 <select
-                  value={role}
+                  value={
+                    role
+                  }
                   onChange={(
                     event,
                   ) =>
@@ -890,11 +1185,14 @@ export default function UtilizadoresPage() {
                         | "collaborator",
                     )
                   }
-                  style={inputStyle}
+                  style={
+                    inputStyle
+                  }
                 >
                   <option value="collaborator">
                     Colaborador
                   </option>
+
                   <option value="admin">
                     Administrador
                   </option>
@@ -902,39 +1200,66 @@ export default function UtilizadoresPage() {
               </label>
             </div>
 
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Email *
+
               <input
                 type="email"
-                value={email}
+                value={
+                  email
+                }
                 required
-                onChange={(event) =>
+                onChange={(
+                  event,
+                ) =>
                   setEmail(
                     event.target
                       .value,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
             </label>
 
-            <label style={labelStyle}>
+            <label
+              style={
+                labelStyle
+              }
+            >
               Password *
+
               <input
                 type="password"
-                value={password}
+                value={
+                  password
+                }
                 required
-                minLength={8}
-                onChange={(event) =>
+                minLength={
+                  8
+                }
+                onChange={(
+                  event,
+                ) =>
                   setPassword(
                     event.target
                       .value,
                   )
                 }
-                style={inputStyle}
+                style={
+                  inputStyle
+                }
               />
+
               <span
-                style={helpTextStyle}
+                style={
+                  helpTextStyle
+                }
               >
                 Mínimo de 8
                 caracteres.
@@ -942,21 +1267,32 @@ export default function UtilizadoresPage() {
             </label>
 
             {createError && (
-              <div style={errorStyle}>
+              <div
+                style={
+                  errorStyle
+                }
+              >
                 {createError}
               </div>
             )}
 
-            <div style={buttonRow}>
+            <div
+              style={
+                buttonRow
+              }
+            >
               <button
                 type="button"
                 onClick={() => {
                   setShowCreate(
                     false,
                   );
+
                   resetCreateForm();
                 }}
-                disabled={creating}
+                disabled={
+                  creating
+                }
                 style={
                   secondaryButton
                 }
@@ -966,8 +1302,12 @@ export default function UtilizadoresPage() {
 
               <button
                 type="submit"
-                disabled={creating}
-                style={primaryButton}
+                disabled={
+                  creating
+                }
+                style={
+                  primaryButton
+                }
               >
                 {creating
                   ? "A criar..."
@@ -980,6 +1320,7 @@ export default function UtilizadoresPage() {
     </AppLayout>
   );
 }
+
 
 function Modal({
   title,
@@ -995,7 +1336,9 @@ function Modal({
   return (
     <div
       role="presentation"
-      onMouseDown={(event) => {
+      onMouseDown={(
+        event,
+      ) => {
         if (
           event.target ===
           event.currentTarget
@@ -1004,13 +1347,18 @@ function Modal({
         }
       }}
       style={{
-        position: "fixed",
+        position:
+          "fixed",
         inset: 0,
         zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px",
+        display:
+          "flex",
+        alignItems:
+          "center",
+        justifyContent:
+          "center",
+        padding:
+          "24px",
         background:
           "rgba(9, 31, 49, .34)",
         backdropFilter:
@@ -1023,11 +1371,16 @@ function Modal({
         role="dialog"
         aria-modal="true"
         style={{
-          width: "100%",
-          maxWidth: "650px",
-          maxHeight: "90vh",
-          overflowY: "auto",
-          borderRadius: "22px",
+          width:
+            "100%",
+          maxWidth:
+            "650px",
+          maxHeight:
+            "90vh",
+          overflowY:
+            "auto",
+          borderRadius:
+            "22px",
           border:
             "1px solid rgba(255,255,255,.82)",
           background:
@@ -1038,10 +1391,12 @@ function Modal({
       >
         <div
           style={{
-            display: "flex",
+            display:
+              "flex",
             justifyContent:
               "space-between",
-            gap: "20px",
+            gap:
+              "20px",
             padding:
               "24px 26px 18px",
             borderBottom:
@@ -1051,9 +1406,12 @@ function Modal({
           <div>
             <div
               style={{
-                color: "#0878bd",
-                fontSize: "11px",
-                fontWeight: 800,
+                color:
+                  "#0878bd",
+                fontSize:
+                  "11px",
+                fontWeight:
+                  800,
                 letterSpacing:
                   "1.4px",
               }}
@@ -1063,7 +1421,8 @@ function Modal({
 
             <h2
               style={{
-                margin: "6px 0 0",
+                margin:
+                  "6px 0 0",
               }}
             >
               {title}
@@ -1071,9 +1430,12 @@ function Modal({
 
             <p
               style={{
-                margin: "6px 0 0",
-                color: "#6a7e90",
-                fontSize: "14px",
+                margin:
+                  "6px 0 0",
+                color:
+                  "#6a7e90",
+                fontSize:
+                  "14px",
               }}
             >
               {subtitle}
@@ -1082,17 +1444,25 @@ function Modal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={
+              onClose
+            }
             aria-label="Fechar"
             style={{
-              width: "36px",
-              height: "36px",
+              width:
+                "36px",
+              height:
+                "36px",
               border:
                 "1px solid #ddd",
-              borderRadius: "50%",
-              background: "#fff",
-              fontSize: "21px",
-              cursor: "pointer",
+              borderRadius:
+                "50%",
+              background:
+                "#fff",
+              fontSize:
+                "21px",
+              cursor:
+                "pointer",
             }}
           >
             ×
@@ -1101,7 +1471,8 @@ function Modal({
 
         <div
           style={{
-            padding: "26px",
+            padding:
+              "26px",
           }}
         >
           {children}
@@ -1110,6 +1481,7 @@ function Modal({
     </div>
   );
 }
+
 
 function UserAvatar({
   userId,
@@ -1120,8 +1492,10 @@ function UserAvatar({
   name: string;
   hasPhoto: boolean;
 }) {
-  const [photoUrl, setPhotoUrl] =
-    useState("");
+  const [
+    photoUrl,
+    setPhotoUrl,
+  ] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -1145,11 +1519,16 @@ function UserAvatar({
               url,
             );
           }
+
           return;
         }
 
-        objectUrl = url;
-        setPhotoUrl(url);
+        objectUrl =
+          url;
+
+        setPhotoUrl(
+          url,
+        );
       } catch {
         if (active) {
           setPhotoUrl("");
@@ -1160,7 +1539,9 @@ function UserAvatar({
     void loadPhoto();
 
     return () => {
-      active = false;
+      active =
+        false;
+
       if (objectUrl) {
         revokePhotoObjectUrl(
           objectUrl,
@@ -1176,18 +1557,28 @@ function UserAvatar({
     name
       .trim()
       .charAt(0)
-      .toUpperCase() || "?";
+      .toUpperCase() ||
+    "?";
 
   return (
-    <div style={avatarStyle}>
+    <div
+      style={
+        avatarStyle
+      }
+    >
       {photoUrl ? (
         <img
-          src={photoUrl}
+          src={
+            photoUrl
+          }
           alt={`Fotografia de ${name}`}
           style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
+            width:
+              "100%",
+            height:
+              "100%",
+            objectFit:
+              "cover",
           }}
         />
       ) : (
@@ -1197,19 +1588,30 @@ function UserAvatar({
   );
 }
 
+
 const inputStyle = {
   width: "100%",
   minHeight: "44px",
-  boxSizing: "border-box" as const,
-  padding: "11px 13px",
-  border: "1px solid rgba(75,107,132,.18)",
-  borderRadius: "11px",
-  background: "rgba(255,255,255,.92)",
-  color: "#17304a",
-  font: "inherit",
-  outline: "none",
-  boxShadow: "inset 0 1px 2px rgba(18,48,71,.025)",
+  boxSizing:
+    "border-box" as const,
+  padding:
+    "11px 13px",
+  border:
+    "1px solid rgba(75,107,132,.18)",
+  borderRadius:
+    "11px",
+  background:
+    "rgba(255,255,255,.92)",
+  color:
+    "#17304a",
+  font:
+    "inherit",
+  outline:
+    "none",
+  boxShadow:
+    "inset 0 1px 2px rgba(18,48,71,.025)",
 };
+
 
 const labelStyle = {
   display: "grid",
@@ -1219,96 +1621,153 @@ const labelStyle = {
   fontSize: "14px",
 };
 
+
 const helpTextStyle = {
   color: "#7c8f9e",
   fontSize: "12px",
   fontWeight: 400,
 };
 
+
 const primaryButton = {
-  border: "1px solid rgba(6,111,174,.38)",
-  borderRadius: "10px",
-  padding: "11px 18px",
+  border:
+    "1px solid rgba(6,111,174,.38)",
+  borderRadius:
+    "10px",
+  padding:
+    "11px 18px",
   background:
     "linear-gradient(180deg, #169de7 0%, #0879bd 100%)",
-  color: "#fff",
-  fontWeight: 750,
-  cursor: "pointer",
+  color:
+    "#fff",
+  fontWeight:
+    750,
+  cursor:
+    "pointer",
   boxShadow:
     "0 7px 18px rgba(8,120,189,.18), inset 0 1px rgba(255,255,255,.18)",
 };
 
+
 const secondaryButton = {
-  border: "1px solid rgba(75,107,132,.18)",
-  borderRadius: "10px",
-  padding: "10px 16px",
+  border:
+    "1px solid rgba(75,107,132,.18)",
+  borderRadius:
+    "10px",
+  padding:
+    "10px 16px",
   background:
     "linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,248,252,.96))",
-  color: "#24445d",
-  fontWeight: 750,
-  cursor: "pointer",
-  boxShadow: "0 3px 10px rgba(18,48,71,.04)",
+  color:
+    "#24445d",
+  fontWeight:
+    750,
+  cursor:
+    "pointer",
+  boxShadow:
+    "0 3px 10px rgba(18,48,71,.04)",
 };
+
 
 const errorStyle = {
-  padding: "12px 14px",
-  border: "1px solid rgba(205,69,69,.18)",
-  borderRadius: "10px",
-  background: "#fff0f0",
-  color: "#b63c43",
-  fontSize: "13px",
-  fontWeight: 650,
+  padding:
+    "12px 14px",
+  border:
+    "1px solid rgba(205,69,69,.18)",
+  borderRadius:
+    "10px",
+  background:
+    "#fff0f0",
+  color:
+    "#b63c43",
+  fontSize:
+    "13px",
+  fontWeight:
+    650,
 };
+
 
 const buttonRow = {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "10px",
+  display:
+    "flex",
+  justifyContent:
+    "flex-end",
+  gap:
+    "10px",
 };
+
 
 const twoColumns = {
-  display: "grid",
+  display:
+    "grid",
   gridTemplateColumns:
     "1fr 1fr",
-  gap: "16px",
+  gap:
+    "16px",
 };
+
 
 const pageHeaderStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: "16px",
-  marginBottom: "24px",
+  display:
+    "flex",
+  alignItems:
+    "center",
+  justifyContent:
+    "space-between",
+  gap:
+    "16px",
+  marginBottom:
+    "24px",
 };
+
 
 const userRowStyle = {
-  display: "grid",
+  display:
+    "grid",
   gridTemplateColumns:
     "70px 1.4fr 1fr 1.6fr 1fr 110px",
-  alignItems: "center",
-  gap: "16px",
-  padding: "15px 16px",
-  border: "1px solid rgba(75,107,132,.13)",
-  borderRadius: "15px",
+  alignItems:
+    "center",
+  gap:
+    "16px",
+  padding:
+    "15px 16px",
+  border:
+    "1px solid rgba(75,107,132,.13)",
+  borderRadius:
+    "15px",
   background:
     "linear-gradient(155deg, rgba(255,255,255,.95), rgba(246,251,254,.88))",
-  boxShadow: "0 7px 22px rgba(18,48,71,.045)",
+  boxShadow:
+    "0 7px 22px rgba(18,48,71,.045)",
 };
+
 
 const avatarStyle = {
-  width: "52px",
-  height: "52px",
-  borderRadius: "50%",
-  overflow: "hidden",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  width:
+    "52px",
+  height:
+    "52px",
+  borderRadius:
+    "50%",
+  overflow:
+    "hidden",
+  display:
+    "flex",
+  alignItems:
+    "center",
+  justifyContent:
+    "center",
   background:
     "linear-gradient(145deg, #0e6eaa, #0b3f66)",
-  color: "#fff",
-  fontWeight: 800,
-  fontSize: "18px",
-  border: "2px solid rgba(255,255,255,.9)",
-  boxShadow: "0 4px 12px rgba(18,48,71,.14)",
+  color:
+    "#fff",
+  fontWeight:
+    800,
+  fontSize:
+    "18px",
+  border:
+    "2px solid rgba(255,255,255,.9)",
+  boxShadow:
+    "0 4px 12px rgba(18,48,71,.14)",
 };
-

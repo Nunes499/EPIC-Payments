@@ -15,11 +15,15 @@ from fastapi.responses import (
 )
 from sqlalchemy.orm import Session
 
+from app.api.dependencies import (
+    get_current_user,
+)
 from app.crud.cedis_file import (
     get_active_cedis_file,
     get_cedis_history,
 )
 from app.database.session import get_db
+from app.models import User
 from app.schemas.cedis_file import (
     CedisFileRead,
     CedisPreviewResponse,
@@ -46,8 +50,10 @@ router = APIRouter(
     response_model=CedisFileRead | None,
 )
 def get_active_base(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    del current_user
     return get_active_cedis_file(db)
 
 
@@ -56,8 +62,10 @@ def get_active_base(
     response_model=list[CedisFileRead],
 )
 def list_cedis_history(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    del current_user
     return get_cedis_history(db)
 
 
@@ -68,12 +76,13 @@ def list_cedis_history(
 )
 async def upload_cedis_base(
     upload: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return await save_cedis_file(
         db,
         upload=upload,
-        uploaded_by_id=None,
+        uploaded_by_id=current_user.id,
     )
 
 
@@ -84,12 +93,13 @@ async def upload_cedis_base(
 )
 def restore_cedis_base(
     file_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     return restore_cedis_file(
         db,
         file_id=file_id,
-        uploaded_by_id=None,
+        uploaded_by_id=current_user.id,
     )
 
 
@@ -100,8 +110,11 @@ def restore_cedis_base(
 def preview_cedis_base(
     file_id: int,
     limit: int = 100,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    del current_user
+
     if limit < 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -124,8 +137,11 @@ def preview_cedis_base(
 )
 def download_cedis_base(
     file_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    del current_user
+
     cedis_file = get_existing_cedis_file(
         db,
         file_id=file_id,
@@ -141,9 +157,7 @@ def download_cedis_base(
         or f"cedis_{cedis_file.id}.xls"
     )
 
-    if is_r2_file_path(
-        cedis_file.file_path
-    ):
+    if is_r2_file_path(cedis_file.file_path):
         try:
             contents = get_cedis_file_contents(
                 cedis_file
@@ -159,9 +173,7 @@ def download_cedis_base(
                 ),
             ) from exc
 
-        encoded_filename = quote(
-            filename
-        )
+        encoded_filename = quote(filename)
 
         return StreamingResponse(
             BytesIO(contents),
@@ -171,9 +183,7 @@ def download_cedis_base(
                     "attachment; "
                     f"filename*=UTF-8''{encoded_filename}"
                 ),
-                "Content-Length": str(
-                    len(contents)
-                ),
+                "Content-Length": str(len(contents)),
                 "Cache-Control": "private, no-store",
             },
         )
@@ -186,4 +196,7 @@ def download_cedis_base(
         path=file_path,
         filename=filename,
         media_type=media_type,
+        headers={
+            "Cache-Control": "private, no-store",
+        },
     )

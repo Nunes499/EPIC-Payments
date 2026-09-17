@@ -1,6 +1,8 @@
 const UPSTREAM_API_URL =
+  process.env.API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
   "http://127.0.0.1:8000";
+
 
 const SESSION_COOKIE =
   "epic_payments_session";
@@ -11,6 +13,83 @@ type MigrationPayload = {
 };
 
 
+function requestIsSameOrigin(
+  request: Request,
+): boolean {
+  const requestOrigin =
+    new URL(
+      request.url,
+    ).origin;
+
+  const origin =
+    request.headers.get(
+      "origin",
+    );
+
+  if (origin) {
+    try {
+      if (
+        new URL(
+          origin,
+        ).origin !==
+        requestOrigin
+      ) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  } else {
+    const referer =
+      request.headers.get(
+        "referer",
+      );
+
+    if (referer) {
+      try {
+        if (
+          new URL(
+            referer,
+          ).origin !==
+          requestOrigin
+        ) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    } else {
+      const fetchSite =
+        request.headers.get(
+          "sec-fetch-site",
+        );
+
+      if (
+        fetchSite !==
+        "same-origin"
+      ) {
+        return false;
+      }
+    }
+  }
+
+  const fetchSite =
+    request.headers.get(
+      "sec-fetch-site",
+    );
+
+  if (
+    fetchSite &&
+    fetchSite !==
+      "same-origin"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+
 function sessionCookie(
   request: Request,
   token: string,
@@ -19,10 +98,13 @@ function sessionCookie(
   const secure =
     new URL(
       request.url,
-    ).protocol === "https:";
+    ).protocol ===
+    "https:";
 
   return [
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
+    `${SESSION_COOKIE}=${encodeURIComponent(
+      token,
+    )}`,
     "Path=/",
     "HttpOnly",
     "SameSite=Lax",
@@ -40,7 +122,8 @@ function expiredSessionCookie(
   const secure =
     new URL(
       request.url,
-    ).protocol === "https:";
+    ).protocol ===
+    "https:";
 
   return [
     `${SESSION_COOKIE}=`,
@@ -55,9 +138,44 @@ function expiredSessionCookie(
 }
 
 
+function jsonResponse(
+  request: Request,
+  body: unknown,
+  status: number,
+  expireSession = false,
+): Response {
+  const headers =
+    new Headers({
+      "Content-Type":
+        "application/json",
+      "Cache-Control":
+        "no-store",
+    });
+
+  if (expireSession) {
+    headers.append(
+      "Set-Cookie",
+      expiredSessionCookie(
+        request,
+      ),
+    );
+  }
+
+  return new Response(
+    JSON.stringify(
+      body,
+    ),
+    {
+      status,
+      headers,
+    },
+  );
+}
+
+
 function tokenMaxAge(
   token: string,
-): number {
+): number | null {
   try {
     const parts =
       token.split(".");
@@ -65,13 +183,19 @@ function tokenMaxAge(
     if (
       parts.length !== 3
     ) {
-      return 1;
+      return null;
     }
 
     const base64 =
       parts[1]
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
+        .replace(
+          /-/g,
+          "+",
+        )
+        .replace(
+          /_/g,
+          "/",
+        );
 
     const padding =
       base64.length % 4;
@@ -96,29 +220,112 @@ function tokenMaxAge(
 
     if (
       typeof payload.exp !==
-      "number"
+      "number" ||
+      !Number.isFinite(
+        payload.exp,
+      )
     ) {
-      return 1;
+      return null;
     }
 
     const now =
       Math.floor(
-        Date.now() / 1000,
+        Date.now() /
+          1000,
       );
 
-    return Math.max(
-      1,
-      payload.exp - now - 5,
-    );
+    const remaining =
+      Math.floor(
+        payload.exp -
+          now -
+          5,
+      );
+
+    if (
+      remaining <= 0
+    ) {
+      return null;
+    }
+
+    return remaining;
   } catch {
-    return 1;
+    return null;
   }
+}
+
+
+async function upstreamErrorDetail(
+  response: Response,
+): Promise<string> {
+  try {
+    const data =
+      await response.json() as {
+        detail?: unknown;
+      };
+
+    if (
+      typeof data.detail ===
+      "string"
+    ) {
+      return data.detail;
+    }
+  } catch {
+    // Usamos a mensagem genérica abaixo.
+  }
+
+  return (
+    "Não foi possível validar a sessão antiga."
+  );
 }
 
 
 export async function POST(
   request: Request,
 ): Promise<Response> {
+  /*
+   * A migração recebe um JWT legado que
+   * ainda vive no JavaScript. Por isso este
+   * endpoint só aceita pedidos da própria
+   * aplicação.
+   */
+  if (
+    !requestIsSameOrigin(
+      request,
+    )
+  ) {
+    return jsonResponse(
+      request,
+      {
+        detail:
+          "Pedido bloqueado por segurança.",
+      },
+      403,
+      true,
+    );
+  }
+
+  const contentType =
+    request.headers.get(
+      "content-type",
+    ) ?? "";
+
+  if (
+    !contentType
+      .toLowerCase()
+      .startsWith(
+        "application/json",
+      )
+  ) {
+    return jsonResponse(
+      request,
+      {
+        detail:
+          "Formato de pedido inválido.",
+      },
+      415,
+    );
+  }
+
   let payload:
     MigrationPayload;
 
@@ -126,14 +333,13 @@ export async function POST(
     payload =
       await request.json();
   } catch {
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         detail:
           "Pedido de migração inválido.",
       },
-      {
-        status: 400,
-      },
+      400,
     );
   }
 
@@ -144,14 +350,73 @@ export async function POST(
       : "";
 
   if (!token) {
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         detail:
           "Token de sessão não encontrado.",
       },
+      400,
+      true,
+    );
+  }
+
+  /*
+   * JWTs normais ficam muito abaixo deste
+   * limite. Evita enviar payloads absurdos
+   * para o backend.
+   */
+  if (
+    token.length > 8192
+  ) {
+    return jsonResponse(
+      request,
       {
-        status: 400,
+        detail:
+          "Token de sessão inválido.",
       },
+      400,
+      true,
+    );
+  }
+
+  const maxAge =
+    tokenMaxAge(
+      token,
+    );
+
+  if (!maxAge) {
+    return jsonResponse(
+      request,
+      {
+        detail:
+          "Sessão expirada ou inválida.",
+      },
+      401,
+      true,
+    );
+  }
+
+  let upstreamUrl:
+    URL;
+
+  try {
+    upstreamUrl =
+      new URL(
+        `${UPSTREAM_API_URL.replace(
+          /\/$/,
+          "",
+        )}/auth/me`,
+      );
+  } catch {
+    return jsonResponse(
+      request,
+      {
+        detail:
+          "Configuração do servidor inválida.",
+      },
+      500,
+      true,
     );
   }
 
@@ -161,88 +426,59 @@ export async function POST(
   try {
     upstreamResponse =
       await fetch(
-        `${UPSTREAM_API_URL.replace(
-          /\/$/,
-          "",
-        )}/auth/me`,
+        upstreamUrl,
         {
           method: "GET",
           headers: {
-            Authorization:
+            "Authorization":
               `Bearer ${token}`,
+            "Accept":
+              "application/json",
           },
           cache:
             "no-store",
+          redirect:
+            "manual",
+          signal:
+            request.signal,
         },
       );
   } catch {
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         detail:
           "Não foi possível comunicar com o servidor.",
       },
-      {
-        status: 502,
-      },
+      502,
     );
   }
 
   if (
     !upstreamResponse.ok
   ) {
-    return new Response(
-      await upstreamResponse.text(),
-      {
-        status:
-          upstreamResponse.status,
-        headers: {
-          "Content-Type":
-            upstreamResponse.headers.get(
-              "content-type",
-            ) ??
-            "application/json",
-          "Cache-Control":
-            "no-store",
-          "Set-Cookie":
-            expiredSessionCookie(
-              request,
-            ),
-        },
-      },
-    );
-  }
-
-  const maxAge =
-    tokenMaxAge(
-      token,
-    );
-
-  if (
-    maxAge <= 1
-  ) {
-    return Response.json(
+    return jsonResponse(
+      request,
       {
         detail:
-          "Sessão expirada.",
+          await upstreamErrorDetail(
+            upstreamResponse,
+          ),
       },
-      {
-        status: 401,
-        headers: {
-          "Set-Cookie":
-            expiredSessionCookie(
-              request,
-            ),
-        },
-      },
+      upstreamResponse.status,
+      true,
     );
   }
 
+  /*
+   * O backend confirmou o JWT legado.
+   * Só agora o transformamos em cookie
+   * HttpOnly e o browser poderá apagar o
+   * valor antigo do localStorage.
+   */
   const headers =
     new Headers({
       "Content-Type":
-        upstreamResponse.headers.get(
-          "content-type",
-        ) ??
         "application/json",
       "Cache-Control":
         "no-store",
@@ -258,7 +494,9 @@ export async function POST(
   );
 
   return new Response(
-    upstreamResponse.body,
+    JSON.stringify({
+      ok: true,
+    }),
     {
       status: 200,
       headers,

@@ -5,29 +5,6 @@ import { FormEvent, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 
-import { getToken } from "@/services/auth";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-function requireToken(): string {
-  const token = getToken();
-
-  if (!token) {
-    throw new Error(
-      "Sessão não encontrada. Inicie sessão novamente.",
-    );
-  }
-
-  return token;
-}
-
-function authHeaders(): Record<string, string> {
-  return {
-    Authorization: `Bearer ${requireToken()}`,
-  };
-}
-
 type BankCandidate = {
   candidate_id: string;
   searched_reference: string | null;
@@ -278,9 +255,8 @@ export default function PesquisaBancariaPage() {
       });
 
       const response = await fetch(
-        `${API_URL}/files/bank-history?${params.toString()}`,
+        `/api/backend/files/bank-history?${params.toString()}`,
         {
-          headers: authHeaders(),
           cache: "no-store",
         },
       );
@@ -335,9 +311,8 @@ export default function PesquisaBancariaPage() {
       });
 
       const response = await fetch(
-        `${API_URL}/files/bank-search?${params.toString()}`,
+        `/api/backend/files/bank-search?${params.toString()}`,
         {
-          headers: authHeaders(),
           cache: "no-store",
         },
       );
@@ -468,15 +443,11 @@ export default function PesquisaBancariaPage() {
     previewWindow.document.close();
 
     try {
-      const url = document.download_url.startsWith("http")
-        ? document.download_url
-        : `${API_URL}${document.download_url}`;
-
       const response = await fetch(
-        url,
+        `/api/backend/files/${document.file_id}/download`,
         {
           method: "GET",
-          headers: authHeaders(),
+          cache: "no-store",
         },
       );
 

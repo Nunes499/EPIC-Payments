@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AlertTriangle,
@@ -39,8 +39,6 @@ import "./processing.css";
 import "./processing-windows11.css";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { getToken } from "@/services/auth";
-
 import {
   decorateBankPdfReplica,
 } from "./bankPdfReplica";
@@ -1557,28 +1555,11 @@ export default function ProcessingWorkspace({
     printWindow.document.close();
 
     try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL ??
-        "http://localhost:8000";
-
-      const token =
-        getToken();
-
-      if (!token) {
-        throw new Error(
-          "Sessão não encontrada. Inicie sessão novamente.",
-        );
-      }
-
       const response =
         await fetch(
-          `${apiUrl}/files/${state.file.id}/download`,
+          `/api/backend/files/${state.file.id}/download`,
           {
             method: "GET",
-            headers: {
-              Authorization:
-                `Bearer ${token}`,
-            },
             cache: "no-store",
           },
         );
