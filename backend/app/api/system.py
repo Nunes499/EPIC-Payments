@@ -13,12 +13,24 @@ from app.services.cloudflare_metrics_service import (
     get_d1_daily_metrics,
     get_d1_storage_metrics,
 )
+from app.services.infrastructure_health_service import (
+    get_infrastructure_health,
+)
 
 
 router = APIRouter(
     prefix="/system",
     tags=["System"],
 )
+
+
+@router.get("/infrastructure-health")
+def infrastructure_health(
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+
+    return get_infrastructure_health()
 
 
 @router.get("/cloudflare-metrics")

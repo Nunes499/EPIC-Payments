@@ -1,0 +1,28 @@
+.cedis-history-list {
+  max-height: 210px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(44, 119, 168, 0.36)
+    rgba(232, 242, 248, 0.55);
+}
+
+.cedis-history-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cedis-history-list::-webkit-scrollbar-track {
+  background: rgba(232, 242, 248, 0.55);
+  border-radius: 999px;
+}
+
+.cedis-history-list::-webkit-scrollbar-thumb {
+  background: rgba(44, 119, 168, 0.34);
+  border-radius: 999px;
+  border: 2px solid rgba(247, 252, 255, 0.92);
+}
+
+.cedis-history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(44, 119, 168, 0.52);
+}

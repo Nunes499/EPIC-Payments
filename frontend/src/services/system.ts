@@ -28,6 +28,25 @@ export type CloudflareMetrics = {
 };
 
 
+export type InfrastructureServiceHealth = {
+  status: "online" | "offline";
+  latency_ms: number;
+  error_type?: string;
+};
+
+
+export type InfrastructureHealth = {
+  status: "healthy" | "degraded";
+  checked_at: string;
+  services: {
+    backend: InfrastructureServiceHealth;
+    neon: InfrastructureServiceHealth;
+    cloudflare_d1: InfrastructureServiceHealth;
+    cloudflare_r2: InfrastructureServiceHealth;
+  };
+};
+
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -67,6 +86,30 @@ Promise<CloudflareMetrics> {
       await getErrorMessage(
         response,
         "Não foi possível obter as métricas da Cloudflare.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getInfrastructureHealth():
+Promise<InfrastructureHealth> {
+  const response =
+    await fetch(
+      "/api/backend/system/infrastructure-health",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível verificar o estado da infraestrutura.",
       ),
     );
   }

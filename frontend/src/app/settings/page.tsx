@@ -2,8 +2,11 @@
 
 import CedisSettings from "@/components/settings/CedisSettings";
 import CloudflareSystem from "@/components/settings/CloudflareSystem";
+import InfrastructureHealth from "@/components/settings/InfrastructureHealth";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
+
+import "@/components/settings/cedis-history-scroll.css";
 
 
 export default function SettingsPage() {
@@ -40,6 +43,8 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <CedisSettings />
+
+      <InfrastructureHealth />
 
       <CloudflareSystem />
     </AppLayout>
