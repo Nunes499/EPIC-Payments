@@ -108,6 +108,57 @@ export type CloudIntegrity = {
 };
 
 
+export type BackupRecoveryLatest = {
+  object_key: string;
+  filename: string;
+  size_bytes: number;
+  last_modified: string;
+  age_hours: number;
+  etag: string;
+};
+
+
+export type BackupRecoveryBackup = {
+  enabled: boolean;
+  provider: string;
+  schedule_utc: string;
+  prefix: string;
+  retention_days: number;
+  validation: string;
+  format: string;
+  backup_count: number;
+  latest: BackupRecoveryLatest | null;
+};
+
+
+export type BackupRecoveryNeon = {
+  instant_restore: boolean;
+  history_hours: number;
+};
+
+
+export type BackupRecoveryThresholds = {
+  protected_max_age_hours: number;
+  warning_max_age_hours: number;
+};
+
+
+export type BackupRecovery = {
+  status:
+    | "protected"
+    | "warning"
+    | "overdue"
+    | "missing"
+    | "error";
+  status_label: string;
+  checked_at: string;
+  error?: string;
+  backup: BackupRecoveryBackup;
+  neon: BackupRecoveryNeon;
+  thresholds: BackupRecoveryThresholds;
+};
+
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -219,6 +270,30 @@ Promise<CloudIntegrity> {
       await getErrorMessage(
         response,
         "Não foi possível verificar a integridade cloud.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getBackupRecovery():
+Promise<BackupRecovery> {
+  const response =
+    await fetch(
+      "/api/backend/system/backup-recovery",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível verificar o estado dos backups.",
       ),
     );
   }

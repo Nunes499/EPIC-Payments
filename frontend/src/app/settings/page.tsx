@@ -1,12 +1,13 @@
 "use client";
 
+import { useAuth } from "@/components/auth/AuthProvider";
+import AppLayout from "@/components/layout/AppLayout";
+import BackupRecovery from "@/components/settings/BackupRecovery";
 import CedisSettings from "@/components/settings/CedisSettings";
 import CloudflareSystem from "@/components/settings/CloudflareSystem";
 import CloudIntegrity from "@/components/settings/CloudIntegrity";
 import InfrastructureHealth from "@/components/settings/InfrastructureHealth";
 import NeonStorageUsage from "@/components/settings/NeonStorageUsage";
-import AppLayout from "@/components/layout/AppLayout";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 import "@/components/settings/cedis-history-scroll.css";
 
@@ -49,6 +50,8 @@ export default function SettingsPage() {
       <InfrastructureHealth />
 
       <CloudIntegrity />
+
+      <BackupRecovery />
 
       <NeonStorageUsage />
 
