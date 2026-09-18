@@ -47,6 +47,27 @@ export type InfrastructureHealth = {
 };
 
 
+export type NeonTableStorage = {
+  schema_name: string;
+  table_name: string;
+  table_size_bytes: number;
+  indexes_size_bytes: number;
+  total_size_bytes: number;
+};
+
+
+export type NeonStorageUsage = {
+  status: string;
+  measured_at: string;
+  database_name: string;
+  database_size_bytes: number;
+  tables_size_bytes: number;
+  indexes_size_bytes: number;
+  user_data_size_bytes: number;
+  largest_tables: NeonTableStorage[];
+};
+
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -110,6 +131,30 @@ Promise<InfrastructureHealth> {
       await getErrorMessage(
         response,
         "Não foi possível verificar o estado da infraestrutura.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getNeonStorageUsage():
+Promise<NeonStorageUsage> {
+  const response =
+    await fetch(
+      "/api/backend/system/neon-storage-usage",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível obter a utilização de armazenamento do Neon.",
       ),
     );
   }

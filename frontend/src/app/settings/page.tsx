@@ -3,6 +3,7 @@
 import CedisSettings from "@/components/settings/CedisSettings";
 import CloudflareSystem from "@/components/settings/CloudflareSystem";
 import InfrastructureHealth from "@/components/settings/InfrastructureHealth";
+import NeonStorageUsage from "@/components/settings/NeonStorageUsage";
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -45,6 +46,8 @@ export default function SettingsPage() {
       <CedisSettings />
 
       <InfrastructureHealth />
+
+      <NeonStorageUsage />
 
       <CloudflareSystem />
     </AppLayout>

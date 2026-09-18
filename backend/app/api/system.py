@@ -16,6 +16,10 @@ from app.services.cloudflare_metrics_service import (
 from app.services.infrastructure_health_service import (
     get_infrastructure_health,
 )
+from app.services.storage_usage_service import (
+    StorageUsageError,
+    get_neon_storage_usage,
+)
 
 
 router = APIRouter(
@@ -31,6 +35,22 @@ def infrastructure_health(
     del current_user
 
     return get_infrastructure_health()
+
+
+@router.get("/neon-storage-usage")
+def neon_storage_usage(
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+
+    try:
+        return get_neon_storage_usage()
+
+    except StorageUsageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(exc),
+        ) from exc
 
 
 @router.get("/cloudflare-metrics")
