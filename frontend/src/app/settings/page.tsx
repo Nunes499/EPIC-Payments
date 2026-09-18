@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import AppLayout from "@/components/layout/AppLayout";
 import BackupRecovery from "@/components/settings/BackupRecovery";
 import CedisSettings from "@/components/settings/CedisSettings";
+import CloudArchitecture from "@/components/settings/CloudArchitecture";
 import CloudflareSystem from "@/components/settings/CloudflareSystem";
 import CloudIntegrity from "@/components/settings/CloudIntegrity";
 import EnvironmentSeparation from "@/components/settings/EnvironmentSeparation";
@@ -55,6 +56,8 @@ export default function SettingsPage() {
       <BackupRecovery />
 
       <EnvironmentSeparation />
+
+      <CloudArchitecture />
 
       <NeonStorageUsage />
 

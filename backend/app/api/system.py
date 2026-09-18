@@ -22,6 +22,9 @@ from app.services.cloudflare_metrics_service import (
     get_d1_storage_metrics,
     get_r2_storage_metrics,
 )
+from app.services.cloud_architecture_service import (
+    get_cloud_architecture_status,
+)
 from app.services.cloud_integrity_service import (
     get_cloud_integrity,
 )
@@ -94,6 +97,23 @@ def environment_separation(
             detail=(
                 result.get("error")
                 or "Não foi possível verificar a separação entre PCs e produção."
+            ),
+        )
+    return result
+
+
+@router.get("/cloud-architecture")
+def cloud_architecture(
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+    result = get_cloud_architecture_status()
+    if result.get("status") == "error":
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                result.get("error")
+                or "Não foi possível verificar a arquitetura cloud."
             ),
         )
     return result

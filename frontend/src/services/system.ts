@@ -7,7 +7,6 @@ export type R2Metrics = {
   measured_at: string | null;
 };
 
-
 export type D1Metrics = {
   database_id: string;
   date: string;
@@ -19,7 +18,6 @@ export type D1Metrics = {
   measured_date: string | null;
 };
 
-
 export type CloudflareMetrics = {
   status: string;
   updated_at: string;
@@ -27,13 +25,11 @@ export type CloudflareMetrics = {
   d1: D1Metrics;
 };
 
-
 export type InfrastructureServiceHealth = {
   status: "online" | "offline";
   latency_ms: number;
   error_type?: string;
 };
-
 
 export type InfrastructureHealth = {
   status: "healthy" | "degraded";
@@ -46,7 +42,6 @@ export type InfrastructureHealth = {
   };
 };
 
-
 export type NeonTableStorage = {
   schema_name: string;
   table_name: string;
@@ -54,7 +49,6 @@ export type NeonTableStorage = {
   indexes_size_bytes: number;
   total_size_bytes: number;
 };
-
 
 export type NeonStorageUsage = {
   status: string;
@@ -70,7 +64,6 @@ export type NeonStorageUsage = {
   largest_tables: NeonTableStorage[];
 };
 
-
 export type CloudIntegrityIssue = {
   category: string;
   severity: "error" | "warning";
@@ -78,7 +71,6 @@ export type CloudIntegrityIssue = {
   record_id: number | null;
   object_key: string | null;
 };
-
 
 export type CloudIntegritySummary = {
   errors: number;
@@ -96,17 +88,12 @@ export type CloudIntegritySummary = {
   d1_index_errors: number;
 };
 
-
 export type CloudIntegrity = {
-  status:
-    | "healthy"
-    | "warning"
-    | "error";
+  status: "healthy" | "warning" | "error";
   checked_at: string;
   summary: CloudIntegritySummary;
   issues: CloudIntegrityIssue[];
 };
-
 
 export type BackupRecoveryLatest = {
   object_key: string;
@@ -116,7 +103,6 @@ export type BackupRecoveryLatest = {
   age_hours: number;
   etag: string;
 };
-
 
 export type BackupRecoveryBackup = {
   enabled: boolean;
@@ -130,26 +116,18 @@ export type BackupRecoveryBackup = {
   latest: BackupRecoveryLatest | null;
 };
 
-
 export type BackupRecoveryNeon = {
   instant_restore: boolean;
   history_hours: number;
 };
-
 
 export type BackupRecoveryThresholds = {
   protected_max_age_hours: number;
   warning_max_age_hours: number;
 };
 
-
 export type BackupRecovery = {
-  status:
-    | "protected"
-    | "warning"
-    | "overdue"
-    | "missing"
-    | "error";
+  status: "protected" | "warning" | "overdue" | "missing" | "error";
   status_label: string;
   checked_at: string;
   error?: string;
@@ -158,16 +136,11 @@ export type BackupRecovery = {
   thresholds: BackupRecoveryThresholds;
 };
 
-
 export type EnvironmentSeparationCheck = {
-  status:
-    | "ok"
-    | "info"
-    | "error";
+  status: "ok" | "info" | "error";
   label: string;
   detail: string;
 };
-
 
 export type EnvironmentSeparationSummary = {
   active_local_dependencies: number;
@@ -183,114 +156,121 @@ export type EnvironmentSeparationSummary = {
   cedis_historical_local: number;
 };
 
-
 export type EnvironmentSeparationLocalRecord = {
   id: number;
   original_filename: string;
   file_path: string;
 };
 
-
 export type EnvironmentSeparationCalendar = {
-  status:
-    | "cloud"
-    | "local_dependency";
+  status: "cloud" | "local_dependency";
   total: number;
   r2: number;
   local: number;
-  local_records:
-    EnvironmentSeparationLocalRecord[];
+  local_records: EnvironmentSeparationLocalRecord[];
 };
 
-
 export type EnvironmentSeparationCedis = {
-  status:
-    | "cloud"
-    | "local_dependency";
+  status: "cloud" | "local_dependency";
   total: number;
   active: number;
   active_r2: number;
   active_local: number;
   historical_r2: number;
   historical_local: number;
-  active_local_records:
-    EnvironmentSeparationLocalRecord[];
-  historical_local_records:
-    EnvironmentSeparationLocalRecord[];
+  active_local_records: EnvironmentSeparationLocalRecord[];
+  historical_local_records: EnvironmentSeparationLocalRecord[];
 };
 
-
 export type EnvironmentSeparation = {
-  status:
-    | "independent"
-    | "local_dependency"
-    | "error";
+  status: "independent" | "local_dependency" | "error";
   status_label: string;
   checked_at: string;
   production_independent: boolean;
   error?: string;
   summary: EnvironmentSeparationSummary;
   checks: {
-    production_independent:
-      EnvironmentSeparationCheck;
-    calendar_files:
-      EnvironmentSeparationCheck;
-    cedis_active:
-      EnvironmentSeparationCheck;
-    legacy_records:
-      EnvironmentSeparationCheck;
-    neon:
-      EnvironmentSeparationCheck;
-    r2:
-      EnvironmentSeparationCheck;
-    d1:
-      EnvironmentSeparationCheck;
-    backup:
-      EnvironmentSeparationCheck;
+    production_independent: EnvironmentSeparationCheck;
+    calendar_files: EnvironmentSeparationCheck;
+    cedis_active: EnvironmentSeparationCheck;
+    legacy_records: EnvironmentSeparationCheck;
+    neon: EnvironmentSeparationCheck;
+    r2: EnvironmentSeparationCheck;
+    d1: EnvironmentSeparationCheck;
+    backup: EnvironmentSeparationCheck;
   };
   details: {
-    calendar:
-      EnvironmentSeparationCalendar;
-    cedis:
-      EnvironmentSeparationCedis;
+    calendar: EnvironmentSeparationCalendar;
+    cedis: EnvironmentSeparationCedis;
   };
 };
 
+export type CloudArchitectureService = {
+  name: string;
+  role: string;
+  responsibility: string;
+  source_of_truth: boolean;
+  stores: string[];
+  must_not_store: string[];
+};
+
+export type CloudArchitectureFlow = {
+  name: string;
+  from: string;
+  to: string;
+  purpose: string;
+  status: "ok" | "warning" | "error";
+};
+
+export type CloudArchitectureRule = {
+  id: string;
+  status: "ok" | "warning" | "error";
+  label: string;
+  detail: string;
+};
+
+export type CloudArchitectureSummary = {
+  services: number;
+  flows: number;
+  rules: number;
+  issues: number;
+  sources_of_truth: string[];
+};
+
+export type CloudArchitecture = {
+  status: "compliant" | "warning" | "error";
+  status_label: string;
+  checked_at: string;
+  architecture_ok: boolean;
+  error?: string;
+  summary: CloudArchitectureSummary;
+  services: Record<string, CloudArchitectureService>;
+  flows: CloudArchitectureFlow[];
+  rules: CloudArchitectureRule[];
+  issues: CloudArchitectureRule[];
+};
 
 async function getErrorMessage(
   response: Response,
   fallback: string,
 ): Promise<string> {
   try {
-    const data =
-      await response.json();
-
-    if (
-      data &&
-      typeof data.detail ===
-        "string"
-    ) {
+    const data = await response.json();
+    if (data && typeof data.detail === "string") {
       return data.detail;
     }
   } catch {
     // Ignorar erro de leitura da resposta.
   }
-
   return fallback;
 }
 
-
 export async function getCloudflareMetrics():
 Promise<CloudflareMetrics> {
-  const response =
-    await fetch(
-      "/api/backend/system/cloudflare-metrics",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/cloudflare-metrics",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -299,22 +279,15 @@ Promise<CloudflareMetrics> {
       ),
     );
   }
-
   return response.json();
 }
 
-
 export async function getInfrastructureHealth():
 Promise<InfrastructureHealth> {
-  const response =
-    await fetch(
-      "/api/backend/system/infrastructure-health",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/infrastructure-health",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -323,22 +296,15 @@ Promise<InfrastructureHealth> {
       ),
     );
   }
-
   return response.json();
 }
 
-
 export async function getNeonStorageUsage():
 Promise<NeonStorageUsage> {
-  const response =
-    await fetch(
-      "/api/backend/system/neon-storage-usage",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/neon-storage-usage",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -347,22 +313,15 @@ Promise<NeonStorageUsage> {
       ),
     );
   }
-
   return response.json();
 }
 
-
 export async function getCloudIntegrity():
 Promise<CloudIntegrity> {
-  const response =
-    await fetch(
-      "/api/backend/system/cloud-integrity",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/cloud-integrity",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -371,22 +330,15 @@ Promise<CloudIntegrity> {
       ),
     );
   }
-
   return response.json();
 }
 
-
 export async function getBackupRecovery():
 Promise<BackupRecovery> {
-  const response =
-    await fetch(
-      "/api/backend/system/backup-recovery",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/backup-recovery",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -395,22 +347,15 @@ Promise<BackupRecovery> {
       ),
     );
   }
-
   return response.json();
 }
 
-
 export async function getEnvironmentSeparation():
 Promise<EnvironmentSeparation> {
-  const response =
-    await fetch(
-      "/api/backend/system/environment-separation",
-      {
-        method: "GET",
-        cache: "no-store",
-      },
-    );
-
+  const response = await fetch(
+    "/api/backend/system/environment-separation",
+    { method: "GET", cache: "no-store" },
+  );
   if (!response.ok) {
     throw new Error(
       await getErrorMessage(
@@ -419,6 +364,22 @@ Promise<EnvironmentSeparation> {
       ),
     );
   }
+  return response.json();
+}
 
+export async function getCloudArchitecture():
+Promise<CloudArchitecture> {
+  const response = await fetch(
+    "/api/backend/system/cloud-architecture",
+    { method: "GET", cache: "no-store" },
+  );
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível verificar a arquitetura cloud.",
+      ),
+    );
+  }
   return response.json();
 }
