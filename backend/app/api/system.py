@@ -13,6 +13,9 @@ from app.services.cloudflare_metrics_service import (
     get_d1_daily_metrics,
     get_d1_storage_metrics,
 )
+from app.services.cloud_integrity_service import (
+    get_cloud_integrity,
+)
 from app.services.infrastructure_health_service import (
     get_infrastructure_health,
 )
@@ -35,6 +38,25 @@ def infrastructure_health(
     del current_user
 
     return get_infrastructure_health()
+
+
+@router.get("/cloud-integrity")
+def cloud_integrity(
+    current_user: User = Depends(require_admin),
+):
+    del current_user
+
+    try:
+        return get_cloud_integrity()
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "Não foi possível verificar "
+                "a integridade cloud."
+            ),
+        ) from exc
 
 
 @router.get("/neon-storage-usage")

@@ -71,6 +71,43 @@ export type NeonStorageUsage = {
 };
 
 
+export type CloudIntegrityIssue = {
+  category: string;
+  severity: "error" | "warning";
+  message: string;
+  record_id: number | null;
+  object_key: string | null;
+};
+
+
+export type CloudIntegritySummary = {
+  errors: number;
+  warnings: number;
+  issues: number;
+  checked_r2_objects: number;
+  missing_r2_objects: number;
+  calendar_files_neon: number;
+  cedis_files: number;
+  daily_reports: number;
+  communication_rows: number;
+  communication_source_files: number;
+  d1_indexed_files: number;
+  d1_indexed_movements: number;
+  d1_index_errors: number;
+};
+
+
+export type CloudIntegrity = {
+  status:
+    | "healthy"
+    | "warning"
+    | "error";
+  checked_at: string;
+  summary: CloudIntegritySummary;
+  issues: CloudIntegrityIssue[];
+};
+
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -158,6 +195,30 @@ Promise<NeonStorageUsage> {
       await getErrorMessage(
         response,
         "Não foi possível obter a utilização de armazenamento do Neon.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getCloudIntegrity():
+Promise<CloudIntegrity> {
+  const response =
+    await fetch(
+      "/api/backend/system/cloud-integrity",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível verificar a integridade cloud.",
       ),
     );
   }

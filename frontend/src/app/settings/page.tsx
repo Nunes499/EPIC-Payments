@@ -2,6 +2,7 @@
 
 import CedisSettings from "@/components/settings/CedisSettings";
 import CloudflareSystem from "@/components/settings/CloudflareSystem";
+import CloudIntegrity from "@/components/settings/CloudIntegrity";
 import InfrastructureHealth from "@/components/settings/InfrastructureHealth";
 import NeonStorageUsage from "@/components/settings/NeonStorageUsage";
 import AppLayout from "@/components/layout/AppLayout";
@@ -46,6 +47,8 @@ export default function SettingsPage() {
       <CedisSettings />
 
       <InfrastructureHealth />
+
+      <CloudIntegrity />
 
       <NeonStorageUsage />
 
