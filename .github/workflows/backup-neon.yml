@@ -48,8 +48,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
 
-      - name: Confirmar pg_dump
-        run: pg_dump --version
+      - name: Priorizar PostgreSQL 18
+        run: |
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+
+      - name: Confirmar PostgreSQL 18
+        run: |
+          which pg_dump
+          pg_dump --version
+          which pg_restore
+          pg_restore --version
 
       - name: Executar backup validado
         run: python scripts/backup_neon.py
