@@ -53,6 +53,30 @@ function formatBytes(bytes: number): string {
 }
 
 
+function formatPercent(
+  value: number,
+): string {
+  if (
+    !Number.isFinite(value) ||
+    value <= 0
+  ) {
+    return "0%";
+  }
+
+  if (value < 0.01) {
+    return "< 0,01%";
+  }
+
+  return `${value.toLocaleString(
+    "pt-PT",
+    {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    },
+  )}%`;
+}
+
+
 function formatDateTime(
   value: string | null,
 ): string {
@@ -483,6 +507,227 @@ export default function NeonStorageUsage() {
 
       {usage && (
         <>
+          <div
+            style={{
+              marginBottom:
+                "14px",
+              padding:
+                "17px",
+              borderRadius:
+                "15px",
+              border:
+                "1px solid rgba(75,107,132,0.13)",
+              background:
+                "linear-gradient(155deg, rgba(255,255,255,0.98), rgba(247,252,255,0.90))",
+              boxShadow:
+                "0 7px 20px rgba(18,48,71,0.045)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems:
+                  "flex-start",
+                justifyContent:
+                  "space-between",
+                gap: "18px",
+                flexWrap:
+                  "wrap",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    display:
+                      "block",
+                    color:
+                      "#748797",
+                    fontSize:
+                      "9px",
+                    fontWeight:
+                      800,
+                    letterSpacing:
+                      "0.03em",
+                    textTransform:
+                      "uppercase",
+                  }}
+                >
+                  Capacidade Neon
+                </span>
+
+                <strong
+                  style={{
+                    display:
+                      "block",
+                    marginTop:
+                      "5px",
+                    color:
+                      "#10233d",
+                    fontSize:
+                      "22px",
+                    fontWeight:
+                      850,
+                    letterSpacing:
+                      "-0.025em",
+                  }}
+                >
+                  {formatBytes(
+                    usage.database_size_bytes,
+                  )} usados de{" "}
+                  {formatBytes(
+                    usage.storage_limit_bytes,
+                  )}
+                </strong>
+
+                <span
+                  style={{
+                    display:
+                      "block",
+                    marginTop:
+                      "5px",
+                    color:
+                      "#6f8291",
+                    fontSize:
+                      "10px",
+                  }}
+                >
+                  Disponível:{" "}
+                  <strong
+                    style={{
+                      color:
+                        "#137c59",
+                    }}
+                  >
+                    {formatBytes(
+                      usage.storage_remaining_bytes,
+                    )}
+                  </strong>
+                </span>
+              </div>
+
+              <div
+                style={{
+                  minWidth:
+                    "94px",
+                  padding:
+                    "9px 12px",
+                  borderRadius:
+                    "11px",
+                  border:
+                    "1px solid rgba(25,119,197,0.15)",
+                  background:
+                    "#eaf4fe",
+                  color:
+                    "#0878bd",
+                  textAlign:
+                    "center",
+                }}
+              >
+                <span
+                  style={{
+                    display:
+                      "block",
+                    fontSize:
+                      "8px",
+                    fontWeight:
+                      800,
+                    textTransform:
+                      "uppercase",
+                    letterSpacing:
+                      "0.04em",
+                  }}
+                >
+                  Utilizado
+                </span>
+
+                <strong
+                  style={{
+                    display:
+                      "block",
+                    marginTop:
+                      "3px",
+                    fontSize:
+                      "18px",
+                    fontWeight:
+                      900,
+                  }}
+                >
+                  {formatPercent(
+                    usage.storage_used_percent,
+                  )}
+                </strong>
+              </div>
+            </div>
+
+            <div
+              style={{
+                height: "8px",
+                marginTop:
+                  "15px",
+                overflow:
+                  "hidden",
+                borderRadius:
+                  "999px",
+                background:
+                  "#e7eef4",
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.max(
+                    Math.min(
+                      usage.storage_used_percent,
+                      100,
+                    ),
+                    usage.storage_used_percent > 0
+                      ? 0.7
+                      : 0,
+                  )}%`,
+                  height:
+                    "100%",
+                  borderRadius:
+                    "inherit",
+                  background:
+                    "linear-gradient(90deg, #1498e5, #3bb4f2)",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display:
+                  "flex",
+                justifyContent:
+                  "space-between",
+                gap: "12px",
+                flexWrap:
+                  "wrap",
+                marginTop:
+                  "8px",
+                color:
+                  "#8495a3",
+                fontSize:
+                  "9px",
+              }}
+            >
+              <span>
+                {formatPercent(
+                  usage.storage_used_percent,
+                )} ocupado
+              </span>
+
+              <span>
+                {formatPercent(
+                  Math.max(
+                    0,
+                    100 -
+                      usage.storage_used_percent,
+                  ),
+                )} livre
+              </span>
+            </div>
+          </div>
+
           <div
             style={{
               display: "grid",

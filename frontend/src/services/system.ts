@@ -61,6 +61,9 @@ export type NeonStorageUsage = {
   measured_at: string;
   database_name: string;
   database_size_bytes: number;
+  storage_limit_bytes: number;
+  storage_remaining_bytes: number;
+  storage_used_percent: number;
   tables_size_bytes: number;
   indexes_size_bytes: number;
   user_data_size_bytes: number;

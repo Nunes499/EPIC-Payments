@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from app.core.config import settings
 from app.database.session import SessionLocal
 
 
@@ -80,6 +81,34 @@ def get_neon_storage_usage() -> dict[str, Any]:
             )
         ).mappings().all()
 
+        database_size_bytes = int(
+            database_row[
+                "database_size_bytes"
+            ]
+            or 0
+        )
+
+        storage_limit_bytes = max(
+            int(
+                settings.neon_storage_limit_bytes
+            ),
+            0,
+        )
+
+        storage_remaining_bytes = max(
+            storage_limit_bytes
+            - database_size_bytes,
+            0,
+        )
+
+        if storage_limit_bytes > 0:
+            storage_used_percent = (
+                database_size_bytes
+                / storage_limit_bytes
+            ) * 100
+        else:
+            storage_used_percent = 0.0
+
         return {
             "status": "online",
             "measured_at": datetime.now(
@@ -90,11 +119,18 @@ def get_neon_storage_usage() -> dict[str, Any]:
                     "database_name"
                 ]
             ),
-            "database_size_bytes": int(
-                database_row[
-                    "database_size_bytes"
-                ]
-                or 0
+            "database_size_bytes": (
+                database_size_bytes
+            ),
+            "storage_limit_bytes": (
+                storage_limit_bytes
+            ),
+            "storage_remaining_bytes": (
+                storage_remaining_bytes
+            ),
+            "storage_used_percent": round(
+                storage_used_percent,
+                4,
             ),
             "tables_size_bytes": int(
                 totals_row[
