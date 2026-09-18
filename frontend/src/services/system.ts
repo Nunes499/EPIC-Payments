@@ -159,6 +159,104 @@ export type BackupRecovery = {
 };
 
 
+export type EnvironmentSeparationCheck = {
+  status:
+    | "ok"
+    | "info"
+    | "error";
+  label: string;
+  detail: string;
+};
+
+
+export type EnvironmentSeparationSummary = {
+  active_local_dependencies: number;
+  legacy_local_records: number;
+  calendar_files_total: number;
+  calendar_files_r2: number;
+  calendar_files_local: number;
+  cedis_total: number;
+  cedis_active: number;
+  cedis_active_r2: number;
+  cedis_active_local: number;
+  cedis_historical_r2: number;
+  cedis_historical_local: number;
+};
+
+
+export type EnvironmentSeparationLocalRecord = {
+  id: number;
+  original_filename: string;
+  file_path: string;
+};
+
+
+export type EnvironmentSeparationCalendar = {
+  status:
+    | "cloud"
+    | "local_dependency";
+  total: number;
+  r2: number;
+  local: number;
+  local_records:
+    EnvironmentSeparationLocalRecord[];
+};
+
+
+export type EnvironmentSeparationCedis = {
+  status:
+    | "cloud"
+    | "local_dependency";
+  total: number;
+  active: number;
+  active_r2: number;
+  active_local: number;
+  historical_r2: number;
+  historical_local: number;
+  active_local_records:
+    EnvironmentSeparationLocalRecord[];
+  historical_local_records:
+    EnvironmentSeparationLocalRecord[];
+};
+
+
+export type EnvironmentSeparation = {
+  status:
+    | "independent"
+    | "local_dependency"
+    | "error";
+  status_label: string;
+  checked_at: string;
+  production_independent: boolean;
+  error?: string;
+  summary: EnvironmentSeparationSummary;
+  checks: {
+    production_independent:
+      EnvironmentSeparationCheck;
+    calendar_files:
+      EnvironmentSeparationCheck;
+    cedis_active:
+      EnvironmentSeparationCheck;
+    legacy_records:
+      EnvironmentSeparationCheck;
+    neon:
+      EnvironmentSeparationCheck;
+    r2:
+      EnvironmentSeparationCheck;
+    d1:
+      EnvironmentSeparationCheck;
+    backup:
+      EnvironmentSeparationCheck;
+  };
+  details: {
+    calendar:
+      EnvironmentSeparationCalendar;
+    cedis:
+      EnvironmentSeparationCedis;
+  };
+};
+
+
 async function getErrorMessage(
   response: Response,
   fallback: string,
@@ -294,6 +392,30 @@ Promise<BackupRecovery> {
       await getErrorMessage(
         response,
         "Não foi possível verificar o estado dos backups.",
+      ),
+    );
+  }
+
+  return response.json();
+}
+
+
+export async function getEnvironmentSeparation():
+Promise<EnvironmentSeparation> {
+  const response =
+    await fetch(
+      "/api/backend/system/environment-separation",
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
+
+  if (!response.ok) {
+    throw new Error(
+      await getErrorMessage(
+        response,
+        "Não foi possível verificar a separação entre PCs e produção.",
       ),
     );
   }
