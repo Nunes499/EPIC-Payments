@@ -2343,7 +2343,7 @@ printWindow.focus();
     setReportGeneratedAt(
       generatedAt,
     );
-    setPrintReady(true);
+    setPrintReady(false);
 
     const recovered =
       results.filter(
@@ -2398,141 +2398,11 @@ printWindow.focus();
         .replaceAll("'", "&#039;");
 
     /*
-     * Paginação do relatório.
-     *
-     * A primeira página tem o cabeçalho azul, metadados e cartões,
-     * por isso recebe menos linhas.
-     *
-     * As páginas seguintes não têm o cabeçalho grande e aproveitam
-     * muito melhor a área A4.
-     *
-     * Para "Não recuperadas" distribuímos as linhas de forma
-     * equilibrada entre as páginas. Isto evita, por exemplo,
-     * terminar o relatório com uma página contendo apenas 1 ou 2
-     * movimentos enquanto as páginas anteriores têm muito espaço livre.
+     * Paginação por medidas reais do DOM, depois de carregar as fontes.
+     * Recuperadas e não recuperadas nunca partilham a mesma página.
+     * O limite de cada tabela fica acima do rodapé; não há estimativas
+     * por número de caracteres nem limites fixos para as não recuperadas.
      */
-    const recoveredFirstPageSize = 18;
-    const unpaidMaxRowsPerPage = 15;
-
-    const paginateRecovered = <T,>(
-      items: T[],
-    ): T[][] => {
-      if (items.length === 0) {
-        return [[]];
-      }
-
-      const firstPage =
-        items.slice(
-          0,
-          recoveredFirstPageSize,
-        );
-
-      const remaining =
-        items.slice(
-          recoveredFirstPageSize,
-        );
-
-      if (remaining.length === 0) {
-        return [firstPage];
-      }
-
-      /*
-       * Como as páginas de continuação já não têm o cabeçalho azul,
-       * o restante das recuperadas cabe confortavelmente numa página.
-       */
-      return [
-        firstPage,
-        remaining,
-      ];
-    };
-
-    const chunkBalanced = <T,>(
-      items: T[],
-      maxRowsPerPage: number,
-    ): T[][] => {
-      if (items.length === 0) {
-        return [[]];
-      }
-
-      const pageCount =
-        Math.ceil(
-          items.length /
-          maxRowsPerPage,
-        );
-
-      const baseSize =
-        Math.floor(
-          items.length /
-          pageCount,
-        );
-
-      const extraRows =
-        items.length %
-        pageCount;
-
-      const pages: T[][] = [];
-      let cursor = 0;
-
-      for (
-        let pageIndex = 0;
-        pageIndex < pageCount;
-        pageIndex += 1
-      ) {
-        const pageSize =
-          baseSize +
-          (
-            pageIndex <
-            extraRows
-              ? 1
-              : 0
-          );
-
-        pages.push(
-          items.slice(
-            cursor,
-            cursor + pageSize,
-          ),
-        );
-
-        cursor += pageSize;
-      }
-
-      return pages;
-    };
-
-    const recoveredPages =
-      paginateRecovered(
-        recovered,
-      );
-
-    const unpaidPages =
-      chunkBalanced(
-        unpaid,
-        unpaidMaxRowsPerPage,
-      );
-
-    const allPages = [
-      ...recoveredPages.map(
-        (rows, index) => ({
-          type: "recovered" as const,
-          rows,
-          continuation:
-            index > 0,
-        }),
-      ),
-      ...unpaidPages.map(
-        (rows, index) => ({
-          type: "unpaid" as const,
-          rows,
-          continuation:
-            index > 0,
-        }),
-      ),
-    ];
-
-    const totalPages =
-      allPages.length;
-
     const renderHeader = (
       title: string,
       subtitle: string,
@@ -2699,150 +2569,95 @@ printWindow.focus();
         },
       ).join("");
 
-    const pagesHtml =
-      allPages.map(
-        (
-          page,
-          pageIndex,
-        ) => {
-          const isRecovered =
-            page.type ===
-            "recovered";
+    const renderReportSection = (
+      type: "recovered" | "unpaid",
+      rows: RecoveryResult[],
+      continuation: boolean,
+    ) => {
+      if (rows.length === 0) {
+        return "";
+      }
 
-          const title =
-            isRecovered
-              ? "Relatório de Recuperação"
-              : "Relatório de Recuperação";
+      const isRecovered = type === "recovered";
+      const sectionTitle = isRecovered
+        ? "Cobranças recuperadas"
+        : "Cobranças não recuperadas";
+      const sectionCount = isRecovered
+        ? recovered.length
+        : unpaid.length;
 
-          const subtitle =
-            isRecovered
-              ? page.continuation
-                ? "Cobranças recuperadas — continuação"
-                : "Resultado final da conciliação F1 + F2"
-              : page.continuation
-                ? "Cobranças não recuperadas — continuação"
-                : "Cobranças não recuperadas";
+      const tableHead = isRecovered
+        ? `
+          <tr>
+            <th>Ref.</th>
+            <th>Nº Sócio</th>
+            <th>Nome</th>
+            <th>Valor</th>
+            <th>Código</th>
+            <th>Resultado</th>
+          </tr>
+        `
+        : `
+          <tr>
+            <th>Ref.</th>
+            <th>Nº Sócio</th>
+            <th>Nome</th>
+            <th>Valor</th>
+            <th>Código / Motivo</th>
+            <th>Origem</th>
+          </tr>
+        `;
 
-          const sectionTitle =
-            isRecovered
-              ? "Cobranças recuperadas"
-              : "Cobranças não recuperadas";
+      const tableBody = isRecovered
+        ? renderRecoveredRows(rows)
+        : renderUnpaidRows(rows);
 
-          const sectionCount =
-            isRecovered
-              ? recovered.length
-              : unpaid.length;
+      return `
+        <div class="report-section ${
+          isRecovered
+            ? "report-section-recovered"
+            : "report-section-unpaid"
+        }">
+          <div class="section-heading">
+            <div>
+              <strong>${escape(sectionTitle)}</strong>
+              <span>
+                ${sectionCount}
+                cobrança${sectionCount === 1 ? "" : "s"}
+              </span>
+            </div>
 
-          const tableHead =
-            isRecovered
-              ? `
-                <tr>
-                  <th>Ref.</th>
-                  <th>Nº Sócio</th>
-                  <th>Nome</th>
-                  <th>Valor</th>
-                  <th>Código</th>
-                  <th>Resultado</th>
-                </tr>
-              `
-              : `
-                <tr>
-                  <th>Ref.</th>
-                  <th>Nº Sócio</th>
-                  <th>Nome</th>
-                  <th>Valor</th>
-                  <th>Código / Motivo</th>
-                  <th>Origem</th>
-                </tr>
-              `;
-
-          const tableBody =
-            isRecovered
-              ? renderRecoveredRows(
-                  page.rows,
-                )
-              : renderUnpaidRows(
-                  page.rows,
-                );
-
-          return `
-            <section class="report-page ${
-              pageIndex === 0
-                ? "report-page-first"
-                : "report-page-continuation"
-            }">
-              ${
-                pageIndex === 0
-                  ? renderHeader(
-                      title,
-                      subtitle,
-                      false,
-                    )
-                  : ""
-              }
-
-              ${
-                pageIndex === 0
-                  ? `
-                    ${renderMetadata()}
-                    ${renderStats()}
+            ${
+              !continuation
+                ? `
+                    <small>
+                      ${
+                        isRecovered
+                          ? "Referências com código 0000 no F1 que não surgiram devolvidas no F2."
+                          : "Inclui rejeições do F1 e referências inicialmente aceites no F1 que surgiram devolvidas no F2."
+                      }
+                    </small>
                   `
-                  : ""
-              }
+                : ""
+            }
+          </div>
 
-              <div class="section-heading">
-                <div>
-                  <strong>
-                    ${escape(
-                      sectionTitle,
-                    )}
-                  </strong>
-                  <span>
-                    ${sectionCount}
-                    cobrança${
-                      sectionCount === 1
-                        ? ""
-                        : "s"
-                    }
-                  </span>
-                </div>
+          <table class="${
+            isRecovered
+              ? "recovery-print-table recovery-print-table-recovered"
+              : "recovery-print-table recovery-print-table-unpaid"
+          }">
+            <thead>${tableHead}</thead>
+            <tbody>${tableBody}</tbody>
+          </table>
+        </div>
+      `;
+    };
 
-                ${
-                  !page.continuation
-                    ? `
-                      <small>
-                        ${
-                          isRecovered
-                            ? "Referências com código 0000 no F1 que não surgiram devolvidas no F2."
-                            : "Inclui rejeições do F1 e referências inicialmente aceites no F1 que surgiram devolvidas no F2."
-                        }
-                      </small>
-                    `
-                    : ""
-                }
-              </div>
-
-              <table>
-                <thead>
-                  ${tableHead}
-                </thead>
-                <tbody>
-                  ${tableBody}
-                </tbody>
-              </table>
-
-              <footer>
-                <span>
-                  EPIC PAYMENTS · RELATÓRIO DE RECUPERAÇÃO
-                </span>
-                <span>
-                  Página ${pageIndex + 1} de ${totalPages}
-                </span>
-              </footer>
-            </section>
-          `;
-        },
-      ).join("");
+    const sectionsHtml = [
+      renderReportSection("recovered", recovered, false),
+      renderReportSection("unpaid", unpaid, false),
+    ].join("");
 
     const html = `
       <!doctype html>
@@ -2913,13 +2728,10 @@ printWindow.focus();
               width: 210mm;
               height: 297mm;
               min-height: 297mm;
-              max-height: 297mm;
               margin: 0 auto 14px;
-              overflow: hidden;
+              overflow: visible;
               background: #ffffff;
-              padding-left: 10mm;
-              padding-right: 10mm;
-              padding-bottom: 19mm;
+              padding: 0;
               page-break-inside: avoid;
               break-inside: avoid-page;
               page-break-after: always;
@@ -2929,12 +2741,52 @@ printWindow.focus();
                 rgba(0,0,0,.14);
             }
 
-            .report-page-first {
-              padding-top: 64mm;
+            .report-content {
+              position: absolute;
+              top: 6mm;
+              right: 10mm;
+              bottom: 17mm;
+              left: 10mm;
+              display: flow-root;
+              overflow: visible;
             }
 
-            .report-page-continuation {
-              padding-top: 8mm;
+            .report-page-first .report-content {
+              top: 64mm;
+            }
+
+            #recovery-report-source {
+              display: none !important;
+            }
+
+            .report-notice {
+              width: min(94vw, 210mm);
+              margin: 14px auto;
+              padding: 14px 18px;
+              border: 1px solid #c9deec;
+              border-radius: 8px;
+              background: #ffffff;
+              color: #152536;
+              font-size: 13px;
+              line-height: 1.5;
+            }
+
+            body[data-pagination-state="ready"] .report-notice {
+              display: none;
+            }
+
+            body[data-pagination-state="error"] .report-notice {
+              border-color: #d59c9c;
+              color: #a51d24;
+            }
+
+            body:not([data-pagination-state="ready"]) #recovery-print-pages {
+              visibility: hidden;
+            }
+
+            .toolbar button:disabled {
+              cursor: wait;
+              opacity: .6;
             }
 
             .report-page:last-child {
@@ -3120,7 +2972,7 @@ printWindow.focus();
               align-items: flex-end;
               justify-content: space-between;
               gap: 6mm;
-              margin: 5.5mm 0 2.5mm;
+              margin: 4mm 0 1.8mm;
             }
 
             .report-page-continuation .section-heading {
@@ -3164,7 +3016,7 @@ printWindow.focus();
             th,
             td {
               border: .18mm solid #DCE6ED;
-              padding: 1.8mm 2mm;
+              padding: 1.35mm 1.7mm;
               vertical-align: top;
             }
 
@@ -3234,11 +3086,36 @@ printWindow.focus();
               line-height: 1.16;
             }
 
+            .report-section + .report-section {
+              margin-top: 4.5mm;
+              padding-top: 1mm;
+              border-top: .18mm solid #DCE6ED;
+            }
+
+            .recovery-print-table-recovered td {
+              padding-top: 1.05mm;
+              padding-bottom: 1.05mm;
+              line-height: 1.08;
+            }
+
+            .recovery-print-table-unpaid td {
+              padding-top: 1mm;
+              padding-bottom: 1mm;
+              line-height: 1.10;
+              overflow-wrap: anywhere;
+            }
+
+            .report-page-continuation
+            .report-content > .report-section:first-child
+            .section-heading {
+              margin-top: 0;
+            }
+
             footer {
               position: absolute;
               left: 12mm;
               right: 12mm;
-              bottom: 8.5mm;
+              bottom: 6.5mm;
               display: flex;
               justify-content: space-between;
               padding-top: 2mm;
@@ -3265,8 +3142,7 @@ printWindow.focus();
                 width: 210mm;
                 height: 297mm;
                 min-height: 297mm;
-                max-height: 297mm;
-                margin: 0;
+                  margin: 0;
                 box-shadow: none;
                 page-break-inside: avoid;
                 break-inside: avoid-page;
@@ -3278,23 +3154,42 @@ printWindow.focus();
                 page-break-after: auto;
                 break-after: auto;
               }
+
+              body[data-pagination-state="preparing"] #recovery-print-pages,
+              body[data-pagination-state="error"] #recovery-print-pages {
+                display: none !important;
+              }
             }
           </style>
         </head>
 
-        <body>
+        <body data-pagination-state="preparing">
           <div class="toolbar">
-            <button
-              type="button"
-              onclick="window.print()"
-            >
-              Guardar / Imprimir PDF
+            <button id="recovery-print-button" type="button" disabled>
+              A preparar páginas...
             </button>
           </div>
 
-          <main class="document">
-            ${pagesHtml}
-          </main>
+          <div id="recovery-print-status" class="report-notice" role="status">
+            A calcular o espaço disponível e a verificar todas as cobranças...
+          </div>
+
+          <template id="recovery-report-header">
+            ${renderHeader(
+              "Relatório de Recuperação",
+              "Resultado final da conciliação F1 + F2",
+              false,
+            )}
+          </template>
+          <template id="recovery-report-summary">
+            ${renderMetadata()}
+            ${renderStats()}
+          </template>
+
+          <div id="recovery-report-source" hidden>
+            ${sectionsHtml}
+          </div>
+          <main id="recovery-print-pages" class="document"></main>
         </body>
       </html>
     `;
@@ -3304,9 +3199,292 @@ printWindow.focus();
       html,
     );
     printWindow.document.close();
-    printWindow.focus();
-  }
+    const reportDocument = printWindow.document;
+    const reportView = printWindow;
+    const pagesRoot = reportDocument.querySelector<HTMLElement>(
+      "#recovery-print-pages",
+    );
+    const printButton = reportDocument.querySelector<HTMLButtonElement>(
+      "#recovery-print-button",
+    );
+    const statusMessage = reportDocument.querySelector<HTMLElement>(
+      "#recovery-print-status",
+    );
+    const headerTemplate = reportDocument.querySelector<HTMLTemplateElement>(
+      "#recovery-report-header",
+    );
+    const summaryTemplate = reportDocument.querySelector<HTMLTemplateElement>(
+      "#recovery-report-summary",
+    );
 
+    const showPaginationError = (error: unknown) => {
+      if (reportView.closed) return;
+      reportDocument.body.dataset.paginationState = "error";
+      if (statusMessage) {
+        statusMessage.textContent =
+          "Não foi possível preparar um relatório completo para impressão. " +
+          (error instanceof Error ? error.message : "Volte a gerar o relatório.");
+      }
+      if (printButton) {
+        printButton.disabled = true;
+        printButton.textContent = "Relatório não pronto para impressão";
+      }
+      setPrintReady(false);
+    };
+
+    if (
+      !pagesRoot || !printButton || !statusMessage ||
+      !headerTemplate || !summaryTemplate
+    ) {
+      showPaginationError(new Error("A janela do relatório não ficou disponível."));
+      return;
+    }
+
+    // Keep immutable source rows: beforeprint can safely repaginate the report.
+    const sources = Array.from(
+      reportDocument.querySelectorAll<HTMLElement>(
+        "#recovery-report-source .report-section",
+      ),
+    ).map((section) => {
+      const kind = section.classList.contains("report-section-recovered")
+        ? "recovered"
+        : "unpaid";
+      const rows = Array.from(
+        section.querySelectorAll<HTMLTableRowElement>("tbody > tr"),
+      );
+      rows.forEach((row, index) => {
+        row.dataset.recoveryRow = `${kind}:${index}`;
+      });
+      return { kind, section, rows };
+    });
+
+    type PrintSource = (typeof sources)[number];
+    type PrintPage = {
+      page: HTMLElement;
+      content: HTMLElement;
+      section: HTMLElement | null;
+      table: HTMLTableElement | null;
+      body: HTMLTableSectionElement | null;
+      footer: HTMLElement;
+      pageNumber: HTMLElement;
+    };
+
+    const expectedRowKeys = sources.flatMap((source) =>
+      source.rows.map((row) => row.dataset.recoveryRow || ""),
+    );
+    let paginating = false;
+
+    const paginateReport = () => {
+      if (paginating || reportView.closed) return;
+      paginating = true;
+      reportDocument.body.dataset.paginationState = "paginating";
+      try {
+        pagesRoot.replaceChildren();
+        const pages: PrintPage[] = [];
+
+        const createPage = (
+          source: PrintSource | null,
+          continuation: boolean,
+        ): PrintPage => {
+          const firstPage = pages.length === 0;
+          const page = reportDocument.createElement("section");
+          page.className = firstPage
+            ? "report-page report-page-first"
+            : "report-page report-page-continuation";
+          page.dataset.sectionType = source?.kind || "summary";
+          const content = reportDocument.createElement("div");
+          content.className = "report-content";
+
+          if (firstPage) {
+            page.appendChild(headerTemplate.content.cloneNode(true));
+            content.appendChild(summaryTemplate.content.cloneNode(true));
+          }
+
+          let section: HTMLElement | null = null;
+          let table: HTMLTableElement | null = null;
+          let body: HTMLTableSectionElement | null = null;
+          if (source) {
+            section = source.section.cloneNode(true) as HTMLElement;
+            table = section.querySelector<HTMLTableElement>("table");
+            body = section.querySelector<HTMLTableSectionElement>("tbody");
+            if (!table || !body) {
+              throw new Error("Não foi possível preparar a tabela de cobranças.");
+            }
+            body.replaceChildren();
+            if (continuation) {
+              section.querySelector(".section-heading small")?.remove();
+            }
+            content.appendChild(section);
+          } else {
+            const empty = reportDocument.createElement("p");
+            empty.textContent = "Não existem cobranças para apresentar.";
+            content.appendChild(empty);
+          }
+          page.appendChild(content);
+
+          const footer = reportDocument.createElement("footer");
+          const brand = reportDocument.createElement("span");
+          brand.textContent = "EPIC PAYMENTS · RELATÓRIO DE RECUPERAÇÃO";
+          const pageNumber = reportDocument.createElement("span");
+          pageNumber.textContent = `Página ${pages.length + 1}`;
+          footer.append(brand, pageNumber);
+          page.appendChild(footer);
+          pagesRoot.appendChild(page);
+
+          const context = { page, content, section, table, body, footer, pageNumber };
+          pages.push(context);
+          return context;
+        };
+
+        // CSS uses millimetres. Measure that scale in the actual report window,
+        // so browser zoom / pixel density never becomes a guessed row height.
+        const pixelsPerMm = () => {
+          const width = pages[0]?.page.getBoundingClientRect().width || 0;
+          if (width <= 0) throw new Error("Não foi possível medir a página A4.");
+          return width / 210;
+        };
+        const limitFor = (context: PrintPage) => Math.min(
+          context.content.getBoundingClientRect().bottom,
+          context.footer.getBoundingClientRect().top - 3 * pixelsPerMm(),
+        ) - 1; // One extra CSS pixel covers fractional border rounding.
+
+        const fits = (context: PrintPage): boolean => {
+          if (!context.table) return true;
+          return context.table.getBoundingClientRect().bottom <= limitFor(context);
+        };
+
+        for (const source of sources) {
+          // A new section always starts on a new sheet, even if the previous
+          // recovered page contains only a handful of rows.
+          let current = createPage(source, false);
+          for (const sourceRow of source.rows) {
+            // Preserve the existing first-page presentation for recovered rows.
+            // Unpaid pages have NO fixed row limit: every row is measured.
+            if (
+              source.kind === "recovered" &&
+              current.page.classList.contains("report-page-first") &&
+              (current.body?.rows.length || 0) >= 20
+            ) {
+              current = createPage(source, true);
+            }
+
+            const row = sourceRow.cloneNode(true) as HTMLTableRowElement;
+            current.body!.appendChild(row);
+            if (!fits(current)) {
+              row.remove();
+
+              if (current.body!.rows.length === 0) {
+                if (!current.page.classList.contains("report-page-first")) {
+                  throw new Error(
+                    "Uma cobrança é maior do que a área imprimível de uma folha A4. " +
+                    "Nenhuma linha foi cortada: é necessário rever esse conteúdo.",
+                  );
+                }
+                // An exceptionally tall first row may fit without the cover.
+                // Keep header/summary on page one and move the whole row.
+                current.section?.remove();
+                current.section = null;
+                current.table = null;
+                current.body = null;
+                current.page.dataset.sectionType = "summary";
+              }
+
+              current = createPage(source, true);
+              current.body!.appendChild(row);
+              if (!fits(current)) {
+                throw new Error(
+                  "Uma cobrança não cabe inteira numa página A4. " +
+                  "O relatório foi bloqueado para não ocultar informação.",
+                );
+              }
+            }
+          }
+        }
+
+        if (pages.length === 0) createPage(null, false);
+        pages.forEach((context, index) => {
+          context.pageNumber.textContent = `Página ${index + 1} de ${pages.length}`;
+        });
+
+        // Printing is enabled only when every source row appears exactly once,
+        // in its original order, and entirely above the reserved footer space.
+        const printedRows = Array.from(
+          pagesRoot.querySelectorAll<HTMLTableRowElement>("tbody > tr"),
+        );
+        if (
+          printedRows.length !== expectedRowKeys.length ||
+          printedRows.some((row, index) =>
+            row.dataset.recoveryRow !== expectedRowKeys[index],
+          )
+        ) {
+          throw new Error("A contagem ou a ordem das cobranças não corresponde aos dados originais.");
+        }
+        if (
+          sources.filter((source) => source.kind === "recovered")
+            .reduce((total, source) => total + source.rows.length, 0) !== recovered.length ||
+          sources.filter((source) => source.kind === "unpaid")
+            .reduce((total, source) => total + source.rows.length, 0) !== unpaid.length
+        ) {
+          throw new Error("Faltam cobranças na preparação do relatório.");
+        }
+        for (const context of pages) {
+          if (!fits(context)) {
+            throw new Error("Foi detetada sobreposição com o rodapé. Volte a gerar o relatório.");
+          }
+          for (const row of Array.from(context.body?.rows || [])) {
+            if (row.getBoundingClientRect().bottom > limitFor(context)) {
+              throw new Error("Uma linha ultrapassa a área de impressão segura.");
+            }
+          }
+        }
+
+        reportDocument.body.dataset.paginationState = "ready";
+        reportDocument.body.dataset.expectedRows = String(expectedRowKeys.length);
+        reportDocument.body.dataset.renderedRows = String(printedRows.length);
+        printButton.disabled = false;
+        printButton.textContent = "Guardar / Imprimir PDF";
+        statusMessage.textContent =
+          `${printedRows.length} cobranças verificadas em ${pages.length} página${pages.length === 1 ? "" : "s"}.`;
+      } finally {
+        paginating = false;
+      }
+    };
+
+    // Recheck with print media active (also covers Ctrl+P). A failure shows an
+    // explicit notice instead of silently printing incomplete financial data.
+    reportView.addEventListener("beforeprint", () => {
+      try {
+        if (reportDocument.fonts.status !== "loaded") {
+          throw new Error("Aguarde que as fontes terminem de carregar e tente novamente.");
+        }
+        paginateReport();
+      } catch (error) {
+        showPaginationError(error);
+      }
+    });
+
+    printButton.addEventListener("click", () => {
+      try {
+        paginateReport();
+        reportView.focus();
+        reportView.print();
+      } catch (error) {
+        showPaginationError(error);
+      }
+    });
+
+    try {
+      // The same fonts, column widths and row styles are used on screen/print.
+      await reportDocument.fonts.ready;
+      if (reportView.closed) return;
+      paginateReport();
+      setPrintReady(true);
+      reportView.focus();
+    } catch (error) {
+      showPaginationError(error);
+    }
+
+  }
 
 
   return (
