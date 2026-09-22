@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   AlertTriangle,
@@ -1358,6 +1358,10 @@ export default function ProcessingWorkspace({
       !f2State.error,
     );
 
+  const isRecoveryXmlPair =
+    f1State?.file.type === "xml" &&
+    f2State?.file.type === "xml";
+
   const unpaidRecoveryResults =
     recoveryResults?.filter(
       (movement) =>
@@ -1495,6 +1499,7 @@ export default function ProcessingWorkspace({
 
   async function handleGenerateBankPdf(
     state: ProcessingFileState,
+    existingWindow?: Window | null,
   ) {
     if (
       !state.data ||
@@ -1504,6 +1509,7 @@ export default function ProcessingWorkspace({
     }
 
     const printWindow =
+      existingWindow ??
       window.open(
         "",
         "_blank",
@@ -2225,6 +2231,59 @@ printWindow.focus();
       `);
       printWindow.document.close();
     }
+  }
+
+
+  async function handleGenerateRecoveryReplicas() {
+    if (
+      !f1State?.data ||
+      !f2State?.data ||
+      f1State.file.type !== "xml" ||
+      f2State.file.type !== "xml"
+    ) {
+      return;
+    }
+
+    /*
+     * Abrimos as duas janelas imediatamente no clique.
+     * Assim o navegador reconhece ambas como resultado direto
+     * da ação do utilizador e não bloqueia a segunda janela
+     * enquanto os XML são obtidos/processados.
+     */
+    const f1Window =
+      window.open(
+        "",
+        "_blank",
+        "width=1000,height=760",
+      );
+
+    const f2Window =
+      window.open(
+        "",
+        "_blank",
+        "width=1000,height=760",
+      );
+
+    if (!f1Window || !f2Window) {
+      f1Window?.close();
+      f2Window?.close();
+
+      window.alert(
+        "O navegador bloqueou uma das janelas das réplicas. Permita pop-ups para o EPIC Payments e tente novamente.",
+      );
+      return;
+    }
+
+    await Promise.all([
+      handleGenerateBankPdf(
+        f1State,
+        f1Window,
+      ),
+      handleGenerateBankPdf(
+        f2State,
+        f2Window,
+      ),
+    ]);
   }
 
 
@@ -3546,7 +3605,17 @@ printWindow.focus();
               </p>
             </div>
 
-            <div className="recovery-top-actions-grid">
+            <div
+              className="recovery-top-actions-grid"
+              style={
+                isRecoveryXmlPair
+                  ? {
+                      gridTemplateColumns:
+                        "repeat(3, minmax(0, 1fr))",
+                    }
+                  : undefined
+              }
+            >
               <button
                 type="button"
                 className={[
@@ -3585,6 +3654,38 @@ printWindow.focus();
                   />
                 ) : null}
               </button>
+
+              {isRecoveryXmlPair ? (
+                <button
+                  type="button"
+                  className={[
+                    "recovery-top-action-card",
+                    "recovery-top-action-card-pdf",
+                  ].join(" ")}
+                  disabled={
+                    !recoveryPairReady
+                  }
+                  onClick={
+                    handleGenerateRecoveryReplicas
+                  }
+                >
+                  <span className="recovery-top-action-icon">
+                    <FileDown
+                      size={23}
+                    />
+                  </span>
+
+                  <span className="recovery-top-action-text">
+                    <strong>
+                      Gerar réplica
+                    </strong>
+
+                    <small>
+                      Gerar em simultâneo as réplicas bancárias originais do F1 e do F2, sem conciliação.
+                    </small>
+                  </span>
+                </button>
+              ) : null}
 
               <button
                 type="button"

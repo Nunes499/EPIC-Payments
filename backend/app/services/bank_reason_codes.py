@@ -33,6 +33,14 @@ BANK_REASON_CODES: dict[str, str] = {
         "Devedor ou Banco do Devedor."
     ),
 
+    "RS04": (
+        'Tipo de movimento = "RCUR" ou "FNAL" com data '
+        "de lançamento menor que a data da última cobrança aceite. "
+        "Ou Cobrança com alteração dos dados da Autorização, "
+        "com data de lançamento menor ou igual à data da última "
+        "cobrança apresentada e aceite."
+    ),
+
     "RS05": (
         'Tipo de movimento = "RCUR" ou "FNAL" '
         "sem indicador de alteração, mas não existe "

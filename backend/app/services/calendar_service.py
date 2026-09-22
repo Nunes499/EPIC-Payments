@@ -326,7 +326,7 @@ async def save_calendar_file(
 
     if file_category == "recovery":
 
-        if file_type != "pdf":
+        if file_type not in {"pdf", "xml"}:
 
             raise HTTPException(
 
@@ -336,7 +336,7 @@ async def save_calendar_file(
 
                     "Os ficheiros de recuperação "
 
-                    "devem estar em formato PDF."
+                    "devem estar em formato PDF ou XML."
 
                 ),
 
@@ -3172,6 +3172,80 @@ def build_unique_movements_by_bank_reference(
 
 
 
+def process_recovery_bank_file(
+
+    db: Session,
+
+    *,
+
+    file_id: int,
+
+) -> dict:
+
+    """
+
+    Processa um ficheiro de recuperação no formato em que foi
+
+    recebido do banco, normalizando PDF e XML para a mesma
+
+    estrutura interna usada na conciliação F1 + F2.
+
+    """
+
+    calendar_file = get_calendar_file_by_id(
+
+        db,
+
+        file_id,
+
+    )
+
+    if calendar_file is None:
+
+        raise HTTPException(
+
+            status_code=status.HTTP_404_NOT_FOUND,
+
+            detail="Ficheiro não encontrado.",
+
+        )
+
+    if calendar_file.file_type == "pdf":
+
+        return process_pdf_calendar_file(
+
+            db,
+
+            file_id=file_id,
+
+        )
+
+    if calendar_file.file_type == "xml":
+
+        return process_xml_calendar_file(
+
+            db,
+
+            file_id=file_id,
+
+        )
+
+    raise HTTPException(
+
+        status_code=status.HTTP_400_BAD_REQUEST,
+
+        detail=(
+
+            "Os ficheiros de recuperação "
+
+            "devem estar em formato PDF ou XML."
+
+        ),
+
+    )
+
+
+
 def process_recovery_consolidation(
 
     db: Session,
@@ -3338,11 +3412,11 @@ def process_recovery_consolidation(
 
             )
 
-    # Os ficheiros físicos de recuperação são PDFs,
+    # Os ficheiros físicos de recuperação podem ser PDF ou XML,
 
-    # mas funcionalmente formam uma categoria própria.
+    # mas funcionalmente formam a mesma categoria própria.
 
-    if recovery_file_1.file_type != "pdf":
+    if recovery_file_1.file_type not in {"pdf", "xml"}:
 
         raise HTTPException(
 
@@ -3350,7 +3424,7 @@ def process_recovery_consolidation(
 
             detail=(
 
-                "O Ficheiro 1 de recuperação não é um PDF."
+                "O Ficheiro 1 de recuperação deve ser PDF ou XML."
 
             ),
 
@@ -3360,7 +3434,7 @@ def process_recovery_consolidation(
 
         recovery_file_2 is not None
 
-        and recovery_file_2.file_type != "pdf"
+        and recovery_file_2.file_type not in {"pdf", "xml"}
 
     ):
 
@@ -3370,13 +3444,13 @@ def process_recovery_consolidation(
 
             detail=(
 
-                "O Ficheiro 2 de recuperação não é um PDF."
+                "O Ficheiro 2 de recuperação deve ser PDF ou XML."
 
             ),
 
         )
 
-    result_f1 = process_pdf_calendar_file(
+    result_f1 = process_recovery_bank_file(
 
         db,
 
@@ -3408,7 +3482,7 @@ def process_recovery_consolidation(
 
     if recovery_file_2 is not None:
 
-        result_f2 = process_pdf_calendar_file(
+        result_f2 = process_recovery_bank_file(
 
             db,
 
@@ -3808,7 +3882,7 @@ def process_recovery_consolidation(
 
         "file_type":
 
-            "pdf",
+            recovery_file_1.file_type,
 
         "file_category":
 
@@ -4090,17 +4164,21 @@ def process_recovery_source_file(
 
         )
 
-    if calendar_file.file_type != "pdf":
+    if calendar_file.file_type not in {"pdf", "xml"}:
 
         raise HTTPException(
 
             status_code=status.HTTP_400_BAD_REQUEST,
 
-            detail="O ficheiro de recuperação não é um PDF.",
+            detail=(
+
+                "O ficheiro de recuperação deve ser PDF ou XML."
+
+            ),
 
         )
 
-    result = process_pdf_calendar_file(
+    result = process_recovery_bank_file(
 
         db,
 
@@ -4110,7 +4188,7 @@ def process_recovery_source_file(
 
     # A primeira leitura da recuperação deve reproduzir apenas
 
-    # o conteúdo bancário do próprio PDF. A Base CEDIS só entra
+    # o conteúdo bancário do próprio ficheiro. A Base CEDIS só entra
 
     # na etapa posterior "Filtrar e inserir informações".
 
@@ -4226,9 +4304,9 @@ def process_calendar_file(
 
     # Recuperação é uma categoria funcional própria.
 
-    # Apesar de F1/F2 serem PDFs físicos, nunca devem
+    # F1/F2 podem ser PDF ou XML e devem passar sempre
 
-    # passar diretamente pelo fluxo de PDF bancário normal.
+    # pelo fluxo específico de recuperação.
 
     if calendar_file.file_category == "recovery":
 
