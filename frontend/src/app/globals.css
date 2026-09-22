@@ -888,13 +888,13 @@ a {
 }
 
 .day-badge-xml {
-  background: rgba(43, 93, 181, 0.11);
-  color: #2453a4;
+  background: rgba(44, 155, 100, 0.12);
+  color: #247c50;
 }
 
 .day-badge-report {
-  background: rgba(44, 155, 100, 0.12);
-  color: #247c50;
+  background: rgba(43, 93, 181, 0.11);
+  color: #2453a4;
 }
 
 .day-badge-members {
