@@ -1474,7 +1474,7 @@ def process_xml_calendar_file(
 
                 transaction,
 
-                ["AcctSvcrRef"],
+                ["OrgnlEndToEndId"],
 
             )
 
