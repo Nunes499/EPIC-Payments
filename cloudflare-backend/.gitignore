@@ -1,0 +1,25 @@
+# Python environments
+.venv/
+.venv-workers/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Cloudflare generated files
+.wrangler/
+python_modules/
+dist/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Temporary files
+*.log
+.DS_Store
+Thumbs.db

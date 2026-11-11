@@ -1,0 +1,16 @@
+[project]
+name = "epic-payments-cloudflare-backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "argon2-cffi>=25.1.0",
+    "fastapi>=0.162.4",
+    "pg8000>=1.31.6",
+    "python-multipart>=0.0.33",
+]
+
+[dependency-groups]
+dev = [
+    "workers-py>=1.17.9",
+    "workers-runtime-sdk>=1.9.6",
+]

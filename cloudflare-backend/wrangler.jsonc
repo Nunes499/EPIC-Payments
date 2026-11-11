@@ -1,0 +1,14 @@
+{
+	"name": "epic-payments-backend-test",
+	"main": "src/main.py",
+	"compatibility_date": "2026-11-11",
+	"compatibility_flags": [
+		"python_workers"
+	],
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "0193099a079d41ca88f7c881dec6d9aa"
+		}
+	]
+}
