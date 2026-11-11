@@ -222,6 +222,16 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
+  if (upstreamResponse.status === 403) {
+    console.warn("Backend devolveu 403 no login", {
+      status: upstreamResponse.status,
+      workerRayId: request.headers.get("cf-ray"),
+      upstreamRayId: upstreamResponse.headers.get("cf-ray"),
+      upstreamMitigated: upstreamResponse.headers.get("cf-mitigated"),
+      renderRequestId: upstreamResponse.headers.get("rndr-id"),
+    });
+  }
+
   if (!upstreamResponse.ok) {
     return jsonResponse(
       request,
