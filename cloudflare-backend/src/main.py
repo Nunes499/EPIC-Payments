@@ -356,4 +356,63 @@ async def change_my_password(
         raise HTTPException(status_code=503, detail="Nao foi possivel alterar a password.") from None
 
 
+
+@app.get("/users")
+async def list_users(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+):
+    secret = get_jwt_secret(request)
+    payload = decode_access_token(token, secret)
+
+    if payload is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Sessao invalida ou expirada.",
+        )
+
+    try:
+        admin = fetch_user(
+            request,
+            f"SELECT {USER_COLUMNS} FROM public.users "
+            "WHERE id = :user_id LIMIT 1",
+            user_id=int(payload["sub"]),
+        )
+
+        if admin is None or not admin[6]:
+            raise HTTPException(
+                status_code=401,
+                detail="Sessao invalida ou expirada.",
+            )
+
+        if admin[5] != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Apenas administradores podem aceder a esta area.",
+            )
+
+        connection = open_database(request)
+
+        try:
+            rows = connection.run(
+                f"SELECT {USER_COLUMNS} FROM public.users "
+                "ORDER BY name ASC"
+            )
+        finally:
+            connection.close()
+
+        return [user_response(user) for user in rows]
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        print(f"USERS_LIST_ERROR: {type(exc).__name__}")
+
+        raise HTTPException(
+            status_code=503,
+            detail="Nao foi possivel consultar os utilizadores.",
+        ) from None
+
+
 Default = asgi.entrypoint(app)
