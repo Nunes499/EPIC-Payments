@@ -186,6 +186,7 @@ export async function POST(request: Request): Promise<Response> {
     upstreamResponse = await fetch(upstreamUrl, {
       method: "POST",
       headers: {
+        ...(process.env.MIGRATION_GATE_KEY && upstreamUrl.hostname === "epic-payments-container-test.epicfitness.workers.dev" ? { "X-Migration-Key": process.env.MIGRATION_GATE_KEY } : {}),
         "Content-Type": "application/x-www-form-urlencoded",
         Accept: "application/json",
       },

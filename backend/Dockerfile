@@ -5,7 +5,7 @@ WORKDIR /app
 # Instala o cliente oficial PostgreSQL 18.
 #
 # python:3.12-slim utiliza atualmente Debian Trixie,
-# por isso utilizamos também o repositório PGDG
+# por isso utilizamos tambÃ©m o repositÃ³rio PGDG
 # correspondente a Trixie.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -26,6 +26,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+LABEL org.opencontainers.image.version="d1-config-20261112"
 
 EXPOSE 8000
 

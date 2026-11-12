@@ -303,6 +303,9 @@ async function proxyRequest(
 
   const headers =
     new Headers();
+  if (process.env.MIGRATION_GATE_KEY && upstreamUrl.hostname === "epic-payments-container-test.epicfitness.workers.dev") {
+    headers.set("X-Migration-Key", process.env.MIGRATION_GATE_KEY);
+  }
 
   /*
    * O JWT só existe no servidor/Worker:
