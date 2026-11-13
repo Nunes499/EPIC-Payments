@@ -28,6 +28,16 @@ export class EpicBackend extends Container {
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (
+      request.method === "POST" &&
+      url.pathname === "/payments/easypay-webhook"
+    ) {
+      const container = env.EPIC_BACKEND.getByName("epic-backend");
+      return container.fetch(request);
+    }
+
     const key = env.MIGRATION_GATE_KEY;
     const provided = request.headers.get("X-Migration-Key");
 
