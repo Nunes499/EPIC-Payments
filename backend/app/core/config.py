@@ -32,13 +32,13 @@ class Settings(BaseSettings):
     # Limite de armazenamento de referência do projeto.
     #
     # O plano Free da Neon inclui atualmente
-    # 0,5 GB de armazenamento por projeto.
+    # 1 GiB de armazenamento por projeto.
     #
     # Este valor pode ser substituído através de:
     # NEON_STORAGE_LIMIT_BYTES
     #
-    # 512 MiB = 536870912 bytes.
-    neon_storage_limit_bytes: int = 536870912
+    # 1 GiB = 1073741824 bytes.
+    neon_storage_limit_bytes: int = 1073741824
 
     # =====================================================
     # CLOUDFLARE R2

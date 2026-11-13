@@ -507,7 +507,7 @@ export default function InfrastructureHealth() {
         >
           <ServiceCard
             title="Backend"
-            description="Render / FastAPI"
+            description="Cloudflare Containers / FastAPI"
             icon={
               <Server
                 size={21}
