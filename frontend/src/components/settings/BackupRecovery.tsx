@@ -92,7 +92,7 @@ export default function BackupRecovery() {
         <div>
           <span style={{ color:"#0878bd", fontSize:"9px", fontWeight:800, letterSpacing:"0.12em" }}>PROTEÇÃO DE DADOS</span>
           <h2 style={{ margin:"5px 0 4px", color:"#10233d", fontSize:"24px", fontWeight:750, letterSpacing:"-0.025em" }}>Backup e Recuperação</h2>
-          <p style={{ margin:0, color:"#6a7e90", fontSize:"12px", lineHeight:1.5 }}>Proteção da base Neon com backups externos validados no Cloudflare R2.</p>
+          <p style={{ margin:0, color:"#6a7e90", fontSize:"12px", lineHeight:1.5 }}>Backups externos da Neon no Cloudflare R2. O estado abaixo é calculado pela existência e idade dos ficheiros.</p>
         </div>
         <button type="button" onClick={() => void loadData(true)} disabled={refreshing} style={{ minHeight:"38px", display:"inline-flex", alignItems:"center", justifyContent:"center", gap:"7px", padding:"8px 13px", borderRadius:"10px", border:"1px solid rgba(75,107,132,0.17)", background:"linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,248,253,0.96))", color:"#24445d", boxShadow:"0 3px 10px rgba(18,48,71,0.04)", cursor:refreshing ? "default" : "pointer", fontSize:"11px", fontWeight:750 }}>
           <RefreshCw size={14} />{refreshing ? "A verificar..." : "Verificar agora"}
@@ -105,7 +105,7 @@ export default function BackupRecovery() {
         <div style={{ display:"flex", alignItems:"center", gap:"14px", marginBottom:"14px", padding:"16px 17px", borderRadius:"15px", border:`1px solid ${statusBorder}`, background:statusBackground }}>
           <div style={{ width:"44px", height:"44px", flex:"0 0 44px", display:"grid", placeItems:"center", borderRadius:"12px", background:"rgba(255,255,255,0.68)", color:statusColor }}><StatusIcon size={24} /></div>
           <div>
-            <strong style={{ display:"block", color:statusColor, fontSize:"17px", fontWeight:850 }}>{data.status_label}</strong>
+            <strong style={{ display:"block", color:statusColor, fontSize:"17px", fontWeight:850 }}>{protectedStatus ? "Backup recente disponível" : data.status_label}</strong>
             <span style={{ display:"block", marginTop:"3px", color:"#657b8b", fontSize:"10px" }}>
               {latest ? <>Último backup há {formatAge(latest.age_hours)} · {data.backup.backup_count} {data.backup.backup_count === 1 ? "backup disponível" : "backups disponíveis"}</> : "Nenhum backup externo foi encontrado."}
             </span>
@@ -121,17 +121,17 @@ export default function BackupRecovery() {
 
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px, 1fr))", gap:"10px", marginTop:"10px" }}>
           <div style={{ padding:"14px 15px", borderRadius:"13px", border:"1px solid rgba(21,148,103,0.13)", background:"rgba(232,247,240,0.52)" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:"8px", color:"#137c59" }}><ShieldCheck size={17} /><strong style={{ fontSize:"11px" }}>Backup validado antes do armazenamento</strong></div>
-            <p style={{ margin:"7px 0 0 25px", color:"#657b8b", fontSize:"9px", lineHeight:1.5 }}>Cada dump é verificado através de {data.backup.validation} antes de ser enviado para o R2.</p>
+            <div style={{ display:"flex", alignItems:"center", gap:"8px", color:"#137c59" }}><ShieldCheck size={17} /><strong style={{ fontSize:"11px" }}>Validação prevista na criação do backup</strong></div>
+            <p style={{ margin:"7px 0 0 25px", color:"#657b8b", fontSize:"9px", lineHeight:1.5 }}>O processo automático verifica o dump através de {data.backup.validation} antes do envio para o R2. Esta página confirma apenas existência e antiguidade dos ficheiros: não executa nem comprova um restauro de teste.</p>
           </div>
           <div style={{ padding:"14px 15px", borderRadius:"13px", border:"1px solid rgba(25,119,197,0.13)", background:"rgba(234,244,254,0.52)" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:"8px", color:"#1977c5" }}><Archive size={17} /><strong style={{ fontSize:"11px" }}>Recuperação em duas camadas</strong></div>
-            <p style={{ margin:"7px 0 0 25px", color:"#657b8b", fontSize:"9px", lineHeight:1.5 }}>Instant Restore Neon para as últimas {data.neon.history_hours} horas + backups externos R2 durante {data.backup.retention_days} dias.</p>
+            <div style={{ display:"flex", alignItems:"center", gap:"8px", color:"#1977c5" }}><Archive size={17} /><strong style={{ fontSize:"11px" }}>Opções de recuperação</strong></div>
+            <p style={{ margin:"7px 0 0 25px", color:"#657b8b", fontSize:"9px", lineHeight:1.5 }}>O plano Neon prevê Instant Restore nas últimas {data.neon.history_hours} horas e backups externos R2 com retenção prevista de {data.backup.retention_days} dias. A recuperação efetiva deve ser testada separadamente.</p>
           </div>
         </div>
 
         {latest && <div style={{ marginTop:"12px", padding:"11px 13px", borderRadius:"11px", border:"1px solid rgba(75,107,132,0.10)", background:"rgba(248,252,254,0.68)" }}>
-          <span style={{ display:"block", color:"#7b8e9d", fontSize:"8px", fontWeight:800, letterSpacing:"0.06em", textTransform:"uppercase" }}>Último ficheiro validado</span>
+          <span style={{ display:"block", color:"#7b8e9d", fontSize:"8px", fontWeight:800, letterSpacing:"0.06em", textTransform:"uppercase" }}>Último ficheiro identificado no R2</span>
           <strong style={{ display:"block", marginTop:"4px", color:"#40576a", fontSize:"9px", fontWeight:700, wordBreak:"break-all" }}>{latest.filename}</strong>
         </div>}
 

@@ -382,8 +382,8 @@ export default function InfrastructureHealth() {
               lineHeight: 1.5,
             }}
           >
-            Verificação em tempo real dos
-            serviços essenciais do EPIC Payments.
+            Verificação da disponibilidade dos serviços essenciais do EPIC Payments.
+            A integridade dos dados é verificada separadamente.
           </p>
         </div>
 
@@ -432,8 +432,8 @@ export default function InfrastructureHealth() {
             )}
 
             {healthy
-              ? "Sistema saudável"
-              : "Sistema degradado"}
+              ? "Serviços acessíveis"
+              : "Serviços com falhas"}
           </div>
 
           <button

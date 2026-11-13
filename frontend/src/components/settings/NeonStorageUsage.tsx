@@ -507,6 +507,14 @@ export default function NeonStorageUsage() {
 
       {usage && (
         <>
+          <div style={{ marginBottom: "14px", padding: "14px 17px", borderRadius: "13px", border: "1px solid rgba(25,119,197,0.15)", background: "rgba(234,244,254,0.72)", color: "#24445d" }}>
+            <strong style={{ display: "block", fontSize: "12px" }}>Plano Neon Free: 1 GiB de armazenamento por projeto e 100 CU-h de computação por mês</strong>
+            <p style={{ margin: "7px 0 0", fontSize: "11px", lineHeight: 1.5 }}>
+              O gráfico abaixo mede o tamanho SQL desta base de dados, não o consumo total faturável do projeto nem as CU-h utilizadas.
+              A utilização mensal de computação não é recolhida por este painel.
+              {" "}<a href="https://console.neon.tech/" target="_blank" rel="noopener noreferrer" style={{ color: "#0878bd", fontWeight: 700 }}>Consultar consumo no Neon</a>.
+            </p>
+          </div>
           <div
             style={{
               marginBottom:

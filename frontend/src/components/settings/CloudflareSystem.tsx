@@ -23,8 +23,8 @@ import "./cloudflare-dashboard.css";
 
 const R2_STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024;
 const D1_STORAGE_LIMIT_BYTES = 5 * 1024 * 1024 * 1024;
-const D1_ROWS_READ_DAILY_LIMIT = 5_000_000;
-const D1_ROWS_WRITTEN_DAILY_LIMIT = 100_000;
+const D1_ROWS_READ_MONTHLY_INCLUDED = 25_000_000_000;
+const D1_ROWS_WRITTEN_MONTHLY_INCLUDED = 50_000_000;
 
 
 function formatBytes(bytes: number): string {
@@ -380,15 +380,6 @@ export default function CloudflareSystem() {
         D1_STORAGE_LIMIT_BYTES,
       ),
 
-      rowsReadPercent: getPercent(
-        metrics.d1.rows_read,
-        D1_ROWS_READ_DAILY_LIMIT,
-      ),
-
-      rowsWrittenPercent: getPercent(
-        metrics.d1.rows_written,
-        D1_ROWS_WRITTEN_DAILY_LIMIT,
-      ),
     };
   }, [metrics]);
 
@@ -420,7 +411,7 @@ export default function CloudflareSystem() {
           <h2>Cloudflare</h2>
 
           <p>
-            Estado e utilização dos serviços R2 e D1 do
+            Estado e utilização dos serviços R2 Paid e D1 (Workers Paid) do
             EPIC Payments.
           </p>
         </div>
@@ -500,7 +491,7 @@ export default function CloudflareSystem() {
               value={`${formatBytes(
                 calculated.r2Storage,
               )} usados`}
-              limit={`Capacidade gratuita: ~10 GB • Disponível: ${formatBytes(
+              limit={`R2 Paid: 10 GB-mês incluídos • margem até à franquia: ${formatBytes(
                 calculated.r2Remaining,
               )}`}
               percentage={
@@ -510,7 +501,7 @@ export default function CloudflareSystem() {
                 calculated.r2Storage,
               )} e ainda tens aproximadamente ${formatBytes(
                 calculated.r2Remaining,
-              )} disponíveis dentro da capacidade gratuita de referência.`}
+              )} até à franquia incluída. Acima dos 10 GB-mês, o R2 Paid continua disponível e pode haver faturação do excedente. A faturação considera GB-mês, não apenas esta medição instantânea.`}
               footer={`Bucket: ${metrics.r2.bucket_name}`}
             />
 
@@ -528,7 +519,7 @@ export default function CloudflareSystem() {
                       calculated.averageFileSize,
                     )} por ficheiro. Mantendo este tamanho médio, ainda poderias armazenar ${formatApproxNumber(
                       calculated.estimatedRemainingFiles,
-                    )} ficheiros semelhantes dentro de aproximadamente 10 GB.`
+                    )} ficheiros semelhantes até à franquia de 10 GB incluídos; esta estimativa não é um limite técnico.`
                   : "Ainda não existem ficheiros suficientes para calcular o tamanho médio e estimar a capacidade restante."
               }
               footer={`Tamanho médio: ${formatBytes(
@@ -547,25 +538,22 @@ export default function CloudflareSystem() {
               value={formatBytes(
                 metrics.d1.database_size_bytes,
               )}
-              limit="Limite incluído: 5 GB"
+              limit="Workers Paid: 5 GB incluídos • máximo de 10 GB por base"
               percentage={
                 calculated.d1StoragePercent
               }
-              practical="Espaço ocupado pela informação da base de dados, como registos, históricos e dados utilizados pelo EPIC Payments. Aumenta à medida que o sistema guarda mais informação."
+              practical="Armazenamento desta base de dados. No Workers Paid, os primeiros 5 GB na conta estão incluídos; o excedente pode ser faturado. Cada base D1 tem um máximo técnico de 10 GB."
               footer="Base de dados do EPIC Payments"
             />
 
             <DashboardCard
               variant="reads"
-              title="Linhas lidas hoje"
+              title="Linhas lidas hoje (UTC)"
               value={formatNumber(
                 metrics.d1.rows_read,
               )}
-              limit="Limite incluído: 5.000.000 / dia"
-              percentage={
-                calculated.rowsReadPercent
-              }
-              practical="Quantidade de dados que o sistema consultou hoje. Sempre que abrimos páginas, pesquisamos informação ou o sistema consulta dados, são efetuadas leituras."
+              limit={`Workers Paid: ${formatNumber(D1_ROWS_READ_MONTHLY_INCLUDED)} linhas/mês incluídas na conta`}
+              practical="Estas leituras são apenas do dia atual (UTC) nesta base, não o consumo mensal de toda a conta. O limite gratuito de 5 milhões/dia não se aplica ao Workers Paid. Consulta a Cloudflare para o total mensal faturável."
               footer={`${formatNumber(
                 metrics.d1.read_queries,
               )} consultas de leitura registadas.`}
@@ -573,15 +561,12 @@ export default function CloudflareSystem() {
 
             <DashboardCard
               variant="writes"
-              title="Linhas escritas hoje"
+              title="Linhas escritas hoje (UTC)"
               value={formatNumber(
                 metrics.d1.rows_written,
               )}
-              limit="Limite incluído: 100.000 / dia"
-              percentage={
-                calculated.rowsWrittenPercent
-              }
-              practical="Quantidade de dados novos ou alterados hoje. Aumenta quando o sistema grava, atualiza ou adiciona informação na base de dados."
+              limit={`Workers Paid: ${formatNumber(D1_ROWS_WRITTEN_MONTHLY_INCLUDED)} linhas/mês incluídas na conta`}
+              practical="Estas escritas são apenas do dia atual (UTC) nesta base, não o consumo mensal de toda a conta. O limite gratuito de 100 mil/dia não se aplica ao Workers Paid."
               footer={`${formatNumber(
                 metrics.d1.write_queries,
               )} consultas de escrita registadas.`}
@@ -620,7 +605,7 @@ export default function CloudflareSystem() {
                     )}
                   </strong>
                   . Mantendo o tamanho médio atual,
-                  estimamos capacidade para mais{" "}
+                  estimamos margem na franquia incluída para mais{" "}
                   <strong>
                     {formatApproxNumber(
                       calculated.estimatedRemainingFiles,
@@ -647,10 +632,7 @@ export default function CloudflareSystem() {
                       calculated.r2Remaining,
                     )}
                   </strong>{" "}
-                  disponíveis no R2. A estimativa de
-                  ficheiros ajusta-se automaticamente
-                  conforme o tamanho médio dos documentos
-                  armazenados.
+                  de margem até à franquia incluída no R2 Paid. Não é um limite técnico: o excedente pode ser faturado e a cobrança considera o consumo em GB-mês.
                 </p>
               </div>
             </div>
@@ -658,8 +640,9 @@ export default function CloudflareSystem() {
 
 
           <div className="cf-dashboard-footer">
+            <span><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener noreferrer">Consultar consumo mensal e faturação na Cloudflare</a></span>
             <span>
-              Atualização automática a cada 60 segundos.
+              Atualização automática a cada 60 segundos. Leituras/escritas D1: apenas hoje (UTC).
             </span>
 
             <span>
