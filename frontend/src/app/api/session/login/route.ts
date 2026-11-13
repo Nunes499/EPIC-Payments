@@ -1,3 +1,4 @@
+import { fetchBackend } from "@/lib/backendFetch";
 const UPSTREAM_API_URL =
   process.env.API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
@@ -183,7 +184,7 @@ export async function POST(request: Request): Promise<Response> {
   let upstreamResponse: Response;
 
   try {
-    upstreamResponse = await fetch(upstreamUrl, {
+    upstreamResponse = await fetchBackend(upstreamUrl, {
       method: "POST",
       headers: {
         ...(process.env.MIGRATION_GATE_KEY && upstreamUrl.hostname === "epic-payments-container-test.epicfitness.workers.dev" ? { "X-Migration-Key": process.env.MIGRATION_GATE_KEY } : {}),

@@ -1,3 +1,4 @@
+import { fetchBackend } from "@/lib/backendFetch";
 const UPSTREAM_API_URL =
   process.env.API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
@@ -387,8 +388,7 @@ async function proxyRequest(
 
   try {
     upstreamResponse =
-      await fetch(
-        upstreamUrl,
+      await fetchBackend(upstreamUrl,
         init,
       );
   } catch {
