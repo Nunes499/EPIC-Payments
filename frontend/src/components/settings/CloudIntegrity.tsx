@@ -350,7 +350,8 @@ export default function CloudIntegrity() {
               >
                 {integrity.summary.errors} erros ·{" "}
                 {integrity.summary.warnings} avisos ·{" "}
-                {integrity.summary.missing_r2_objects} ficheiros R2 em falta
+                {integrity.summary.missing_r2_objects} ficheiros R2 em falta ·{" "}
+                {formatNumber(integrity.summary.missing_communication_rows ?? 0)} registos de Comunicação afetados
               </span>
             </div>
           </div>
@@ -376,7 +377,11 @@ export default function CloudIntegrity() {
             <IntegrityCard
               title="Comunicação"
               value={`${formatNumber(integrity.summary.communication_rows)} registos`}
-              description={`${formatNumber(integrity.summary.communication_source_files)} ficheiros de origem únicos verificados no R2.`}
+              description={
+                (integrity.summary.missing_communication_rows ?? 0) > 0
+                  ? `${formatNumber(integrity.summary.communication_source_files)} ficheiros de origem verificados · ${formatNumber(integrity.summary.missing_communication_rows)} registos afetados por objetos R2 em falta.`
+                  : `${formatNumber(integrity.summary.communication_source_files)} ficheiros de origem únicos verificados no R2.`
+              }
               icon={<MessageSquareText size={21} />}
             />
             <IntegrityCard

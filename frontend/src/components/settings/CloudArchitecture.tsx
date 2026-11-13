@@ -13,6 +13,7 @@ import {
   WalletCards,
   XCircle,
   Zap,
+  MessageSquareText,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -42,11 +43,12 @@ function formatDateTime(value: string | null): string {
 
 const SERVICE_ICONS: Record<string, React.ReactNode> = {
   cloudflare_workers: <Cloud size={20} />,
-  render: <Server size={20} />,
+  cloudflare_containers: <Server size={20} />,
   neon: <Database size={20} />,
   r2: <FileArchive size={20} />,
   d1: <Database size={20} />,
   easypay: <WalletCards size={20} />,
+  smsup: <MessageSquareText size={20} />,
   github_actions: <GitBranch size={20} />,
 };
 
@@ -504,7 +506,9 @@ export default function CloudArchitecture() {
             >
               <span>Cloudflare Workers</span>
               <span>→</span>
-              <span>Render / FastAPI</span>
+              <span>Service Binding</span>
+              <span>→</span>
+              <span>Cloudflare Containers / FastAPI</span>
               <span>→</span>
               <span>Neon</span>
               <span>·</span>
@@ -513,6 +517,8 @@ export default function CloudArchitecture() {
               <span>D1</span>
               <span>·</span>
               <span>Easypay</span>
+              <span>·</span>
+              <span>SMSUP</span>
             </div>
 
             <div
@@ -523,8 +529,20 @@ export default function CloudArchitecture() {
                 fontSize: "9px",
               }}
             >
-              GitHub Actions → backup Neon validado → R2
+              GitHub Actions → backup Neon → R2
             </div>
+            <p
+              style={{
+                margin: "8px 0 0",
+                textAlign: "center",
+                color: "#657b8b",
+                fontSize: "9px",
+                lineHeight: 1.5,
+              }}
+            >
+              Este painel documenta a arquitetura configurada.
+              O estado real dos serviços é apresentado em Infraestrutura.
+            </p>
           </div>
 
           <div

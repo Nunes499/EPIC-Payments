@@ -78,6 +78,7 @@ export type CloudIntegritySummary = {
   issues: number;
   checked_r2_objects: number;
   missing_r2_objects: number;
+  missing_communication_rows: number;
   calendar_files_neon: number;
   cedis_files: number;
   daily_reports: number;

@@ -36,38 +36,43 @@ def _service(
 def get_cloud_architecture_status() -> dict:
     checked_at = _utc_now()
 
+    # Mapa da arquitetura definida. A disponibilidade em tempo
+    # real é monitorizada na secção Infraestrutura.
     services = {
         "cloudflare_workers": _service(
             name="Cloudflare Workers",
             role="Frontend / Edge",
             responsibility=(
-                "Publica o frontend e encaminha "
-                "as chamadas da aplicação para "
-                "a API backend."
+                "Publica o frontend Vinext e encaminha "
+                "as chamadas da aplicação para o backend "
+                "através do Service Binding."
             ),
             source_of_truth=False,
             stores=[
                 "Frontend da aplicação",
                 "Rotas API de encaminhamento",
+                "Binding EPIC_BACKEND_SERVICE",
             ],
             must_not_store=[
                 "Credenciais cloud no browser",
                 "Dados transacionais principais",
             ],
         ),
-        "render": _service(
-            name="Render",
-            role="Backend / API",
+        "cloudflare_containers": _service(
+            name="Cloudflare Containers",
+            role="Backend / FastAPI",
             responsibility=(
-                "Executa FastAPI, regras de negócio "
-                "e integrações com os serviços cloud."
+                "Executa a API FastAPI num Container, "
+                "com regras de negócio e integrações "
+                "com os serviços cloud."
             ),
             source_of_truth=False,
             stores=[
                 "Código e processos da API",
+                "Integrações Easypay e SMSUP",
             ],
             must_not_store=[
-                "Ficheiros persistentes no disco",
+                "Ficheiros persistentes no disco local",
                 "Dados dependentes da instância",
             ],
         ),
@@ -99,7 +104,7 @@ def get_cloud_architecture_status() -> dict:
             responsibility=(
                 "Armazena ficheiros persistentes "
                 "e backups sem depender do disco "
-                "do backend."
+                "do Container."
             ),
             source_of_truth=True,
             stores=[
@@ -138,8 +143,9 @@ def get_cloud_architecture_status() -> dict:
             name="Easypay",
             role="Processador de pagamentos",
             responsibility=(
-                "Cria referências e fornece "
-                "alterações de estado dos pagamentos."
+                "Cria referências e comunica alterações "
+                "de estado por notificações autenticadas "
+                "ao backend."
             ),
             source_of_truth=False,
             stores=[
@@ -148,6 +154,21 @@ def get_cloud_architecture_status() -> dict:
             ],
             must_not_store=[
                 "Dados internos como única cópia",
+            ],
+        ),
+        "smsup": _service(
+            name="SMSUP",
+            role="Envio de SMS",
+            responsibility=(
+                "Entrega SMS solicitados pela aplicação; "
+                "o histórico interno permanece no Neon."
+            ),
+            source_of_truth=False,
+            stores=[
+                "Processamento externo das mensagens",
+            ],
+            must_not_store=[
+                "Histórico interno como única cópia",
             ],
         ),
         "github_actions": _service(
@@ -173,26 +194,36 @@ def get_cloud_architecture_status() -> dict:
         {
             "name": "Frontend para Backend",
             "from": "cloudflare_workers",
-            "to": "render",
+            "to": "cloudflare_containers",
             "purpose": (
-                "Chamadas da aplicação passam "
-                "pela API backend."
+                "Chamadas internas através do "
+                "Service Binding EPIC_BACKEND_SERVICE."
             ),
             "status": "ok",
         },
         {
             "name": "Pagamentos",
-            "from": "render",
+            "from": "cloudflare_containers",
             "to": "easypay",
             "purpose": (
-                "Criação e sincronização "
-                "de pagamentos."
+                "Criação de referências e consulta "
+                "de estados de pagamento."
+            ),
+            "status": "ok",
+        },
+        {
+            "name": "Notificações de pagamentos",
+            "from": "easypay",
+            "to": "cloudflare_containers",
+            "purpose": (
+                "Webhook autenticado para atualizar "
+                "o estado dos pagamentos no Neon."
             ),
             "status": "ok",
         },
         {
             "name": "Persistência de pagamentos",
-            "from": "render",
+            "from": "cloudflare_containers",
             "to": "neon",
             "purpose": (
                 "Referências e estados ficam "
@@ -202,7 +233,7 @@ def get_cloud_architecture_status() -> dict:
         },
         {
             "name": "Ficheiros",
-            "from": "render",
+            "from": "cloudflare_containers",
             "to": "r2",
             "purpose": (
                 "Conteúdo binário persistente "
@@ -212,7 +243,7 @@ def get_cloud_architecture_status() -> dict:
         },
         {
             "name": "Pesquisa bancária",
-            "from": "render",
+            "from": "cloudflare_containers",
             "to": "d1",
             "purpose": (
                 "Metadados e índices bancários "
@@ -221,17 +252,29 @@ def get_cloud_architecture_status() -> dict:
             "status": "ok",
         },
         {
+            "name": "Comunicações SMS",
+            "from": "cloudflare_containers",
+            "to": "smsup",
+            "purpose": (
+                "Envio de mensagens com registo "
+                "interno no Neon."
+            ),
+            "status": "ok",
+        },
+        {
             "name": "Backup Neon",
             "from": "github_actions",
             "to": "r2",
             "purpose": (
-                "Backup validado do Neon "
-                "é armazenado no R2."
+                "Backups da base Neon são "
+                "guardados no R2."
             ),
             "status": "ok",
         },
     ]
 
+    # Estas regras descrevem a arquitetura configurada;
+    # não representam um teste de disponibilidade ao vivo.
     rules = [
         {
             "id": "frontend_no_direct_cloud",
@@ -242,6 +285,17 @@ def get_cloud_architecture_status() -> dict:
             "detail": (
                 "O browser comunica através das "
                 "rotas da aplicação e do backend."
+            ),
+        },
+        {
+            "id": "service_binding",
+            "status": "ok",
+            "label": (
+                "Backend por Service Binding"
+            ),
+            "detail": (
+                "O Worker liga-se ao Container através "
+                "de EPIC_BACKEND_SERVICE."
             ),
         },
         {
@@ -263,7 +317,7 @@ def get_cloud_architecture_status() -> dict:
             ),
             "detail": (
                 "Ficheiros operacionais não "
-                "dependem do disco do Render."
+                "dependem do disco do Container."
             ),
         },
         {
@@ -287,7 +341,7 @@ def get_cloud_architecture_status() -> dict:
                 "bank_index_files e "
                 "bank_index_movements podem ser "
                 "reconstruídos a partir dos "
-                "ficheiros bancários."
+                "ficheiros bancários disponíveis."
             ),
         },
         {
@@ -297,8 +351,8 @@ def get_cloud_architecture_status() -> dict:
                 "Backup externo à base principal"
             ),
             "detail": (
-                "GitHub Actions cria backup Neon "
-                "validado e guarda-o no R2."
+                "GitHub Actions executa backups Neon "
+                "e guarda-os no R2."
             ),
         },
         {
@@ -331,7 +385,7 @@ def get_cloud_architecture_status() -> dict:
             else "warning"
         ),
         "status_label": (
-            "Arquitetura conforme"
+            "Arquitetura documentada"
             if architecture_ok
             else "Arquitetura requer atenção"
         ),

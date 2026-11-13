@@ -515,6 +515,15 @@ def get_cloud_integrity() -> dict[str, Any]:
         # ESTADO FINAL
         # =================================================
 
+        missing_communication_rows = sum(
+            1
+            for item in issues
+            if (
+                item["category"] == "communication_rows"
+                and item["severity"] == "error"
+            )
+        )
+
         error_count = sum(
             1
             for item in issues
@@ -556,6 +565,9 @@ def get_cloud_integrity() -> dict[str, Any]:
                 ),
                 "missing_r2_objects": len(
                     missing_r2_keys
+                ),
+                "missing_communication_rows": (
+                    missing_communication_rows
                 ),
                 "calendar_files_neon": len(
                     calendar_files
