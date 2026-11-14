@@ -225,12 +225,46 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   if (upstreamResponse.status === 403) {
+    const upstreamContentType =
+      upstreamResponse.headers.get("content-type") ?? "";
+
+    let upstreamTitle: string | null = null;
+    let upstreamErrorCode: string | null = null;
+
+    try {
+      const responseText = (
+        await upstreamResponse.clone().text()
+      ).slice(0, 65536);
+
+      const titleMatch = responseText.match(
+        /<title\b[^>]*>([\s\S]*?)<\/title>/i,
+      );
+
+      upstreamTitle =
+        titleMatch?.[1].replace(/\s+/g, " ").trim().slice(0, 160) || null;
+
+      const plainText = responseText
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ");
+
+      const errorMatch = plainText.match(
+        /\berror(?:\s+code)?\s*:?\s*(1\d{3})\b/i,
+      );
+
+      upstreamErrorCode = errorMatch?.[1] ?? null;
+    } catch {
+      // O diagnóstico pode falhar sem interromper a resposta do login.
+    }
+
     console.warn("Backend devolveu 403 no login", {
       status: upstreamResponse.status,
       workerRayId: request.headers.get("cf-ray"),
       upstreamRayId: upstreamResponse.headers.get("cf-ray"),
       upstreamMitigated: upstreamResponse.headers.get("cf-mitigated"),
       renderRequestId: upstreamResponse.headers.get("rndr-id"),
+      upstreamContentType,
+      upstreamTitle,
+      upstreamErrorCode,
     });
   }
 
