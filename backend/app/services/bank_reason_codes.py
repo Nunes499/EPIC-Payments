@@ -4,6 +4,16 @@ BANK_REASON_CODES: dict[str, str] = {
         "relação de dados válida."
     ),
 
+    "MD01": (
+        "Mandato inexistente/inválido "
+        "(também se aplica a reembolso de uma cobrança não autorizada)."
+    ),
+
+    "MD06": (
+        "Operação contestada pelo devedor – "
+        "Reembolso (Refund) de cobrança Autorizada."
+    ),
+
     "AM04": (
         "Insuficiência de fundos."
     ),
